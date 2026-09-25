@@ -13,6 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="IID.Application.Common.Results" />
+    <Using Include="IID.Domain.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="FastEndpoints" Version="8.0.0" />
     <PackageReference Include="FastEndpoints.Swagger" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />

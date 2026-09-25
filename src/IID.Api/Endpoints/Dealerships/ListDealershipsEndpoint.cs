@@ -1,5 +1,4 @@
 using FastEndpoints;
-using IID.Api.Extensions;
 using IID.Application.Features.Dealerships.Queries.GetDealerships;
 using MediatR;
 
@@ -15,6 +14,13 @@ public sealed class ListDealershipsEndpoint(ISender sender) : EndpointWithoutReq
         Get("/api/v1/dealerships");
         Roles("Manager", "Viewer");
         Description(x => x.WithTags("Dealerships"));
+        Summary(s =>
+        {
+            s.Summary = "List all dealerships";
+            s.Description = "Retrieves all active dealership locations in the system.";
+            s.Response(200, "Dealerships loaded successfully.");
+            s.Response(401, "Unauthorized.");
+        });
     }
 
     public override async Task HandleAsync(CancellationToken ct)

@@ -6,6 +6,7 @@ public sealed class LogVehicleActionCommandValidator : AbstractValidator<LogVehi
     public LogVehicleActionCommandValidator()
     {
         RuleFor(c => c.VehicleId).NotEqual(Guid.Empty);
+        RuleFor(c => c.ActionType).IsInEnum();
         RuleFor(c => c.Notes).MaximumLength(2000);
     }
 }

@@ -165,6 +165,32 @@
   flex-direction: column;
 }
 
+.dealership-display-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--iid-bg-surface);
+  border: 1px solid var(--iid-border);
+  border-radius: var(--iid-radius-md);
+  font-size: 0.875rem;
+
+  .store-icon {
+    font-size: 18px;
+    color: var(--iid-primary);
+    flex-shrink: 0;
+  }
+
+  .dealer-name {
+    font-weight: 600;
+    color: var(--iid-text-primary);
+  }
+
+  .dealer-location {
+    color: var(--iid-text-muted);
+  }
+}
+
 .font-mono {
   font-family: var(--iid-font-mono);
 }

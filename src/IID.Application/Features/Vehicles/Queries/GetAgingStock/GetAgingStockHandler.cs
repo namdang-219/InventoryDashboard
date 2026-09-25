@@ -17,8 +17,13 @@ public sealed class GetAgingStockHandler(
         var limit = Math.Clamp(q.Limit, 1, 100);
         var page = Math.Max(1, q.Page);
 
-        var (items, total) = await vehicles.ListAsync(
-            null, null, 91, null, null, page, limit, "dateAdded", "asc", ct);
+        var filter = new VehicleListFilter(
+            MinAgeDays: 91,
+            Page: page,
+            Limit: limit,
+            Sort: "dateAdded",
+            Order: "asc");
+        var (items, total) = await vehicles.ListAsync(filter, ct);
 
         var analytics = new VehicleAnalyticsService(now);
         var filtered = items

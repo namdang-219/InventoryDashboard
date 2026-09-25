@@ -1,4 +1,5 @@
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Models;
 using IID.Application.Dashboard.Queries.Dtos;
 using MediatR;
 namespace IID.Application.Dashboard.Queries.GetLowInventoryAlerts;
@@ -15,7 +16,7 @@ public sealed class GetLowInventoryAlertsHandler(
     {
         const int fetchSize = 1000;
         var (items, _) = await vehicles.ListAsync(
-            null, null, null, null, VehicleStatus.Available, 1, fetchSize, "dateAdded", "desc", ct);
+            new VehicleListFilter(Status: VehicleStatus.Available, Limit: fetchSize, Sort: "dateAdded", Order: "desc"), ct);
 
         // Group by make + model, flag combos with critically low availability.
         // Use a deterministic Guid derived from (Make|Model) so the same combo

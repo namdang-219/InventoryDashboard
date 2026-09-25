@@ -202,6 +202,10 @@ namespace IID.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("SoldAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("SoldByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 

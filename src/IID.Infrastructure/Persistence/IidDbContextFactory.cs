@@ -26,14 +26,13 @@ public sealed class IidDbContextFactory : IDesignTimeDbContextFactory<IidDbConte
 {
     public IidDbContext CreateDbContext(string[] args)
     {
-        // Resolve API project regardless of where the CLI is invoked from.
-        var apiProject = Path.GetFullPath(Path.Combine(
-            Directory.GetCurrentDirectory(), "..", "..", "src", "IID.Api"));
+        var apiDirectory = FindApiDirectory();
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
 
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(apiProject)
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile($"appsettings.Development.json", optional: true)
+            .SetBasePath(apiDirectory)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
@@ -49,5 +48,27 @@ public sealed class IidDbContextFactory : IDesignTimeDbContextFactory<IidDbConte
         // DomainEventDispatchInterceptor is registered via AddDbContext at runtime;
         // it is irrelevant for design-time tooling, so pass null.
         return new IidDbContext(optionsBuilder.Options, domainEventInterceptor: null);
+    }
+
+    private static string FindApiDirectory()
+    {
+        var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (current != null)
+        {
+            var candidate = Path.Combine(current.FullName, "src", "IID.Api");
+            if (File.Exists(Path.Combine(candidate, "appsettings.json")))
+            {
+                return candidate;
+            }
+
+            if (File.Exists(Path.Combine(current.FullName, "appsettings.json")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        return Directory.GetCurrentDirectory();
     }
 }

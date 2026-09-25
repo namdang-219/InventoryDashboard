@@ -16,9 +16,11 @@ public sealed class ListVehiclesHandler(
         var limit = Math.Clamp(q.Limit, 1, 100);
         var page = Math.Max(1, q.Page);
 
-        var (items, total) = await vehicles.ListAsync(
+        var filter = new VehicleListFilter(
             q.Make, q.Model, q.MinAgeDays, q.MaxAgeDays, q.Status,
-            page, limit, q.Sort, q.Order, ct, q.DealershipId);
+            page, limit, q.Sort, q.Order, q.DealershipId,
+            q.Vin, q.StockNumber);
+        var (items, total) = await vehicles.ListAsync(filter, ct);
 
         var analytics = new VehicleAnalyticsService(clock.UtcNow);
         var responses = items.Select(v => VehicleResponse.From(v, analytics)).ToList();

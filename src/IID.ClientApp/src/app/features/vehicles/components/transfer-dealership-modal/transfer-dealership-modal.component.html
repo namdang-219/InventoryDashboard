@@ -62,7 +62,7 @@
               <span class="node-label">Destination Dealership *</span>
               <select
                 id="targetDealershipId"
-                class="iid-select target-select"
+                class="iid-input iid-select target-select"
                 formControlName="targetDealershipId"
               >
                 @if (availableDealerships().length === 0) {
@@ -90,7 +90,7 @@
         </label>
         <textarea
           id="transferNotes"
-          class="iid-textarea"
+          class="iid-input iid-textarea"
           rows="3"
           placeholder="E.g., High buyer demand in target market, rebalancing inventory lot density, dealer network trade..."
           formControlName="notes"

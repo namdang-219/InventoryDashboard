@@ -5,7 +5,6 @@ using IID.Application.Common.Behaviors;
 using IID.Application.Common.Interfaces;
 using IID.Application.Features.Dashboard.Services;
 using IID.Infrastructure.Configuration;
-using IID.Domain.Common;
 using IID.Infrastructure;
 using IID.Infrastructure.Identity;
 using IID.Infrastructure.Persistence;
@@ -16,31 +15,30 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+
+using IID.Api.Middleware;
 
 namespace IID.Api.Extensions;
 
 /// <summary>
-/// Composition-root helpers that mirror the Sportcast reference pattern:
-/// every numbered registration block in <see cref="ConfigureServices"/> is implemented
-/// as its own single-responsibility <c>Add…</c> extension method, mirroring Sportcast's
-/// <c>AddBlobStorage</c>, <c>AddCosmosClientWithRetryPolicy</c>, <c>AddTranslationServices</c> etc.
+/// Extension methods for configuring DI services and application dependencies.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Top-level composition root. Mirrors the Sportcast pattern: every registration
-    /// (config, persistence, identity, signalR, app, swagger) is here, as a fluent chain
-    /// of single-purpose helpers.
+    /// Registers all core application services and configurations.
     /// </summary>
     public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // 1) Bind config → POCOs
+        // Bind config → POCOs
         services.AddConfigurations(configuration);
 
         return services
             .AddHttpContextAccessors()
+            .AddIidExceptionHandling()
             .AddIidPersistence(configuration)
             .AddIidIdentity()
             .AddIidJwtAuthentication(configuration)
@@ -53,7 +51,17 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Binds strongly-typed options sections (mirrors <c>AddConfigurations</c>).
+    /// Registers the global exception handler and RFC 7807 ProblemDetails support.
+    /// </summary>
+    public static IServiceCollection AddIidExceptionHandling(this IServiceCollection services)
+    {
+        services.AddExceptionHandler<GlobalExceptionHandler>();
+        services.AddProblemDetails();
+        return services;
+    }
+
+    /// <summary>
+    /// Binds strongly-typed options sections from configuration.
     /// </summary>
     public static IServiceCollection AddConfigurations(this IServiceCollection services, IConfiguration configuration)
     {
@@ -65,7 +73,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 2 — HTTP context accessor. Required by <c>HttpContextCurrentUser</c>.
+    /// HTTP context accessor. Required by <c>HttpContextCurrentUser</c>.
     /// </summary>
     public static IServiceCollection AddHttpContextAccessors(this IServiceCollection services)
     {
@@ -74,7 +82,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 3 — Persistence. Wires the EF Core <see cref="IidDbContext"/> against SQL Server,
+    /// Persistence. Wires the EF Core <see cref="IidDbContext"/> against SQL Server,
     /// and registers the database initializer (migrations + idempotent seeders) as a scoped service.
     /// </summary>
     public static IServiceCollection AddIidPersistence(this IServiceCollection services, IConfiguration configuration)
@@ -91,6 +99,7 @@ public static class ServiceCollectionExtensions
         {
             opts.UseSqlServer(connStr);
             opts.AddInterceptors(sp.GetRequiredService<DomainEventDispatchInterceptor>());
+            opts.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
 
         services.Configure<SeedOptions>(configuration.GetSection(SeedOptions.Name));
@@ -103,7 +112,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 4 — ASP.NET Identity (Core) with roles, EF stores, and SignIn manager.
+    /// ASP.NET Identity (Core) with roles, EF stores, and SignIn manager.
     /// </summary>
     public static IServiceCollection AddIidIdentity(this IServiceCollection services)
     {
@@ -116,7 +125,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 5a — JWT bearer authentication. Issuer / audience / signing key are bound
+    /// JWT bearer authentication. Issuer / audience / signing key are bound
     /// from the <c>Jwt</c> configuration section. Missing keys throw on startup, not at request time.
     /// </summary>
     public static IServiceCollection AddIidJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
@@ -143,7 +152,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 5b — Authorization policies.
+    /// Authorization policies.
     /// </summary>
     public static IServiceCollection AddIidAuthorization(this IServiceCollection services)
     {
@@ -152,7 +161,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 6 — SignalR + Application/Infrastructure composition: hubs, notifiers, repositories.
+    /// SignalR + Application/Infrastructure composition: hubs, notifiers, repositories.
     /// </summary>
     public static IServiceCollection AddIidRealtime(this IServiceCollection services)
     {
@@ -171,7 +180,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 7 — CORS. Defaults are dev-friendly; configured origins come from <c>Cors:AllowedOrigins</c>.
+    /// CORS. Defaults are dev-friendly; configured origins come from <c>Cors:AllowedOrigins</c>.
     /// </summary>
     public static IServiceCollection AddIidCors(this IServiceCollection services, IConfiguration configuration)
     {
@@ -189,7 +198,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Section 8 — FastEndpoints + Swagger. Title / version come from the <c>Swagger</c> configuration section.
+    /// FastEndpoints + Swagger. Title / version come from the <c>Swagger</c> configuration section.
     /// </summary>
     public static IServiceCollection AddIidFastEndpointsWithSwagger(this IServiceCollection services, IConfiguration configuration)
     {
@@ -204,22 +213,4 @@ public static class ServiceCollectionExtensions
             });
         return services;
     }
-}
-
-/// <summary>
-/// Adapter from domain <see cref="ErrorKind"/> to HTTP status codes.
-/// Endpoints call <c>ResultMapper.ToStatus</c> directly.
-/// </summary>
-public static class ResultMapper
-{
-    public static int ToStatus(ErrorKind k) => k switch
-    {
-        ErrorKind.ValidationFailed => 422,
-        ErrorKind.NotFound => 404,
-        ErrorKind.Conflict => 409,
-        ErrorKind.Unauthorized => 401,
-        ErrorKind.Forbidden => 403,
-        ErrorKind.Internal => 500,
-        _ => 500
-    };
 }

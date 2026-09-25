@@ -1,8 +1,5 @@
-using System;
-using System.Globalization;
-using System.Text;
 using IID.Application.Common.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using IID.Application.Common.Models;
 using VehicleStatusEnum = IID.Domain.Vehicles.VehicleStatus;
 
 namespace IID.Infrastructure.Persistence.Repositories;
@@ -38,29 +35,53 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
     public void Remove(Vehicle vehicle) => db.Vehicles.Remove(vehicle);
 
     public async Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAsync(
-        string? make, string? model, int? minAgeDays, int? maxAgeDays, VehicleStatusEnum? status,
-        int page, int limit, string sort, string order, CancellationToken ct, Guid? dealershipId = null)
+        VehicleListFilter filter, CancellationToken ct = default)
     {
         IQueryable<Vehicle> q = db.Vehicles.AsNoTracking().Include(v => v.Dealership);
-        if (dealershipId.HasValue && dealershipId.Value != Guid.Empty)
-            q = q.Where(v => v.DealershipId == dealershipId.Value);
+        if (filter.DealershipId.HasValue && filter.DealershipId.Value != Guid.Empty)
+            q = q.Where(v => v.DealershipId == filter.DealershipId.Value);
 
-        if (!string.IsNullOrWhiteSpace(make)) q = q.Where(v => v.Make == make);
-        if (!string.IsNullOrWhiteSpace(model)) q = q.Where(v => v.Model == model);
+        if (!string.IsNullOrWhiteSpace(filter.Make)) q = q.Where(v => v.Make == filter.Make);
+        if (!string.IsNullOrWhiteSpace(filter.Model)) q = q.Where(v => v.Model == filter.Model);
+        if (!string.IsNullOrWhiteSpace(filter.Vin))
+        {
+            var vinTerm = filter.Vin.Trim();
+            if (db.Database.ProviderName?.EndsWith("InMemory", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                q = q.Where(v => v.Vin.Value.Contains(vinTerm));
+            }
+            else
+            {
+                q = q.Where(v => ((string)(object)v.Vin).Contains(vinTerm));
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(filter.StockNumber))
+        {
+            var stockTerm = filter.StockNumber.Trim();
+            q = q.Where(v => v.StockNumber != null && v.StockNumber.Contains(stockTerm));
+        }
 
-        // Age filters must be expressed in SQL-translatable form. We compute the
-        // cutoff date in C# and pass it as a parameter so EF emits
-        // `WHERE DateAddedToInventory <= @cutoff`, which SQL Server can execute
-        // directly. The previous form `(UtcNow - v.DateAddedToInventory).TotalDays`
-        // cannot be translated by EF 10 and throws at runtime.
-        if (minAgeDays.HasValue)
-            q = q.Where(v => v.DateAddedToInventory <= DateTimeOffset.UtcNow.AddDays(-minAgeDays.Value));
-        if (maxAgeDays.HasValue)
-            q = q.Where(v => v.DateAddedToInventory >= DateTimeOffset.UtcNow.AddDays(-maxAgeDays.Value));
+        var effectiveMaxAge = filter.MaxAgeDays;
+        if (!effectiveMaxAge.HasValue && filter.MinAgeDays.HasValue)
+        {
+            if (filter.MinAgeDays.Value == InventoryPolicy.AgingHighDays)
+            {
+                effectiveMaxAge = InventoryPolicy.AgingCriticalDays - 1;
+            }
+            else if (filter.MinAgeDays.Value == InventoryPolicy.AgingWarningDays)
+            {
+                effectiveMaxAge = InventoryPolicy.AgingHighDays - 1;
+            }
+        }
 
-        if (status.HasValue) q = q.Where(v => v.Status == status.Value);
+        if (filter.MinAgeDays.HasValue)
+            q = q.Where(v => v.DateAddedToInventory <= DateTimeOffset.UtcNow.AddDays(-filter.MinAgeDays.Value));
+        if (effectiveMaxAge.HasValue)
+            q = q.Where(v => v.DateAddedToInventory >= DateTimeOffset.UtcNow.AddDays(-effectiveMaxAge.Value));
 
-        q = (sort, order) switch
+        if (filter.Status.HasValue) q = q.Where(v => v.Status == filter.Status.Value);
+
+        q = (filter.Sort, filter.Order) switch
         {
             ("dateAdded", "asc") => q.OrderBy(v => v.DateAddedToInventory),
             ("dateAdded", _) => q.OrderByDescending(v => v.DateAddedToInventory),
@@ -69,6 +90,8 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
         };
 
         var total = await q.CountAsync(ct);
+        var page = Math.Max(1, filter.Page);
+        var limit = Math.Clamp(filter.Limit, 1, 100);
         var items = await q.Skip((page - 1) * limit).Take(limit).ToListAsync(ct);
         return (items, total);
     }

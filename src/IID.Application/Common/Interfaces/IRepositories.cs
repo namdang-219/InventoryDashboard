@@ -1,3 +1,4 @@
+using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
 using IID.Domain.Dealerships;
 
@@ -20,9 +21,7 @@ public interface IVehicleRepository
     Task AddAsync(Vehicle vehicle, CancellationToken ct);
     void Update(Vehicle vehicle);
     void Remove(Vehicle vehicle);
-    Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAsync(
-        string? make, string? model, int? minAgeDays, int? maxAgeDays, VehicleStatus? status,
-        int page, int limit, string sort, string order, CancellationToken ct, Guid? dealershipId = null);
+    Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAsync(VehicleListFilter filter, CancellationToken ct = default);
 }
 
 public interface IVehicleActionRepository
@@ -30,7 +29,7 @@ public interface IVehicleActionRepository
     Task AddAsync(Domain.VehicleActions.VehicleAction action, CancellationToken ct);
     void Remove(Domain.VehicleActions.VehicleAction action);
     Task<(IReadOnlyList<Domain.VehicleActions.VehicleAction> Items, int Total)> ListAsync(
-        Guid? vehicleId, int page, int limit, CancellationToken ct);
+        VehicleActionListFilter filter, CancellationToken ct = default);
     Task<(IReadOnlyList<Domain.VehicleActions.VehicleAction> Items, string? NextCursor, bool HasMore, int Total)> ListByCursorAsync(
         string? cursor, int limit, CancellationToken ct);
 }
@@ -38,11 +37,7 @@ public interface IVehicleActionRepository
 public interface IUnitOfWork
 {
     /// <summary>
-    /// Persists all tracked changes. Returns <see cref="Result{T}"/> so that
-    /// Infrastructure-only concerns (e.g. EF Core's
-    /// <c>DbUpdateConcurrencyException</c>) can be translated into
-    /// <see cref="ErrorKind.Conflict"/> without leaking EF Core types into
-    /// Application/Handlers.
+    /// Persists all tracked changes to the database.
     /// </summary>
     Task<Result<int>> SaveChangesAsync(CancellationToken ct);
 }

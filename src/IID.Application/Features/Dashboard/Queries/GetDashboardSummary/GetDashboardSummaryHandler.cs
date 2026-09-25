@@ -1,4 +1,5 @@
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
 using MediatR;
 namespace IID.Application.Dashboard.Queries.GetDashboardSummary;
@@ -16,7 +17,7 @@ public sealed class GetDashboardSummaryHandler(
         // this would move to a dedicated reporting view / materialized table.
         const int analyticsPageSize = 1000;
         var (items, _) = await vehicles.ListAsync(
-            null, null, null, null, null, 1, analyticsPageSize, "dateAdded", "desc", ct);
+            new VehicleListFilter(Limit: analyticsPageSize, Sort: "dateAdded", Order: "desc"), ct);
 
         var analytics = new VehicleAnalyticsService(asOf);
 

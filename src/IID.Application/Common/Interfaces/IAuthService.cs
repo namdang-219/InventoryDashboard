@@ -2,8 +2,7 @@ using IID.Application.Auth.Commands.Login;
 namespace IID.Application.Common.Interfaces;
 
 /// <summary>
-/// Authentication operations. Lives in Application so the endpoint has no
-/// infrastructure dependency. Implementation is in Infrastructure.
+/// Authentication operations.
 /// </summary>
 public interface IAuthService
 {

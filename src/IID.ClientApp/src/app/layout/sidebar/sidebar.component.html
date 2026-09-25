@@ -23,7 +23,7 @@
       }
     </div>
     <ul class="nav-list">
-      @for (item of navItems; track item.path) {
+      @for (item of navItems(); track item.path) {
         <li>
           <a
             [routerLink]="item.path"

@@ -7,16 +7,12 @@ using Serilog;
 namespace IID.Api.Extensions;
 
 /// <summary>
-/// Application pipeline mapping, mirroring Sportcast's style.
-/// Keeps <c>Program.cs</c> to a single <c>app.MapApi()</c> call.
+/// Extension methods for database initialization and HTTP request pipeline configuration.
 /// </summary>
 public static class WebApplicationExtensions
 {
     /// <summary>
-    /// Runs pending EF migrations and idempotent data seeders before the
-    /// pipeline starts handling traffic. Failures are logged but do not
-    /// abort startup; the app will still come up so the operator can see
-    /// the error in logs.
+    /// Runs pending EF Core migrations and data seeders at application startup.
     /// </summary>
     public static async Task<WebApplication> InitializeDatabaseAsync(this WebApplication app)
     {
@@ -26,8 +22,14 @@ public static class WebApplicationExtensions
         return app;
     }
 
+    /// <summary>
+    /// Configures middleware pipeline, API endpoints, and SignalR hubs.
+    /// </summary>
     public static WebApplication MapApi(this WebApplication app)
     {
+        // Global exception handling
+        app.UseExceptionHandler();
+
         // Per-request observability
         app.UseSerilogRequestLogging();
 

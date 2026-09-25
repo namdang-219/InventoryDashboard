@@ -1,5 +1,6 @@
 using FluentAssertions;
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Models;
 using IID.Application.Vehicles.Queries.ListVehicles;
 using IID.Domain.Common;
 using IID.Domain.Vehicles;
@@ -33,8 +34,7 @@ public class ListVehiclesHandlerTests
     public async Task Handle_Should_ClampLimitTo100()
     {
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                It.IsAny<int>(), 100, "createdAt", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 100),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 
@@ -47,8 +47,7 @@ public class ListVehiclesHandlerTests
     public async Task Handle_Should_ClampLimitToMin1()
     {
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                It.IsAny<int>(), 1, "createdAt", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 
@@ -61,8 +60,7 @@ public class ListVehiclesHandlerTests
     public async Task Handle_Should_ClampPageToMin1()
     {
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, It.IsAny<int>(), "createdAt", "desc",
+                It.Is<VehicleListFilter>(f => f.Page == 1),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 
@@ -76,8 +74,7 @@ public class ListVehiclesHandlerTests
     {
         var vehicle = MakeVehicle();
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 20, "createdAt", "desc",
+                It.IsAny<VehicleListFilter>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle> { vehicle }, 1));
 
@@ -95,8 +92,7 @@ public class ListVehiclesHandlerTests
     public async Task Handle_Should_ForwardFilters_ToRepository()
     {
         _repo.Setup(r => r.ListAsync(
-                "Honda", "Civic", 30, 90, VehicleStatus.Available,
-                1, 20, "createdAt", "desc",
+                It.Is<VehicleListFilter>(f => f.Make == "Honda" && f.Model == "Civic" && f.MinAgeDays == 30 && f.MaxAgeDays == 90 && f.Status == VehicleStatus.Available),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 

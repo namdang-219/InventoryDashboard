@@ -1,4 +1,5 @@
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
 
 namespace IID.Application.Features.Dashboard.Services;
@@ -17,7 +18,7 @@ public sealed class DashboardService : IDashboardService
     public async Task<DashboardSummaryDto> GetSummaryAsync(CancellationToken cancellationToken)
     {
         var (items, _) = await _vehicles.ListAsync(
-            null, null, null, null, null, 1, 1000, "dateAdded", "desc", cancellationToken);
+            new VehicleListFilter(Limit: 1000, Sort: "dateAdded", Order: "desc"), cancellationToken);
 
         var available = items.Count(v => v.Status == VehicleStatus.Available);
         var pending = items.Count(v => v.Status == VehicleStatus.Pending);
@@ -46,7 +47,7 @@ public sealed class DashboardService : IDashboardService
     public async Task<IReadOnlyList<DashboardAlertDto>> GetAlertsAsync(CancellationToken cancellationToken)
     {
         var (items, _) = await _vehicles.ListAsync(
-            null, null, null, null, null, 1, 1000, "dateAdded", "desc", cancellationToken);
+            new VehicleListFilter(Limit: 1000, Sort: "dateAdded", Order: "desc"), cancellationToken);
 
         var alerts = new List<DashboardAlertDto>();
         var now = _clock.UtcNow;

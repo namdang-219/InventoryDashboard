@@ -20,7 +20,7 @@ public sealed class GetDashboardBundleHandler(
         // ── 1. Pull analytics slice ─────────────────────────────────────────
         const int analyticsPageSize = 1000;
         var (all, _) = await vehicles.ListAsync(
-            null, null, null, null, null, 1, analyticsPageSize, "dateAdded", "desc", ct, q.DealershipId);
+            new VehicleListFilter(Limit: analyticsPageSize, Sort: "dateAdded", Order: "desc", DealershipId: q.DealershipId), ct);
 
         var analytics = new VehicleAnalyticsService(now);
 
@@ -178,9 +178,8 @@ public sealed class GetDashboardBundleHandler(
         // ── 6. AI insights (placeholder) ───────────────────────────────────
         var aiInsights = new List<AiInsightDto>();
 
-        // ── 7. Paginated inventory slice ────────────────────────────────────
         var (inventoryItems, inventoryTotal) = await vehicles.ListAsync(
-            null, null, null, null, null, page, pageSize, "dateAdded", "desc", ct, q.DealershipId);
+            new VehicleListFilter(Page: page, Limit: pageSize, Sort: "dateAdded", Order: "desc", DealershipId: q.DealershipId), ct);
 
         var inventory = new DashboardInventoryDto(
             inventoryItems.Select(v => new DashboardVehicleDto(

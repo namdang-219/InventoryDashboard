@@ -1,5 +1,6 @@
 using FluentAssertions;
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
 using IID.Application.Dashboard.Queries.GetDashboardSummary;
 using IID.Domain.Common;
@@ -31,7 +32,7 @@ public class GetDashboardSummaryHandlerTests
             MakeVehicle("Ford", VehicleStatus.Sold, now.AddDays(-5)),
             MakeVehicle("BMW", VehicleStatus.Wholesale, now.AddDays(-100)),
         };
-        _repo.Setup(r => r.ListAsync(null, null, null, null, null, 1, 1000, "dateAdded", "desc", It.IsAny<CancellationToken>()))
+        _repo.Setup(r => r.ListAsync(It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"), It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
         var result = await CreateSut(now).Handle(new GetDashboardSummaryQuery(null), CancellationToken.None);
@@ -55,7 +56,7 @@ public class GetDashboardSummaryHandlerTests
             MakeVehicle("Ford", VehicleStatus.Available, now.AddDays(-70)),    // high
             MakeVehicle("BMW", VehicleStatus.Available, now.AddDays(-100)),    // critical
         };
-        _repo.Setup(r => r.ListAsync(null, null, null, null, null, 1, 1000, "dateAdded", "desc", It.IsAny<CancellationToken>()))
+        _repo.Setup(r => r.ListAsync(It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"), It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
         var result = await CreateSut(now).Handle(new GetDashboardSummaryQuery(null), CancellationToken.None);
@@ -70,7 +71,7 @@ public class GetDashboardSummaryHandlerTests
     [Fact]
     public async Task Handle_Should_ReturnEmptySummary_WhenNoVehicles()
     {
-        _repo.Setup(r => r.ListAsync(null, null, null, null, null, 1, 1000, "dateAdded", "desc", It.IsAny<CancellationToken>()))
+        _repo.Setup(r => r.ListAsync(It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"), It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 
         var result = await CreateSut(DateTimeOffset.UtcNow).Handle(new GetDashboardSummaryQuery(null), CancellationToken.None);
@@ -89,7 +90,7 @@ public class GetDashboardSummaryHandlerTests
             MakeVehicle("Honda", VehicleStatus.Available, now.AddDays(-10)),
             MakeVehicle("Toyota", VehicleStatus.Available, now.AddDays(-5)),
         };
-        _repo.Setup(r => r.ListAsync(null, null, null, null, null, 1, 1000, "dateAdded", "desc", It.IsAny<CancellationToken>()))
+        _repo.Setup(r => r.ListAsync(It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"), It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
         var result = await CreateSut(now).Handle(new GetDashboardSummaryQuery(null), CancellationToken.None);

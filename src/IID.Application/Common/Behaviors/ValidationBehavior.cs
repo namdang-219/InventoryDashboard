@@ -17,17 +17,13 @@ public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidat
         var failures = results.SelectMany(r => r.Errors).Where(f => f is not null).ToList();
         if (failures.Count == 0) return await next(ct);
 
-        // Convert FluentValidation failures into Result.Failure(ValidationFailed) so the
-        // existing ResultMapper pipeline returns a clean 422 with the API's standard
-        // error envelope — no thrown exception leaks out as a 500.
-        var message = string.Join("; ", failures.Select(f => $"{f.PropertyName}: {f.ErrorMessage}"));
+        // Return Result.Failure(ValidationFailed) for Result types instead of throwing.
+        var message = string.Join("; ", failures.Select(f => f.ErrorMessage));
         return CreateValidationFailure(message);
     }
 
     /// <summary>
-    /// Builds a typed <c>Result.Failure(ValidationFailed)</c> via reflection because
-    /// <c>TResponse</c> is unknown at compile time. Only handles the <c>Result</c> /
-    /// <c>Result&lt;T&gt;</c> shapes this codebase actually returns from handlers.
+    /// Builds a typed Result.Failure(ValidationFailed) for TResponse.
     /// </summary>
     private static TResponse CreateValidationFailure(string message)
     {
@@ -40,17 +36,15 @@ public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidat
 
         if (responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(Result<>))
         {
-            var valueType = responseType.GetGenericArguments()[0];
-            var failureMethod = typeof(Result)
-                .GetMethods()
-                .First(m => m.Name == nameof(Result.Failure) && m.IsGenericMethodDefinition && m.GetParameters().Length == 2)
-                .MakeGenericMethod(valueType);
-            var failure = failureMethod.Invoke(null, new object[] { ErrorKind.ValidationFailed, message })!;
-            return (TResponse)failure;
+            var failureMethod = responseType.GetMethod(nameof(Result.Failure), [typeof(ErrorKind), typeof(string)]);
+            if (failureMethod is not null)
+            {
+                var failure = failureMethod.Invoke(null, [ErrorKind.ValidationFailed, message])!;
+                return (TResponse)failure;
+            }
         }
 
-        // Non-Result response type: fall back to throwing. The endpoint-level ResultMapper
-        // path is preferred, so this only fires for endpoints that bypass Result.
+        // Fall back to throwing if response is not a Result type.
         throw new ValidationException(message, new List<ValidationFailure>
         {
             new(string.Empty, message)
@@ -64,7 +58,7 @@ public static class ApplicationServiceCollectionExtensions
     {
         var assembly = typeof(ApplicationServiceCollectionExtensions).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
-        // Manually register every validator so we don't depend on FluentValidation DI extensions
+        // Scan and register all IValidator<T> implementations.
         var validatorType = typeof(IValidator<>);
         foreach (var t in assembly.GetTypes())
         {

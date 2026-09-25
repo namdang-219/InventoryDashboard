@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, managerGuard } from './core/guards/auth.guard';
 import { ShellComponent } from './layout/shell/shell.component';
 
 export const routes: Routes = [
@@ -41,6 +41,7 @@ export const routes: Routes = [
       },
       {
         path: 'dealerships',
+        canActivate: [managerGuard],
         loadComponent: () =>
           import('./features/dealerships/pages/dealership-list-page/dealership-list-page.component').then(
             m => m.DealershipListPageComponent

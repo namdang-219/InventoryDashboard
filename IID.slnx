@@ -6,6 +6,9 @@
     <Project Path="src/IID.Infrastructure/IID.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/IID.Api.Tests/IID.Api.Tests.csproj" />
+    <Project Path="tests/IID.Application.Tests/IID.Application.Tests.csproj" />
     <Project Path="tests/IID.Domain.Tests/IID.Domain.Tests.csproj" />
+    <Project Path="tests/IID.Infrastructure.Tests/IID.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

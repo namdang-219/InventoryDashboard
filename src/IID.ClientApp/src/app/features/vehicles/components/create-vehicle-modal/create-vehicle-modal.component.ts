@@ -121,8 +121,9 @@ export class CreateVehicleModalComponent {
     this.errorMessage.set(null);
 
     const val = this.form.getRawValue();
+    const dealerId = this.dealershipService.selectedDealershipId() || val.dealershipId || undefined;
     const req: CreateVehicleRequest = {
-      dealershipId: val.dealershipId || undefined,
+      dealershipId: dealerId,
       vin: val.vin.trim().toUpperCase(),
       stockNumber: val.stockNumber.trim() || undefined,
       make: val.make.trim(),

@@ -224,19 +224,22 @@ button, input, select, textarea {
 }
 
 /* ── Form Inputs ────────────────────────────────────────────── */
-.iid-input {
+.iid-input,
+.iid-textarea {
   width: 100%;
   padding: 10px 14px;
   background: var(--iid-bg-input);
   border: 1px solid var(--iid-border);
   border-radius: var(--iid-radius-md);
   color: var(--iid-text-primary);
+  font-family: inherit;
   font-size: 0.875rem;
   transition: all 0.2s ease;
   outline: none;
 }
 
-.iid-input:focus {
+.iid-input:focus,
+.iid-textarea:focus {
   border-color: var(--iid-primary);
   box-shadow: 0 0 0 3px var(--iid-primary-glow);
 }

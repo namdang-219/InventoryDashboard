@@ -17,6 +17,7 @@ public sealed class CreateVehicleCommandValidator : AbstractValidator<CreateVehi
         RuleFor(c => c.StockNumber)
             .MaximumLength(32).When(c => !string.IsNullOrWhiteSpace(c.StockNumber));
         RuleFor(c => c.FuelType).IsInEnum();
+        RuleFor(c => c.Status).IsInEnum();
         RuleFor(c => c.DateAddedToInventory)
             .LessThanOrEqualTo(DateTimeOffset.UtcNow.AddSeconds(5))
             .WithMessage("DateAddedToInventory cannot be in the future.");

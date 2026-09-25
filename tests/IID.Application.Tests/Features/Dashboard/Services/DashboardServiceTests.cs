@@ -1,5 +1,6 @@
 using FluentAssertions;
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Models;
 using IID.Application.Features.Dashboard.Services;
 using IID.Domain.Vehicles;
 using Moq;
@@ -30,8 +31,7 @@ public class DashboardServiceTests
     public async Task GetSummaryAsync_Should_ReturnEmpty_WhenNoVehicles()
     {
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 1000, "dateAdded", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 
@@ -56,8 +56,7 @@ public class DashboardServiceTests
             MakeVehicle(VehicleStatus.Wholesale, 30, now),
         };
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 1000, "dateAdded", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
@@ -85,8 +84,7 @@ public class DashboardServiceTests
             FuelType.Petrol, Money.Of(1m), Money.Of(2500m),
             VehicleStatus.Available, now, now);
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 1000, "dateAdded", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle> { v1, v2 }, 2));
 
@@ -105,8 +103,7 @@ public class DashboardServiceTests
             MakeVehicle(VehicleStatus.Available, 20, now),
         };
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 1000, "dateAdded", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
@@ -127,8 +124,7 @@ public class DashboardServiceTests
             MakeVehicle(VehicleStatus.Sold, 95, now),         // Sold: skipped
         };
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 1000, "dateAdded", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
@@ -149,8 +145,7 @@ public class DashboardServiceTests
             .Select(_ => MakeVehicle(VehicleStatus.Available, 95, now))
             .ToList();
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 1000, "dateAdded", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
@@ -165,8 +160,7 @@ public class DashboardServiceTests
         var now = DateTimeOffset.UtcNow;
         var v = MakeVehicle(VehicleStatus.Available, 100, now);
         _repo.Setup(r => r.ListAsync(
-                null, null, null, null, null,
-                1, 1000, "dateAdded", "desc",
+                It.Is<VehicleListFilter>(f => f.Limit == 1000 && f.Sort == "dateAdded" && f.Order == "desc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle> { v }, 1));
 

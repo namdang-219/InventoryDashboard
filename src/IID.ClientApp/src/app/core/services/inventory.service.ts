@@ -31,6 +31,8 @@ export class InventoryService {
     if (params.dealershipId) httpParams = httpParams.set('dealershipId', params.dealershipId);
     if (params.make) httpParams = httpParams.set('make', params.make);
     if (params.model) httpParams = httpParams.set('model', params.model);
+    if (params.vin) httpParams = httpParams.set('vin', params.vin);
+    if (params.stockNumber) httpParams = httpParams.set('stockNumber', params.stockNumber);
     if (params.minAgeDays !== undefined && params.minAgeDays !== null) {
       httpParams = httpParams.set('minAgeDays', params.minAgeDays.toString());
     }

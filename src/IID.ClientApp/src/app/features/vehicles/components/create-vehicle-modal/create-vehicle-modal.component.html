@@ -28,12 +28,14 @@
         }
 
         <div class="form-group" style="margin-bottom: 14px;">
-          <label class="iid-form-label" for="vehDealership">Dealership Showroom *</label>
-          <select id="vehDealership" class="iid-select" formControlName="dealershipId">
-            @for (d of dealershipService.dealerships(); track d.id) {
-              <option [value]="d.id">{{ d.name }} — {{ d.city }}, {{ d.state }}</option>
+          <label class="iid-form-label">Dealership Showroom</label>
+          <div class="dealership-display-badge">
+            <span class="material-symbols-outlined store-icon">storefront</span>
+            <span class="dealer-name">{{ dealershipService.selectedDealership()?.name || 'All Dealerships' }}</span>
+            @if (dealershipService.selectedDealership(); as currentDealer) {
+              <span class="dealer-location">— {{ currentDealer.city }}, {{ currentDealer.state }}</span>
             }
-          </select>
+          </div>
         </div>
 
         <div class="form-row two-col">

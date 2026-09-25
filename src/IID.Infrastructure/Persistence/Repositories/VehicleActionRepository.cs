@@ -3,6 +3,8 @@ using System.Text;
 using IID.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
+using IID.Application.Common.Models;
+
 namespace IID.Infrastructure.Persistence.Repositories;
 
 public sealed class VehicleActionRepository(IidDbContext db) : IVehicleActionRepository
@@ -13,11 +15,13 @@ public sealed class VehicleActionRepository(IidDbContext db) : IVehicleActionRep
     public void Remove(Domain.VehicleActions.VehicleAction action) => db.VehicleActions.Remove(action);
 
     public async Task<(IReadOnlyList<Domain.VehicleActions.VehicleAction> Items, int Total)> ListAsync(
-        Guid? vehicleId, int page, int limit, CancellationToken ct)
+        VehicleActionListFilter filter, CancellationToken ct = default)
     {
         IQueryable<Domain.VehicleActions.VehicleAction> q = db.VehicleActions.AsNoTracking();
-        if (vehicleId.HasValue) q = q.Where(a => a.VehicleId == vehicleId.Value);
+        if (filter.VehicleId.HasValue) q = q.Where(a => a.VehicleId == filter.VehicleId.Value);
         var total = await q.CountAsync(ct);
+        var page = Math.Max(1, filter.Page);
+        var limit = Math.Clamp(filter.Limit, 1, 100);
         var items = await q.OrderByDescending(a => a.LoggedAt).Skip((page - 1) * limit).Take(limit).ToListAsync(ct);
         return (items, total);
     }

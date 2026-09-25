@@ -18,7 +18,7 @@ public sealed class GetDashboardAgingHandler(
         // Pull a generous page to filter by age server-side
         const int fetchSize = 500;
         var (items, _) = await vehicles.ListAsync(
-            null, null, null, null, null, 1, fetchSize, "dateAdded", "asc", ct, q.DealershipId);
+            new VehicleListFilter(Limit: fetchSize, Sort: "dateAdded", Order: "asc", DealershipId: q.DealershipId), ct);
 
         var analytics = new VehicleAnalyticsService(now);
 

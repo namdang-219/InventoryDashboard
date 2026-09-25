@@ -8,5 +8,7 @@ public sealed record ListVehiclesQuery(
     int Limit = 20,
     string Sort = "createdAt",
     string Order = "desc",
-    Guid? DealershipId = null)
+    Guid? DealershipId = null,
+    string? Vin = null,
+    string? StockNumber = null)
     : MediatR.IRequest<Domain.Common.Result<Common.Models.PagedResult<Dtos.VehicleResponse>>>;

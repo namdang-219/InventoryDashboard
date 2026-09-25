@@ -13,7 +13,7 @@ namespace IID.Infrastructure.Persistence;
 /// </summary>
 public sealed class IidDbContext(
     DbContextOptions<IidDbContext> options,
-    DomainEventDispatchInterceptor? domainEventInterceptor) : IdentityDbContext<ApplicationUser>(options)
+    DomainEventDispatchInterceptor? domainEventInterceptor = null) : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<Dealership> Dealerships => Set<Dealership>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();

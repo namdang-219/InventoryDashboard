@@ -112,6 +112,8 @@ export interface VehicleFilterParams {
   dealershipId?: string;
   make?: string;
   model?: string;
+  vin?: string;
+  stockNumber?: string;
   minAgeDays?: number;
   maxAgeDays?: number;
   status?: VehicleStatus;

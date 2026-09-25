@@ -87,6 +87,6 @@ public class LogVehicleActionHandlerTests
 
         await CreateSut().Handle(new LogVehicleActionCommand(vehicle.Id, Domain.VehicleActions.VehicleActionType.Other, null), CancellationToken.None);
 
-        _notifier.Verify(n => n.VehicleActionLoggedAsync(It.IsAny<Domain.VehicleActions.VehicleAction>(), It.IsAny<CancellationToken>()), Times.Once);
+        _notifier.Verify(n => n.VehicleActionLoggedAsync(It.IsAny<Domain.VehicleActions.VehicleAction>(), It.IsAny<Vehicle>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

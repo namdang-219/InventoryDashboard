@@ -23,4 +23,7 @@ public readonly record struct Result(bool IsSuccess, ErrorKind ErrorKind, string
 {
     public static Result Success() => new(true, ErrorKind.None, null);
     public static Result Failure(ErrorKind kind, string message) => new(false, kind, message);
+
+    public static Result<T> Success<T>(T value) => Result<T>.Success(value);
+    public static Result<T> Failure<T>(ErrorKind kind, string message) => Result<T>.Failure(kind, message);
 }

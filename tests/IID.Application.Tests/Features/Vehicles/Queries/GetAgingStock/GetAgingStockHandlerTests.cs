@@ -1,5 +1,6 @@
 using FluentAssertions;
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Models;
 using IID.Application.Vehicles.Queries.GetAgingStock;
 using IID.Domain.Vehicles;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -41,8 +42,7 @@ public class GetAgingStockHandlerTests
         };
         // Handler asks the repo for everything > 91 days, then filters client-side.
         _repo.Setup(r => r.ListAsync(
-                null, null, 91, null, null,
-                1, 20, "dateAdded", "asc",
+                It.Is<VehicleListFilter>(f => f.MinAgeDays == 91 && f.Page == 1 && f.Limit == 20 && f.Sort == "dateAdded" && f.Order == "asc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((vehicles, vehicles.Count));
 
@@ -58,8 +58,7 @@ public class GetAgingStockHandlerTests
     {
         var now = DateTimeOffset.UtcNow;
         _repo.Setup(r => r.ListAsync(
-                null, null, 91, null, null,
-                1, 100, "dateAdded", "asc",
+                It.Is<VehicleListFilter>(f => f.MinAgeDays == 91 && f.Page == 1 && f.Limit == 100 && f.Sort == "dateAdded" && f.Order == "asc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 
@@ -73,8 +72,7 @@ public class GetAgingStockHandlerTests
     {
         var now = DateTimeOffset.UtcNow;
         _repo.Setup(r => r.ListAsync(
-                null, null, 91, null, null,
-                1, 20, "dateAdded", "asc",
+                It.Is<VehicleListFilter>(f => f.MinAgeDays == 91 && f.Page == 1 && f.Limit == 20 && f.Sort == "dateAdded" && f.Order == "asc"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Vehicle>(), 0));
 

@@ -14,7 +14,7 @@ public sealed class GetVehicleActionsHandler(
         var page = Math.Max(1, q.Page);
         var limit = Math.Clamp(q.Limit, 1, 100);
 
-        var (items, total) = await actions.ListAsync(q.VehicleId, page, limit, ct);
+        var (items, total) = await actions.ListAsync(new VehicleActionListFilter(q.VehicleId, page, limit), ct);
 
         var dtos = new List<VehicleActionDto>(items.Count);
         foreach (var a in items)

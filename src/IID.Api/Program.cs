@@ -1,29 +1,36 @@
 using IID.Api.Extensions;
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// Bootstrap logging before host is built so we see early binding errors.
-builder.Host.UseSerilog((ctx, lc) => lc
-    .ReadFrom.Configuration(ctx.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console());
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
 
-// Single composition-root call — mirrors Sportcast's reference pattern.
-builder.Services.ConfigureServices(builder.Configuration);
+    builder.Host.UseSerilog((ctx, lc) => lc
+        .ReadFrom.Configuration(ctx.Configuration)
+        .Enrich.FromLogContext());
 
-var app = builder.Build();
+    builder.Services.ConfigureServices(builder.Configuration);
 
-// Run migrations + seeders before the pipeline starts handling traffic.
-await app.InitializeDatabaseAsync();
+    var app = builder.Build();
 
-// Single pipeline-mapping call.
-app.MapApi();
+    await app.InitializeDatabaseAsync();
+    app.MapApi();
 
-var url = builder.Configuration["Urls"] ?? "http://localhost:8080";
-Log.Information("🚀 IID Backend API is ready and listening on {Url}", url);
+    Log.Information("IID Backend API is ready and listening");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
-app.Run(url);
-
-// Visible to WebApplicationFactory in integration tests.
 public partial class Program { }
+

@@ -1,5 +1,4 @@
 using FastEndpoints;
-using IID.Api.Extensions;
 using IID.Application.Features.Dealerships.Commands.CreateDealership;
 using MediatR;
 
