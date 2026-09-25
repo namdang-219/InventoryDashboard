@@ -47,7 +47,11 @@ export class RealtimeService {
   readonly inventoryChanged$ = new Subject<void>();
 
   startConnection(): void {
-    if (this.hubConnection && this.hubConnection.state === signalR.HubConnectionState.Connected) {
+    if (
+      this.hubConnection &&
+      (this.hubConnection.state === signalR.HubConnectionState.Connected ||
+       this.hubConnection.state === signalR.HubConnectionState.Connecting)
+    ) {
       return;
     }
 
@@ -290,6 +294,9 @@ export class RealtimeService {
   }
 
   private addActivity(item: LiveActivityFeedItem): void {
+    if (this.recentActivities().some(existing => existing.id === item.id)) {
+      return;
+    }
     this.recentActivities.update(list => [item, ...list]);
     this.totalActivities.update(t => t + 1);
     if (!item.isRead) {

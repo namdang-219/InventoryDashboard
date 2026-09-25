@@ -7,6 +7,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { DealershipService } from '../../core/services/dealership.service';
 import { LiveActivityFeedItem } from '../../core/models/realtime.model';
 import { Vehicle } from '../../core/models/vehicle.model';
+import { FormsModule } from '@angular/forms';
 import { VehicleDetailModalComponent } from '../../features/vehicles/components/vehicle-detail-modal/vehicle-detail-modal.component';
 import { LogActionModalComponent } from '../../features/vehicles/components/log-action-modal/log-action-modal.component';
 import { EditVehicleModalComponent } from '../../features/vehicles/components/edit-vehicle-modal/edit-vehicle-modal.component';
@@ -16,6 +17,7 @@ import { MarkSoldModalComponent } from '../../features/vehicles/components/mark-
   selector: 'iid-header',
   standalone: true,
   imports: [
+    FormsModule,
     VehicleDetailModalComponent,
     LogActionModalComponent,
     EditVehicleModalComponent,
@@ -36,6 +38,12 @@ export class HeaderComponent implements OnInit {
   ngOnInit(): void {
     if (this.auth.token()) {
       this.realtime.loadInitialActivities(10);
+    }
+  }
+
+  onDealershipChange(dealershipId: string): void {
+    if (dealershipId) {
+      this.dealershipService.selectDealership(dealershipId);
     }
   }
 

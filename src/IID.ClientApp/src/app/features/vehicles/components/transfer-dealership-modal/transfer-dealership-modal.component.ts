@@ -72,6 +72,8 @@ export class TransferDealershipModalComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting()) return;
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;

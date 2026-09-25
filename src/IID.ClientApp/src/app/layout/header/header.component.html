@@ -15,12 +15,15 @@
         <select
           id="dealership-select"
           class="dealership-dropdown"
-          [value]="dealershipService.selectedDealershipId() ?? ''"
+          [ngModel]="dealershipService.selectedDealershipId()"
+          (ngModelChange)="onDealershipChange($event)"
           (change)="onDealershipSelect($event)"
           title="Select Active Dealership"
         >
           @for (d of dealershipService.dealerships(); track d.id) {
-            <option [value]="d.id">{{ d.name }} — {{ d.city }}, {{ d.state }}</option>
+            <option [value]="d.id" [selected]="d.id === dealershipService.selectedDealershipId()">
+              {{ d.name }} — {{ d.city }}, {{ d.state }}
+            </option>
           }
         </select>
       </div>
