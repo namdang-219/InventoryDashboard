@@ -1,0 +1,147 @@
+<div class="iid-modal-backdrop" (click)="close.emit()">
+  <div class="modal-card iid-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-title">
+        <span class="material-symbols-outlined icon">assignment_add</span>
+        <h3>Log Action on Vehicle</h3>
+      </div>
+      <button type="button" class="close-btn" (click)="close.emit()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Scrollable Modal Body -->
+    <div class="modal-body">
+      <!-- Vehicle Target Header -->
+      <div class="veh-summary-box">
+      <div class="veh-title">
+        {{ vehicle().year }} {{ vehicle().make }} {{ vehicle().model }}
+      </div>
+      <div class="veh-meta">
+        <span>VIN: <code>{{ vehicle().vin }}</code></span> &bull;
+        <span>Stock: <code>{{ vehicle().stockNumber }}</code></span> &bull;
+        <span>Lot Days: <strong>{{ vehicle().daysInInventory }}d</strong></span>
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="error-banner">
+        <span class="material-symbols-outlined">error</span>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Form Section -->
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="modal-form">
+      <div class="form-group">
+        <label class="iid-form-label" for="actionType">Select Action Type *</label>
+        <select id="actionType" class="iid-input iid-select" formControlName="actionType">
+          @for (type of actionTypes; track type.type) {
+            <option [value]="type.type">{{ type.label }} — {{ type.desc }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Quick Note Preset Chips -->
+      <div class="presets-section">
+        <span class="preset-label">Suggested Notes:</span>
+        <div class="preset-chips">
+          <button type="button" class="chip" (click)="setNotePreset('Price reduced by 5% to stimulate dealer test drives.')">
+            Reduce 5%
+          </button>
+          <button type="button" class="chip" (click)="setNotePreset('Transferred vehicle to wholesale channel due to 90+ days aging.')">
+            Wholesale transfer
+          </button>
+          <button type="button" class="chip" (click)="setNotePreset('Launched digital campaign boost on social & aggregator sites.')">
+            Ad Campaign
+          </button>
+          <button type="button" class="chip" (click)="setNotePreset('Manager review completed: mechanical condition verified.')">
+            Manager Review
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="iid-form-label" for="actionNotes">Action Details & Notes</label>
+        <textarea
+          id="actionNotes"
+          class="iid-input notes-textarea"
+          formControlName="notes"
+          rows="3"
+          placeholder="Enter operational notes or reason for adjustment..."
+        ></textarea>
+      </div>
+
+      <div class="form-submit-row">
+        <button type="submit" class="iid-btn iid-btn-primary" [disabled]="isSubmitting() || form.invalid">
+          @if (isSubmitting()) {
+            <span>Recording Log...</span>
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+            <span>Record Action</span>
+          }
+        </button>
+      </div>
+    </form>
+
+    <!-- Action History Section -->
+    <div class="history-section">
+      <div class="history-header">
+        <div class="history-title">
+          <span class="material-symbols-outlined">history</span>
+          <h4>Action History</h4>
+          <span class="count-badge">{{ actions().length }}</span>
+        </div>
+        <button
+          type="button"
+          class="refresh-btn"
+          (click)="loadActions()"
+          [disabled]="isLoadingActions()"
+          title="Reload action history"
+        >
+          <span class="material-symbols-outlined" [class.spin]="isLoadingActions()">refresh</span>
+        </button>
+      </div>
+
+      @if (isLoadingActions() && actions().length === 0) {
+        <div class="loading-state">
+          <span class="material-symbols-outlined spin">progress_activity</span>
+          <span>Loading logged actions...</span>
+        </div>
+      } @else if (actions().length === 0) {
+        <div class="empty-state">
+          <span class="material-symbols-outlined">assignment_late</span>
+          <p>No previous actions logged for this vehicle yet.</p>
+        </div>
+      } @else {
+        <div class="actions-list">
+          @for (item of actions(); track item.id) {
+            <div class="action-item">
+              <div class="action-item-header">
+                <span class="action-badge" [attr.data-action]="item.actionType">
+                  {{ item.actionType }}
+                </span>
+                <span class="action-time">
+                  {{ item.loggedAtUtc | date:'MMM d, y, h:mm a' }}
+                </span>
+              </div>
+              @if (item.notes) {
+                <div class="action-notes">{{ item.notes }}</div>
+              }
+              <div class="action-meta">
+                <span>Logged by: <strong>{{ item.loggedByName || item.loggedByUserId }}</strong></span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+      <button type="button" class="iid-btn iid-btn-secondary" (click)="close.emit()" [disabled]="isSubmitting()">
+        Close
+      </button>
+    </div>
+  </div>
+</div>

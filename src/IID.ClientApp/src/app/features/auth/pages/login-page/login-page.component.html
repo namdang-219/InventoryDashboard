@@ -1,0 +1,110 @@
+<div class="login-wrapper">
+  <!-- Left Showcase Hero -->
+  <div class="hero-panel">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="hero-brand">
+        <div class="logo-mark">
+          <span class="material-symbols-outlined logo-icon">electric_car</span>
+        </div>
+        <span class="brand-text">IID Enterprise</span>
+      </div>
+
+      <div class="hero-headline">
+        <h2>Intelligent Inventory Dashboard</h2>
+        <p>Real-time vehicle lifecycle tracking, automated aging alerts, and demand telemetry powered by Event-Driven Architecture.</p>
+      </div>
+
+      <div class="feature-pills">
+        <div class="pill">
+          <span class="material-symbols-outlined">bolt</span>
+          <span>SignalR Real-Time Sync</span>
+        </div>
+        <div class="pill">
+          <span class="material-symbols-outlined">analytics</span>
+          <span>Automated Aging Matrix</span>
+        </div>
+        <div class="pill">
+          <span class="material-symbols-outlined">security</span>
+          <span>Optimistic Concurrency</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Form Card -->
+  <div class="form-panel">
+    <div class="form-card iid-card">
+      <div class="card-header">
+        <h3>Sign In</h3>
+        <p>Access your intelligent inventory</p>
+      </div>
+
+      <!-- Quick Demo Credentials Fill -->
+      <div class="demo-pills">
+        <span class="demo-label">Demo Logins:</span>
+        <button type="button" class="demo-btn" (click)="fillDemo('admin')">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+          <span>Manager</span>
+        </button>
+        <button type="button" class="demo-btn" (click)="fillDemo('viewer')">
+          <span class="material-symbols-outlined">visibility</span>
+          <span>Viewer</span>
+        </button>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <span class="material-symbols-outlined">error</span>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+        <div class="form-group">
+          <label class="iid-form-label" for="loginEmail">Email Address</label>
+          <input
+            id="loginEmail"
+            type="email"
+            class="iid-input"
+            formControlName="email"
+            placeholder="admin@iid.local"
+            autocomplete="email"
+          />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="validation-error">Please enter a valid email address</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="loginPassword">Password</label>
+          <input
+            id="loginPassword"
+            type="password"
+            class="iid-input"
+            formControlName="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <span class="validation-error">Password is required</span>
+          }
+        </div>
+
+        <button
+          type="submit"
+          class="iid-btn iid-btn-primary submit-btn"
+          [disabled]="isLoading() || form.invalid"
+        >
+          @if (isLoading()) {
+            <span class="material-symbols-outlined spin-icon">progress_activity</span>
+            <span>Signing In...</span>
+          } @else {
+            <span class="material-symbols-outlined">login</span>
+            <span>Authenticate</span>
+          }
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IID.Application</RootNamespace>
+    <AssemblyName>IID.Application</AssemblyName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.Extensions.Logging" />
+    <Using Include="IID.Domain" />
+    <Using Include="IID.Domain.Common" />
+    <Using Include="IID.Domain.Vehicles" />
+    <Using Include="IID.Domain.VehicleActions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IID.Domain\IID.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.2.0" />
+    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+</Project>

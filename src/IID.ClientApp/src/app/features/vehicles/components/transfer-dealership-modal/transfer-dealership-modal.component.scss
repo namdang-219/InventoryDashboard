@@ -1,0 +1,327 @@
+.modal-card {
+  width: 620px;
+  max-width: 95vw;
+  padding: 28px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .icon {
+      font-size: 26px;
+      color: var(--iid-primary-400);
+      background: rgba(99, 102, 241, 0.12);
+      padding: 6px;
+      border-radius: var(--iid-radius-md);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--iid-text-primary);
+    }
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--iid-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: var(--iid-radius-sm);
+    transition: all var(--iid-transition-fast);
+
+    &:hover {
+      color: var(--iid-text-primary);
+      background: var(--iid-bg-surface-elevated);
+    }
+  }
+}
+
+.veh-summary-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--iid-bg-surface);
+  border: 1px solid var(--iid-border);
+  border-radius: var(--iid-radius-md);
+  margin-bottom: 20px;
+  gap: 16px;
+
+  h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--iid-text-primary);
+    margin-bottom: 3px;
+  }
+
+  .vin-label {
+    font-size: 0.75rem;
+    font-family: var(--iid-font-mono);
+    color: var(--iid-text-muted);
+  }
+
+  .veh-metrics {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+
+      .label {
+        font-size: 0.72rem;
+        color: var(--iid-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .val {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--iid-text-primary);
+
+        &.font-accent {
+          color: var(--iid-primary-400);
+        }
+
+        &.aging-danger {
+          color: var(--iid-danger);
+        }
+      }
+    }
+  }
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--iid-radius-md);
+  color: #fca5a5;
+  margin-bottom: 20px;
+  font-size: 0.88rem;
+
+  .material-symbols-outlined {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Route Visualization Card */
+.transfer-route-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--iid-bg-surface-elevated);
+  border: 1px solid var(--iid-border);
+  border-radius: var(--iid-radius-lg);
+
+  .route-node {
+    flex: 1;
+    position: relative;
+    padding: 14px;
+    background: var(--iid-bg-surface);
+    border: 1px solid var(--iid-border);
+    border-radius: var(--iid-radius-md);
+    min-width: 0;
+
+    .node-badge {
+      position: absolute;
+      top: -9px;
+      left: 12px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 1px 8px;
+      border-radius: 9999px;
+    }
+
+    &.source-node .node-badge {
+      background: var(--iid-bg-surface-elevated);
+      color: var(--iid-text-muted);
+      border: 1px solid var(--iid-border);
+    }
+
+    &.dest-node .node-badge {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--iid-primary-400);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+    }
+
+    .node-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+
+      .node-icon {
+        font-size: 22px;
+        color: var(--iid-text-muted);
+        flex-shrink: 0;
+
+        &.accent-icon {
+          color: var(--iid-primary-400);
+        }
+      }
+
+      .node-text {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        flex: 1;
+        min-width: 0;
+
+        .node-label {
+          font-size: 0.72rem;
+          color: var(--iid-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .node-name {
+          font-size: 0.9rem;
+          color: var(--iid-text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .target-select {
+          width: 100%;
+          font-size: 0.85rem;
+          padding: 6px 10px;
+          margin-top: 2px;
+        }
+      }
+    }
+  }
+
+  .route-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--iid-primary-400);
+    animation: pulseArrow 2s infinite ease-in-out;
+
+    .material-symbols-outlined {
+      font-size: 24px;
+    }
+  }
+}
+
+@keyframes pulseArrow {
+  0%, 100% {
+    transform: translateX(0);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateX(3px);
+    opacity: 1;
+  }
+}
+
+.error-text {
+  font-size: 0.8rem;
+  color: var(--iid-danger);
+  margin-top: -12px;
+}
+
+.notes-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .iid-textarea {
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+}
+
+.policy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--iid-radius-md);
+  font-size: 0.82rem;
+  color: var(--iid-text-secondary);
+  line-height: 1.4;
+
+  .note-icon {
+    font-size: 18px;
+    color: var(--iid-primary-400);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--iid-border);
+
+  .spin-icon {
+    animation: spin 1s linear infinite;
+    font-size: 18px;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+  .transfer-route-card {
+    flex-direction: column;
+
+    .route-arrow {
+      transform: rotate(90deg);
+      margin: 4px 0;
+    }
+  }
+
+  .veh-summary-box {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .veh-metrics {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+}

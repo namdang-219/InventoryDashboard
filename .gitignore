@@ -1,0 +1,98 @@
+# ============================================================
+#  .gitignore — IID Project (.NET + Angular / Node.js)
+# ============================================================
+
+# ─── .NET / C# ───────────────────────────────────────────────
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/
+**/TestResults/
+nuget.config.local
+
+# Rider / ReSharper
+.idea/
+_ReSharper*/
+*.resharper
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+*.vsp
+*.vspx
+*.sap
+
+# Entity Framework migrations backup (keep actual migrations)
+# **/Migrations/
+
+# ASP.NET Core secrets & local overrides
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/appsettings.Development.local.json
+
+# ─── Node.js / Angular ───────────────────────────────────────
+**/node_modules/
+**/dist/
+**/tmp/
+**/.angular/
+
+# npm / yarn / pnpm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnp.*
+.yarn/
+
+# Angular cache
+.angular/
+
+
+# ─── OS Files ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ─── Editor / IDE ────────────────────────────────────────────
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+!.vscode/extensions.json
+.cursor/
+*.swp
+*.swo
+*~
+
+# ─── Logs & Temp ─────────────────────────────────────────────
+*.log
+logs/
+*.tmp
+*.temp
+err.txt
+
+# ─── Test Artifacts ──────────────────────────────────────────
+**/TestResults/
+**/coverage/
+**/.nyc_output/
+lcov.info
+*.trx
+*.coveragexml
+
+# ─── Build / CI ──────────────────────────────────────────────
+*.publish/
+publish/
+artifacts/
+
+# ─── Misc ────────────────────────────────────────────────────
+*.bak
+*.orig
+.history/

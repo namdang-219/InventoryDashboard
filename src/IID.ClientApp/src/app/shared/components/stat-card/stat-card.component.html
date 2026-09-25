@@ -1,0 +1,33 @@
+<div class="stat-card iid-card" [class]="cardClass()">
+  <div class="card-glow"></div>
+  <div class="card-top">
+    <span class="card-title">{{ title() }}</span>
+    <div class="icon-wrap">
+      <span class="material-symbols-outlined">{{ icon() }}</span>
+    </div>
+  </div>
+
+  <div class="card-middle">
+    <span class="card-value">{{ value() }}</span>
+  </div>
+
+  @if (trend() || subtitle() || trendLabel()) {
+    <div class="card-bottom">
+      @if (trend()) {
+        <span class="trend-badge" [class]="'trend-' + trend()">
+          @if (trend() === 'up') {
+            <span class="material-symbols-outlined trend-icon">arrow_upward</span>
+          } @else if (trend() === 'down') {
+            <span class="material-symbols-outlined trend-icon">arrow_downward</span>
+          } @else {
+            <span class="material-symbols-outlined trend-icon">horizontal_rule</span>
+          }
+          <span>{{ trendLabel() || trend() }}</span>
+        </span>
+      }
+      @if (subtitle()) {
+        <span class="card-subtitle">{{ subtitle() }}</span>
+      }
+    </div>
+  }
+</div>

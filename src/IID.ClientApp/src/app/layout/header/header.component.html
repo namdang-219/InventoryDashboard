@@ -1,0 +1,225 @@
+<header class="header">
+  <div class="header-left">
+    <div class="header-title-wrap">
+      <h1 class="header-title">Intelligent Inventory Dashboard</h1>
+      <span class="header-subtitle">Real-time Automotive Asset Tracking</span>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <!-- Dealership Selector Dropdown -->
+    <div class="dealership-selector-pill">
+      <span class="material-symbols-outlined dealership-icon">storefront</span>
+      <div class="dealership-select-wrapper">
+        <label for="dealership-select" class="dealership-label">Dealership</label>
+        <select
+          id="dealership-select"
+          class="dealership-dropdown"
+          [value]="dealershipService.selectedDealershipId() ?? ''"
+          (change)="onDealershipSelect($event)"
+          title="Select Active Dealership"
+        >
+          @for (d of dealershipService.dealerships(); track d.id) {
+            <option [value]="d.id">{{ d.name }} — {{ d.city }}, {{ d.state }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- SignalR Status Indicator -->
+    <div class="status-pill" [class]="'conn-' + connectionStatus()">
+      <span class="dot"></span>
+      <span class="status-label">
+        @switch (connectionStatus()) {
+          @case ('connected') { Live Sync }
+          @case ('connecting') { Connecting... }
+          @case ('reconnecting') { Reconnecting... }
+          @default { Offline }
+        }
+      </span>
+      @if (connectionStatus() === 'disconnected') {
+        <button type="button" class="reconnect-btn" (click)="realtime.startConnection()" title="Reconnect SignalR">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+      }
+    </div>
+
+    <!-- Theme Toggle Mode (Dark / Light) -->
+    <button
+      type="button"
+      class="theme-toggle-btn"
+      (click)="theme.toggleTheme()"
+      [title]="theme.isDark() ? 'Switch to Light mode' : 'Switch to Dark mode'"
+      [attr.aria-label]="theme.isDark() ? 'Switch to Light mode' : 'Switch to Dark mode'"
+    >
+      <span class="material-symbols-outlined theme-icon">
+        {{ theme.isDark() ? 'dark_mode' : 'light_mode' }}
+      </span>
+      <span class="theme-text">{{ theme.isDark() ? 'Dark' : 'Light' }}</span>
+    </button>
+
+    <!-- Notification Bell -->
+    <div class="notification-wrap">
+      <button type="button" class="iid-btn-icon bell-btn" (click)="toggleNotifications()" title="Live Alerts">
+        <span class="material-symbols-outlined">notifications</span>
+        @if (unreadCount() > 0) {
+          <span class="badge-count">{{ unreadBadgeText() }}</span>
+        }
+      </button>
+
+      @if (showNotifications()) {
+        <div class="notification-dropdown iid-card">
+          <div class="dropdown-header">
+            <div class="header-feed-info">
+              <h4>Live Activity Feed</h4>
+              <span class="activity-count">{{ totalActivities() || activities().length }} events</span>
+            </div>
+            @if (unreadCount() > 0) {
+              <button type="button" class="mark-all-read-btn" (click)="markAllAsRead()" title="Mark all as read">
+                <span class="material-symbols-outlined">done_all</span>
+                <span>Mark all read</span>
+              </button>
+            }
+          </div>
+
+          <div class="dropdown-body" (scroll)="onDropdownScroll($event)">
+            @if (activities().length === 0) {
+              <div class="empty-feed">
+                <span class="material-symbols-outlined">notifications_off</span>
+                <span>No live events yet</span>
+              </div>
+            } @else {
+              <ul class="activity-list">
+                @for (act of activities(); track act.id) {
+                  <li
+                    class="activity-item"
+                    [class]="'sev-' + (act.severity || 'info')"
+                    [class.unread]="!act.isRead"
+                    [class.clickable]="!!act.vehicleId && act.type !== 'removed'"
+                    (click)="onActivityClick(act)"
+                  >
+                    <div class="activity-icon">
+                      @switch (act.type) {
+                        @case ('added') {
+                          <span class="material-symbols-outlined">add_circle</span>
+                        }
+                        @case ('updated') {
+                          <span class="material-symbols-outlined">edit</span>
+                        }
+                        @case ('removed') {
+                          <span class="material-symbols-outlined">delete</span>
+                        }
+                        @case ('aging') {
+                          <span class="material-symbols-outlined">warning</span>
+                        }
+                        @default {
+                          <span class="material-symbols-outlined">info</span>
+                        }
+                      }
+                    </div>
+                    <div class="activity-content">
+                      <div class="activity-top">
+                        <span class="activity-title">{{ act.title }}</span>
+                        <span class="activity-time">{{ act.timestamp.toLocaleTimeString() }}</span>
+                      </div>
+                      @if (act.vehicleName) {
+                        <div class="activity-vehicle">
+                          <span class="material-symbols-outlined activity-car-icon">directions_car</span>
+                          <span class="activity-car-name">{{ act.vehicleName }}</span>
+                        </div>
+                      }
+                      <p class="activity-detail">{{ act.detail }}</p>
+                      @if (act.vehicleId && act.type !== 'removed') {
+                        <div class="activity-action-hint">
+                          <span class="material-symbols-outlined">visibility</span>
+                          <span>Click to view vehicle details</span>
+                        </div>
+                      }
+                    </div>
+                    @if (!act.isRead) {
+                      <div class="activity-unread-indicator">
+                        <span class="unread-dot" title="Unread"></span>
+                      </div>
+                    }
+                  </li>
+                }
+              </ul>
+
+              @if (isLoadingMoreActivities()) {
+                <div class="feed-loading-more">
+                  <span class="material-symbols-outlined spin">progress_activity</span>
+                  <span>Loading more activities...</span>
+                </div>
+              } @else if (hasMoreActivities()) {
+                <div class="feed-load-more-hint" (click)="realtime.loadMoreActivities(10)">
+                  <span>Scroll or tap to load more ({{ activities().length }} of {{ totalActivities() }})</span>
+                </div>
+              } @else if (activities().length >= 10) {
+                <div class="feed-end">
+                  <span>All {{ totalActivities() }} events loaded</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- User Profile & Logout -->
+    @if (user(); as u) {
+      <div class="user-profile">
+        <div class="user-avatar">
+          <span>{{ u.email.substring(0, 2).toUpperCase() }}</span>
+        </div>
+        <div class="user-info">
+          <span class="user-email">{{ u.email }}</span>
+          <span class="user-role" [class.manager]="isManager()">
+            {{ isManager() ? 'Manager (Full Access)' : 'Viewer (Read Only)' }}
+          </span>
+        </div>
+      </div>
+    }
+
+    <button type="button" class="iid-btn iid-btn-secondary iid-btn-sm" (click)="logout()" title="Sign Out">
+      <span class="material-symbols-outlined">logout</span>
+      <span>Logout</span>
+    </button>
+  </div>
+</header>
+
+<!-- Vehicle Detail Modal -->
+@if (selectedVehicleForDetail(); as v) {
+  <iid-vehicle-detail-modal
+    [vehicle]="v"
+    [isManager]="isManager()"
+    [highlightActionId]="highlightedActionId()"
+    (close)="closeDetailModal()"
+    (editVehicle)="onEditFromDetail($event)"
+    (logAction)="onLogActionFromDetail($event)"
+    (markSold)="onMarkSoldFromDetail($event)"
+  />
+}
+
+<!-- Log Action Modal -->
+@if (selectedVehicleForAction(); as v) {
+  <iid-log-action-modal
+    [vehicle]="v"
+    (close)="closeActionModal()"
+  />
+}
+
+<!-- Edit Vehicle Modal -->
+@if (selectedVehicleForEdit(); as v) {
+  <iid-edit-vehicle-modal
+    [vehicle]="v"
+    (close)="closeEditModal()"
+  />
+}
+
+<!-- Mark Sold Modal -->
+@if (selectedVehicleForSold(); as v) {
+  <iid-mark-sold-modal
+    [vehicle]="v"
+    (close)="closeSoldModal()"
+  />
+}

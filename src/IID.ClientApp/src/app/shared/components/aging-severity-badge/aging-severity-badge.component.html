@@ -1,0 +1,10 @@
+<span class="aging-badge" [class]="severityClass()">
+  @if (severity() === 'Critical') {
+    <span class="material-symbols-outlined icon">warning</span>
+  } @else if (severity() === 'High') {
+    <span class="material-symbols-outlined icon">schedule</span>
+  } @else if (severity() === 'Warning') {
+    <span class="material-symbols-outlined icon">info</span>
+  }
+  <span>{{ label() }}</span>
+</span>

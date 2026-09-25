@@ -1,0 +1,271 @@
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .icon {
+      font-size: 20px;
+      color: var(--iid-primary);
+    }
+
+    h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--iid-text-primary);
+    }
+  }
+
+  .header-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--iid-text-muted);
+    background: var(--iid-bg-surface-elevated);
+    padding: 3px 8px;
+    border-radius: var(--iid-radius-sm);
+  }
+}
+
+/* Histogram */
+.histogram-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  height: 180px;
+  padding-top: 10px;
+}
+
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.bar-value {
+  font-size: 0.75rem;
+  font-family: var(--iid-font-mono);
+  font-weight: 700;
+  color: var(--iid-text-secondary);
+  margin-bottom: 6px;
+}
+
+.bar-track {
+  flex: 1;
+  width: 100%;
+  max-width: 38px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, var(--iid-primary), #3b82f6);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aging-critical .bar-fill {
+  background: linear-gradient(180deg, var(--iid-danger), #b91c1c);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.bar-label {
+  font-size: 0.685rem;
+  color: var(--iid-text-muted);
+  margin-top: 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Sales Chart */
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  font-size: 0.85rem;
+  color: var(--iid-text-muted);
+}
+
+.sales-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 180px;
+  gap: 12px;
+}
+
+.sales-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.revenue-val {
+  font-size: 0.675rem;
+  font-family: var(--iid-font-mono);
+  font-weight: 600;
+  color: #34d399;
+  margin-bottom: 6px;
+}
+
+.sales-bar-track {
+  flex: 1;
+  width: 100%;
+  max-width: 44px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.sales-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #10b981, #059669);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.6s ease;
+}
+
+.sales-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.sales-month {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--iid-text-primary);
+}
+
+.units-sold {
+  font-size: 0.65rem;
+  color: var(--iid-text-muted);
+}
+
+/* Fuel breakdown */
+.fuel-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fuel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fuel-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.775rem;
+}
+
+.fuel-name {
+  font-weight: 600;
+  color: var(--iid-text-primary);
+}
+
+.fuel-count {
+  color: var(--iid-text-muted);
+  font-family: var(--iid-font-mono);
+}
+
+.fuel-progress-track {
+  height: 8px;
+  background: var(--iid-bg-surface-elevated);
+  border-radius: var(--iid-radius-pill);
+  overflow: hidden;
+}
+
+.fuel-progress-fill {
+  height: 100%;
+  border-radius: var(--iid-radius-pill);
+  transition: width 0.5s ease;
+}
+
+.fuel-electric { background: linear-gradient(90deg, #10b981, #34d399); }
+.fuel-hybrid, .fuel-pluginhybrid { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+.fuel-petrol { background: linear-gradient(90deg, #6366f1, #818cf8); }
+.fuel-diesel { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+/* Status List */
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--iid-bg-surface);
+  border: 1px solid var(--iid-border);
+  border-radius: var(--iid-radius-md);
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-bullet {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.bullet-available { background: var(--iid-success); box-shadow: 0 0 8px var(--iid-success); }
+.bullet-sold { background: var(--iid-primary); }
+.bullet-pending { background: var(--iid-warning); }
+.bullet-wholesale { background: var(--iid-purple); }
+
+.status-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--iid-text-primary);
+}
+
+.status-count-badge {
+  font-size: 0.775rem;
+  font-family: var(--iid-font-mono);
+  font-weight: 700;
+  color: var(--iid-text-secondary);
+  background: var(--iid-bg-surface-elevated);
+  padding: 3px 8px;
+  border-radius: var(--iid-radius-pill);
+}

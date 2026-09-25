@@ -1,0 +1,13 @@
+<div class="empty-state">
+  <div class="icon-bubble">
+    <span class="material-symbols-outlined">{{ icon() }}</span>
+  </div>
+  <h3 class="title">{{ title() }}</h3>
+  <p class="description">{{ description() }}</p>
+
+  @if (actionLabel()) {
+    <button type="button" class="iid-btn iid-btn-primary iid-btn-sm" (click)="actionClick.emit()">
+      {{ actionLabel() }}
+    </button>
+  }
+</div>

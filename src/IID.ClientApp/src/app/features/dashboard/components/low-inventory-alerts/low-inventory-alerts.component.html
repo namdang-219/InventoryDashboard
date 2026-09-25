@@ -1,0 +1,47 @@
+<div class="low-inventory-card iid-card">
+  <div class="card-header">
+    <div class="header-left">
+      <span class="material-symbols-outlined icon">crisis_alert</span>
+      <h4>Low Stock Model Alerts</h4>
+    </div>
+    <span class="threshold-tag">Threshold &le; Min</span>
+  </div>
+
+  @if (alerts().length === 0) {
+    <div class="empty-state">
+      <span class="material-symbols-outlined">check_circle</span>
+      <p>All model supplies are healthy across all segments.</p>
+    </div>
+  } @else {
+    <div class="alerts-table-wrap">
+      <table class="alerts-table">
+        <thead>
+          <tr>
+            <th>Make</th>
+            <th>Model</th>
+            <th>Available</th>
+            <th>Min Threshold</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (alert of alerts(); track alert.id) {
+            <tr>
+              <td class="font-bold">{{ alert.make }}</td>
+              <td>{{ alert.model }}</td>
+              <td>
+                <span class="count-critical">{{ alert.available }}</span>
+              </td>
+              <td>{{ alert.threshold }} units</td>
+              <td>
+                <span class="deficit-pill">
+                  Low ({{ alert.threshold - alert.available }} deficit)
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

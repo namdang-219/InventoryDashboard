@@ -1,0 +1,106 @@
+.table-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    text-align: left;
+    padding: 14px 18px;
+    font-size: 0.725rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--iid-text-muted);
+    background: var(--iid-bg-surface);
+    border-bottom: 1px solid var(--iid-border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--iid-border);
+    color: var(--iid-text-secondary);
+    vertical-align: middle;
+  }
+
+  .data-row {
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: var(--iid-bg-surface-elevated);
+    }
+  }
+}
+
+.veh-title {
+  font-weight: 700;
+  color: var(--iid-text-primary);
+  font-size: 0.9rem;
+}
+
+.veh-color {
+  font-size: 0.75rem;
+  color: var(--iid-text-muted);
+}
+
+.vin-mono {
+  font-family: var(--iid-font-mono);
+  font-weight: 600;
+  color: var(--iid-text-primary);
+  font-size: 0.775rem;
+}
+
+.stock-mono {
+  font-family: var(--iid-font-mono);
+  font-size: 0.7rem;
+  color: var(--iid-accent);
+}
+
+.fuel-chip {
+  font-size: 0.725rem;
+  padding: 2px 7px;
+  background: var(--iid-bg-surface-elevated);
+  border-radius: var(--iid-radius-sm);
+  color: var(--iid-text-secondary);
+}
+
+.col-mileage {
+  font-family: var(--iid-font-mono);
+}
+
+.col-price {
+  font-family: var(--iid-font-mono);
+  font-weight: 800;
+  color: var(--iid-text-primary);
+}
+
+.days-pill {
+  font-family: var(--iid-font-mono);
+  font-weight: 600;
+  font-size: 0.8rem;
+
+  &.aging-danger {
+    color: var(--iid-danger);
+    font-weight: 800;
+  }
+}
+
+.col-actions {
+  text-align: right;
+}
+
+.btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

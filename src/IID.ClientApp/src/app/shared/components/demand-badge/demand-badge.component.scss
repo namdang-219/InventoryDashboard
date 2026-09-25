@@ -1,0 +1,43 @@
+.demand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--iid-radius-pill);
+  font-size: 0.725rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.icon {
+  font-size: 14px;
+}
+
+.score-pill {
+  font-family: var(--iid-font-mono);
+  background: var(--iid-bg-surface);
+  color: var(--iid-text-primary);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 1px solid var(--iid-border);
+}
+
+.demand-high {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.demand-medium {
+  background: rgba(14, 165, 233, 0.12);
+  color: #38bdf8;
+  border-color: rgba(14, 165, 233, 0.25);
+}
+
+.demand-low {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}

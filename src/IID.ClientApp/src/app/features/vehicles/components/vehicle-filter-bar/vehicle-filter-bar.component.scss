@@ -1,0 +1,132 @@
+.filter-bar {
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-row {
+  display: grid;
+  gap: 14px;
+  align-items: flex-end;
+
+  &-primary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  &-secondary {
+    grid-template-columns: 1.1fr 1.1fr 1.5fr auto;
+  }
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+
+  .iid-form-label {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+    color: var(--iid-text-secondary);
+  }
+
+  .iid-input {
+    height: 40px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    background: var(--iid-bg-input);
+  }
+
+  .iid-select {
+    padding-right: 34px;
+  }
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .input-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 17px;
+    color: var(--iid-text-muted);
+    pointer-events: none;
+  }
+
+  .input-field {
+    padding-left: 36px;
+  }
+}
+
+.sort-controls {
+  display: flex;
+  gap: 8px;
+
+  .iid-select {
+    flex: 1;
+  }
+}
+
+.sort-toggle-btn {
+  background: var(--iid-bg-surface-elevated);
+  border: 1px solid var(--iid-border);
+  border-radius: var(--iid-radius-md);
+  color: var(--iid-text-primary);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--iid-bg-card-hover);
+    border-color: var(--iid-primary);
+    color: var(--iid-primary);
+  }
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+
+  .reset-btn {
+    height: 40px;
+    padding: 0 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.825rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    .material-symbols-outlined {
+      font-size: 16px;
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .filter-row-secondary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-row-primary {
+    grid-template-columns: 1fr;
+  }
+  .filter-row-secondary {
+    grid-template-columns: 1fr;
+  }
+}

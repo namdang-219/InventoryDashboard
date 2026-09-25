@@ -1,0 +1,90 @@
+<div class="iid-modal-backdrop" (click)="close.emit()">
+  <div class="modal-card iid-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-title">
+        <span class="material-symbols-outlined icon">monetization_on</span>
+        <h3>Mark Vehicle As Sold</h3>
+      </div>
+      <button type="button" class="close-btn" (click)="close.emit()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Vehicle Summary Header -->
+    <div class="veh-summary-box">
+      <div class="veh-info">
+        <h4>{{ vehicle().year }} {{ vehicle().make }} {{ vehicle().model }}</h4>
+        <span class="vin-label">VIN: {{ vehicle().vin }} &bull; Stock: {{ vehicle().stockNumber }}</span>
+      </div>
+      <div class="price-tags">
+        <div class="price-item">
+          <span class="label">Purchase Cost:</span>
+          <span class="val">{{ vehicle().purchasePriceAmount | formatCurrency }}</span>
+        </div>
+        <div class="price-item">
+          <span class="label">Asking Price:</span>
+          <span class="val font-bold">{{ vehicle().askingPriceAmount | formatCurrency }}</span>
+        </div>
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="error-banner">
+        <span class="material-symbols-outlined">error</span>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="modal-form">
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label class="iid-form-label" for="soldPrice">Final Sold Price ($) *</label>
+          <input id="soldPrice" type="number" class="iid-input font-mono" formControlName="soldPrice" />
+          @if (form.controls.soldPrice.touched && form.controls.soldPrice.invalid) {
+            <span class="error-text">Valid sold price is required</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="soldDate">Sold Date *</label>
+          <input id="soldDate" type="date" class="iid-input font-mono" formControlName="soldAtDate" />
+        </div>
+      </div>
+
+      <!-- Live Profit Telemetry Projection -->
+      <div class="profit-projection-box">
+        <div class="projection-item">
+          <span class="proj-label">Projected Gross Profit</span>
+          <span class="proj-val" [class.profit-positive]="estimatedProfit() >= 0" [class.profit-negative]="estimatedProfit() < 0">
+            {{ estimatedProfit() | formatCurrency }}
+          </span>
+        </div>
+        <div class="projection-item">
+          <span class="proj-label">Profit Margin</span>
+          <span class="proj-val" [class.profit-positive]="estimatedMargin() >= 0" [class.profit-negative]="estimatedMargin() < 0">
+            {{ estimatedMargin() }}%
+          </span>
+        </div>
+      </div>
+
+      <div class="concurrency-note">
+        <span class="material-symbols-outlined icon">verified_user</span>
+        <span>Protected with Optimistic Concurrency Control (ETag Revision).</span>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="iid-btn iid-btn-secondary" (click)="close.emit()" [disabled]="isSubmitting()">
+          Cancel
+        </button>
+        <button type="submit" class="iid-btn iid-btn-primary" [disabled]="isSubmitting() || form.invalid">
+          @if (isSubmitting()) {
+            <span>Recording Sale...</span>
+          } @else {
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>Confirm Sale</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

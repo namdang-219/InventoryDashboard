@@ -1,0 +1,102 @@
+<div class="card-wrap iid-card iid-card-hover" (click)="viewDetails.emit(vehicle())">
+  <!-- Card Header -->
+  <div class="card-top">
+    <div class="badge-cluster">
+      <iid-status-badge [status]="vehicle().status" />
+      <span class="fuel-badge">{{ vehicle().fuelType }}</span>
+    </div>
+    <div class="days-indicator" [class.aging-alert]="vehicle().isAging">
+      <span class="material-symbols-outlined">schedule</span>
+      <span>{{ vehicle().daysInInventory }}d</span>
+    </div>
+  </div>
+
+  <!-- Vehicle Title -->
+  <div class="card-title-section">
+    <h3 class="title">{{ vehicle().year }} {{ vehicle().make }} {{ vehicle().model }}</h3>
+    <div class="vin-stock">
+      <span>VIN: {{ vehicle().vin }}</span>
+      <span class="stock-pill">{{ vehicle().stockNumber }}</span>
+    </div>
+  </div>
+
+  <!-- Metadata Grid -->
+  <div class="meta-row">
+    <div class="meta-item">
+      <span class="meta-label">Mileage</span>
+      <span class="meta-val">{{ vehicle().mileage.toLocaleString() }} mi</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Color</span>
+      <span class="meta-val">{{ vehicle().color }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Inflow Date</span>
+      <span class="meta-val">{{ vehicle().dateAddedToInventoryUtc.substring(0, 10) }}</span>
+    </div>
+  </div>
+
+  <!-- Analytics Row -->
+  <div class="analytics-row">
+    <iid-aging-severity-badge [severity]="vehicle().agingSeverity" [days]="vehicle().daysInInventory" />
+    <iid-demand-badge [level]="vehicle().demandLevel" [score]="vehicle().demandScore" />
+  </div>
+
+  <!-- Price & Actions Footer -->
+  <div class="card-footer">
+    <div class="price-box">
+      <span class="price-label">Asking Price</span>
+      <span class="price-val">{{ vehicle().askingPriceAmount | formatCurrency }}</span>
+    </div>
+
+    <div class="actions-group" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="iid-btn-icon"
+        title="View Details"
+        (click)="viewDetails.emit(vehicle())"
+      >
+        <span class="material-symbols-outlined">visibility</span>
+      </button>
+
+      @if (isManager() && vehicle().status !== 'Sold') {
+        <button
+          type="button"
+          class="iid-btn-icon"
+          title="Edit Vehicle"
+          (click)="editVehicle.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">edit</span>
+        </button>
+
+        <button
+          type="button"
+          class="iid-btn-icon"
+          title="Log Action"
+          (click)="logAction.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">assignment_add</span>
+        </button>
+
+        <button
+          type="button"
+          class="iid-btn-icon"
+          title="Transfer Dealership Showroom"
+          (click)="transferDealership.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">swap_horiz</span>
+        </button>
+
+        <button
+          type="button"
+          class="iid-btn iid-btn-primary iid-btn-sm"
+          title="Mark Vehicle Sold"
+          (click)="markSold.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">monetization_on</span>
+          <span>Sold</span>
+        </button>
+      }
+    </div>
+  </div>
+</div>

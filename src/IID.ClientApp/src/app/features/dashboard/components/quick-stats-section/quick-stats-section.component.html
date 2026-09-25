@@ -1,0 +1,57 @@
+<div class="stats-grid">
+  <!-- Card 1: Total Units -->
+  <iid-stat-card
+    title="Total Inventory"
+    [value]="summary()?.totalInventory ?? 0"
+    icon="inventory_2"
+    accent="primary"
+    subtitle="All active & pending stock"
+  />
+
+  <!-- Card 2: Available Units -->
+  <iid-stat-card
+    title="Ready for Sale"
+    [value]="summary()?.availableCount ?? 0"
+    icon="check_circle"
+    accent="success"
+    trend="up"
+    trendLabel="Available"
+  />
+
+  <!-- Card 3: Aging Warning (>90 Days) -->
+  <iid-stat-card
+    title="Aging Stock (>90d)"
+    [value]="summary()?.agingCount ?? 0"
+    icon="warning"
+    [accent]="(summary()?.agingCount ?? 0) > 0 ? 'danger' : 'success'"
+    [trend]="(summary()?.agingCount ?? 0) > 0 ? 'down' : 'flat'"
+    [trendLabel]="(summary()?.agingCount ?? 0) > 0 ? 'Needs Action' : 'Optimal'"
+  />
+
+  <!-- Card 4: Avg Days on Lot -->
+  <iid-stat-card
+    title="Avg Days on Lot"
+    [value]="(summary()?.averageDaysInInventory ?? 0) + ' days'"
+    icon="schedule"
+    accent="warning"
+    subtitle="Lot turnaround velocity"
+  />
+
+  <!-- Card 5: Total Capital Value -->
+  <iid-stat-card
+    title="Total Portfolio Value"
+    [value]="totalValueFormatted()"
+    icon="account_balance_wallet"
+    accent="purple"
+    subtitle="Total asking price"
+  />
+
+  <!-- Card 6: Average Unit Value -->
+  <iid-stat-card
+    title="Avg Unit Valuation"
+    [value]="avgValueFormatted()"
+    icon="payments"
+    accent="primary"
+    subtitle="Mean asking price"
+  />
+</div>

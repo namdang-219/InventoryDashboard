@@ -1,0 +1,120 @@
+<div class="dashboard-page">
+  <!-- Page Header -->
+  <div class="page-topbar">
+    <div class="topbar-title">
+      <h2>Inventory Overview</h2>
+      <p>Live inventory distribution, capital valuation, aging velocity & predictive insights.</p>
+    </div>
+
+    <div class="topbar-actions">
+      <button type="button" class="iid-btn iid-btn-secondary iid-btn-sm" (click)="loadDashboard(true)">
+        <span class="material-symbols-outlined">refresh</span>
+        <span>Refresh Metrics</span>
+      </button>
+
+      <a routerLink="/vehicles" class="iid-btn iid-btn-primary iid-btn-sm">
+        <span class="material-symbols-outlined">directions_car</span>
+        <span>Manage Inventory</span>
+      </a>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <iid-loading-spinner message="Computing live inventory telemetry & analytics..." size="lg" />
+  } @else if (error()) {
+    <div class="error-banner iid-card">
+      <div class="error-left">
+        <span class="material-symbols-outlined error-icon">error</span>
+        <div>
+          <h4>Connection Error</h4>
+          <p>{{ error() }}</p>
+        </div>
+      </div>
+      <button type="button" class="iid-btn iid-btn-primary iid-btn-sm" (click)="loadDashboard(true)">
+        Retry Connection
+      </button>
+    </div>
+  } @else {
+    @if (bundle(); as b) {
+      <!-- Quick Stats Metric Row -->
+      <iid-quick-stats-section [summary]="b.summary" [quickStats]="b.quickStats" />
+
+      <!-- Action Center Recommendations -->
+      @if (b.actionCenter.length > 0) {
+        <iid-action-center-section
+          [items]="b.actionCenter"
+          (actionClick)="handleActionItem($event)"
+        />
+      }
+
+      <!-- Visual Charts Matrix -->
+      <iid-inventory-charts [charts]="b.charts" />
+
+      <!-- Low Inventory Model Alerts -->
+      <iid-low-inventory-alerts [alerts]="alerts()" />
+
+      <!-- Quick Inventory Recent Stock Table -->
+      <div class="recent-stock-card iid-card">
+        <div class="card-header">
+          <div class="header-left">
+            <span class="material-symbols-outlined icon">minor_crash</span>
+            <h3>Recent Inventory Inflow</h3>
+          </div>
+          <a routerLink="/vehicles" class="view-all-link">
+            <span>View All {{ b.inventory.total }} Vehicles</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </a>
+        </div>
+
+        <div class="table-container">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>Vehicle</th>
+                <th>VIN / Stock</th>
+                <th>Fuel</th>
+                <th>Asking Price</th>
+                <th>Status</th>
+                <th>Days On Lot</th>
+                <th>Aging</th>
+                <th>Demand</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (veh of b.inventory.items; track veh.id) {
+                <tr class="table-row">
+                  <td class="col-vehicle">
+                    <div class="veh-title">{{ veh.year }} {{ veh.make }} {{ veh.model }}</div>
+                    <div class="veh-meta">{{ veh.color }} &bull; {{ veh.mileage.toLocaleString() }} miles</div>
+                  </td>
+                  <td class="col-vin">
+                    <div class="vin-code">{{ veh.vin }}</div>
+                    <div class="stock-badge">{{ veh.stockNumber }}</div>
+                  </td>
+                  <td>
+                    <span class="fuel-tag">{{ veh.fuelType }}</span>
+                  </td>
+                  <td class="col-price">
+                    {{ veh.askingPriceAmount | formatCurrency }}
+                  </td>
+                  <td>
+                    <iid-status-badge [status]="veh.status" />
+                  </td>
+                  <td>
+                    <span class="days-cell">{{ veh.daysInInventory }}d</span>
+                  </td>
+                  <td>
+                    <iid-aging-severity-badge [severity]="veh.agingSeverity" [days]="veh.daysInInventory" />
+                  </td>
+                  <td>
+                    <iid-demand-badge [level]="veh.demandLevel" [score]="veh.demandScore" />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+</div>

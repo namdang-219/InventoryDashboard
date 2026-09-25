@@ -1,0 +1,145 @@
+<div class="iid-modal-backdrop" (click)="close.emit()">
+  <div class="modal-card iid-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-title">
+        <span class="material-symbols-outlined icon">add_circle</span>
+        <h3>Add Vehicle to Inventory</h3>
+      </div>
+      <button type="button" class="close-btn" (click)="close.emit()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="modal-form-wrap">
+      <div class="modal-body">
+        <!-- Quick Sample Preset Fill -->
+        <div class="preset-bar">
+          <span class="preset-label">Quick Fill:</span>
+          <button type="button" class="preset-btn" (click)="fillSample('tesla')">Tesla Model 3</button>
+          <button type="button" class="preset-btn" (click)="fillSample('bmw')">BMW X5</button>
+          <button type="button" class="preset-btn" (click)="fillSample('porsche')">Porsche Taycan</button>
+        </div>
+
+        @if (errorMessage()) {
+          <div class="error-banner">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="iid-form-label" for="vehDealership">Dealership Showroom *</label>
+          <select id="vehDealership" class="iid-select" formControlName="dealershipId">
+            @for (d of dealershipService.dealerships(); track d.id) {
+              <option [value]="d.id">{{ d.name }} — {{ d.city }}, {{ d.state }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-row two-col">
+        <div class="form-group">
+          <label class="iid-form-label" for="vehVin">VIN (17 Chars) *</label>
+          <input id="vehVin" type="text" class="iid-input font-mono" formControlName="vin" placeholder="e.g. 5YJ3E1EB..." />
+          @if (form.controls.vin.touched && form.controls.vin.invalid) {
+            <span class="error-text">VIN must be between 11 and 17 characters</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="vehStock">Stock Number (Optional)</label>
+          <input id="vehStock" type="text" class="iid-input font-mono" formControlName="stockNumber" placeholder="Auto-generated if empty" />
+        </div>
+      </div>
+
+      <div class="form-row three-col">
+        <div class="form-group">
+          <label class="iid-form-label" for="vehMake">Make *</label>
+          <input id="vehMake" type="text" class="iid-input" formControlName="make" placeholder="Tesla" />
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="vehModel">Model *</label>
+          <input id="vehModel" type="text" class="iid-input" formControlName="model" placeholder="Model 3" />
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="vehYear">Year *</label>
+          <input id="vehYear" type="number" class="iid-input font-mono" formControlName="year" />
+        </div>
+      </div>
+
+      <div class="form-row three-col">
+        <div class="form-group">
+          <label class="iid-form-label" for="vehColor">Color *</label>
+          <input id="vehColor" type="text" class="iid-input" formControlName="color" placeholder="Midnight Silver" />
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="vehMileage">Mileage (Miles) *</label>
+          <input id="vehMileage" type="number" class="iid-input font-mono" formControlName="mileage" />
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="vehFuel">Fuel Type *</label>
+          <select id="vehFuel" class="iid-input iid-select" formControlName="fuelType">
+            <option value="Petrol">Petrol</option>
+            <option value="Diesel">Diesel</option>
+            <option value="Electric">Electric</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="PluginHybrid">Plugin Hybrid</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row three-col">
+        <div class="form-group">
+          <label class="iid-form-label" for="vehPurchase">Purchase Price ($) *</label>
+          <input id="vehPurchase" type="number" class="iid-input font-mono" formControlName="purchasePrice" />
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="vehAsking">Asking Price ($) *</label>
+          <input id="vehAsking" type="number" class="iid-input font-mono" formControlName="askingPrice" />
+        </div>
+
+        <div class="form-group">
+          <label class="iid-form-label" for="vehStatus">Status *</label>
+          <select id="vehStatus" class="iid-input iid-select" formControlName="status">
+            <option value="Available">Available</option>
+            <option value="Pending">Pending</option>
+            <option value="Wholesale">Wholesale</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row one-col">
+        <div class="form-group">
+          <label class="iid-form-label" for="vehDateAdded">Date Added To Inventory *</label>
+          <input id="vehDateAdded" type="date" class="iid-input font-mono" formControlName="dateAddedToInventory" />
+        </div>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="bottom-error-alert">
+          <span class="material-symbols-outlined">error</span>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="iid-btn iid-btn-secondary" (click)="close.emit()" [disabled]="isSubmitting()">
+          Cancel
+        </button>
+        <button type="submit" class="iid-btn iid-btn-primary" [disabled]="isSubmitting() || form.invalid">
+          @if (isSubmitting()) {
+            <span>Saving Vehicle...</span>
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+            <span>Create Vehicle</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

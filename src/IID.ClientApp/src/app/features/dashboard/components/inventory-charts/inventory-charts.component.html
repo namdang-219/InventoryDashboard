@@ -1,0 +1,106 @@
+<div class="charts-grid">
+  <!-- Chart 1: Aging Buckets Histogram -->
+  <div class="chart-card iid-card">
+    <div class="chart-header">
+      <div class="header-left">
+        <span class="material-symbols-outlined icon">hourglass_bottom</span>
+        <h4>Aging Stock Histogram</h4>
+      </div>
+      <span class="header-tag">Lot Days</span>
+    </div>
+
+    <div class="histogram-chart">
+      @for (item of charts()?.agingHistogram ?? []; track item.bucket) {
+        <div class="bar-col" [class.aging-critical]="item.bucket.includes('180') || item.bucket.includes('91')">
+          <div class="bar-value">{{ item.count }}</div>
+          <div class="bar-track">
+            <div class="bar-fill" [style.height.%]="getAgingHeightPercent(item.count)"></div>
+          </div>
+          <div class="bar-label">{{ item.bucket }}</div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Chart 2: Monthly Sales & Revenue -->
+  <div class="chart-card iid-card">
+    <div class="chart-header">
+      <div class="header-left">
+        <span class="material-symbols-outlined icon">payments</span>
+        <h4>Sales & Revenue Trend</h4>
+      </div>
+      <span class="header-tag">Last 6 Months</span>
+    </div>
+
+    @if ((charts()?.monthlySales?.length ?? 0) === 0) {
+      <div class="chart-empty">No recent completed vehicle sales recorded.</div>
+    } @else {
+      <div class="sales-chart">
+        @for (sale of charts()?.monthlySales ?? []; track sale.month) {
+          <div class="sales-col">
+            <div class="revenue-val">{{ sale.revenue | formatCurrency }}</div>
+            <div class="sales-bar-track">
+              <div class="sales-bar-fill" [style.height.%]="getRevenueHeightPercent(sale.revenue)"></div>
+            </div>
+            <div class="sales-info">
+              <span class="sales-month">{{ sale.month }}</span>
+              <span class="units-sold">{{ sale.sold }} units</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Chart 3: Fuel Type Breakdown -->
+  <div class="chart-card iid-card">
+    <div class="chart-header">
+      <div class="header-left">
+        <span class="material-symbols-outlined icon">local_gas_station</span>
+        <h4>Powertrain Distribution</h4>
+      </div>
+      <span class="header-tag">Fuel Mix</span>
+    </div>
+
+    <div class="fuel-breakdown-list">
+      @for (fuel of charts()?.fuelBreakdown ?? []; track fuel.fuelType) {
+        <div class="fuel-item">
+          <div class="fuel-top">
+            <span class="fuel-name">{{ fuel.fuelType }}</span>
+            <span class="fuel-count">{{ fuel.count }} units ({{ getFuelWidthPercent(fuel.count) }}%)</span>
+          </div>
+          <div class="fuel-progress-track">
+            <div
+              class="fuel-progress-fill"
+              [class]="'fuel-' + fuel.fuelType.toLowerCase()"
+              [style.width.%]="getFuelWidthPercent(fuel.count)"
+            ></div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Chart 4: Inventory Status Matrix -->
+  <div class="chart-card iid-card">
+    <div class="chart-header">
+      <div class="header-left">
+        <span class="material-symbols-outlined icon">pie_chart</span>
+        <h4>Status Breakdown</h4>
+      </div>
+      <span class="header-tag">Live State</span>
+    </div>
+
+    <div class="status-list">
+      @for (st of charts()?.statusBreakdown ?? []; track st.status) {
+        <div class="status-row">
+          <div class="status-info">
+            <span class="status-bullet" [class]="'bullet-' + st.status.toLowerCase()"></span>
+            <span class="status-name">{{ st.status }}</span>
+          </div>
+          <span class="status-count-badge">{{ st.count }} units</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>

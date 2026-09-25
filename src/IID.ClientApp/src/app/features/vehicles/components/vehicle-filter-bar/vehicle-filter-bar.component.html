@@ -1,0 +1,111 @@
+<div class="filter-bar iid-card">
+  <!-- Dòng 1: Make & Model cùng nằm trên 1 dòng -->
+  <div class="filter-row filter-row-primary">
+    <!-- Search Make -->
+    <div class="filter-item">
+      <label class="iid-form-label" for="filterMake">Make</label>
+      <div class="input-with-icon">
+        <span class="material-symbols-outlined input-icon">directions_car</span>
+        <input
+          id="filterMake"
+          type="text"
+          class="iid-input input-field"
+          placeholder="e.g. Tesla, BMW"
+          [value]="searchMake()"
+          (input)="onMakeInput($any($event.target).value)"
+          (keydown.enter)="applyFilters()"
+        />
+      </div>
+    </div>
+
+    <!-- Search Model -->
+    <div class="filter-item">
+      <label class="iid-form-label" for="filterModel">Model</label>
+      <div class="input-with-icon">
+        <span class="material-symbols-outlined input-icon">search</span>
+        <input
+          id="filterModel"
+          type="text"
+          class="iid-input input-field"
+          placeholder="e.g. Model 3, X5"
+          [value]="searchModel()"
+          (input)="onModelInput($any($event.target).value)"
+          (keydown.enter)="applyFilters()"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Dòng 2: Các filter còn lại nằm trên 1 dòng -->
+  <div class="filter-row filter-row-secondary">
+    <!-- Status Dropdown -->
+    <div class="filter-item">
+      <label class="iid-form-label" for="filterStatus">Status</label>
+      <select
+        id="filterStatus"
+        class="iid-input iid-select"
+        [ngModel]="selectedStatus()"
+        (ngModelChange)="selectedStatus.set($event); applyFilters()"
+      >
+        <option value="">All Statuses</option>
+        <option value="Available">Available</option>
+        <option value="Pending">Pending</option>
+        <option value="Sold">Sold</option>
+        <option value="Wholesale">Wholesale</option>
+      </select>
+    </div>
+
+    <!-- Min Age Filter -->
+    <div class="filter-item">
+      <label class="iid-form-label" for="filterMinAge">Min Days On Lot</label>
+      <select
+        id="filterMinAge"
+        class="iid-input iid-select"
+        [ngModel]="minAgeDays()"
+        (ngModelChange)="minAgeDays.set($event ? +$event : null); applyFilters()"
+      >
+        <option [ngValue]="null">Any Duration</option>
+        <option [ngValue]="30">30+ Days (Warning)</option>
+        <option [ngValue]="60">60+ Days (High Aging)</option>
+        <option [ngValue]="90">90+ Days (Critical Aging)</option>
+        <option [ngValue]="120">120+ Days (Severe Overstock)</option>
+      </select>
+    </div>
+
+    <!-- Sort By -->
+    <div class="filter-item sort-item">
+      <label class="iid-form-label" for="filterSort">Sort Order</label>
+      <div class="sort-controls">
+        <select
+          id="filterSort"
+          class="iid-input iid-select"
+          [ngModel]="sortBy()"
+          (ngModelChange)="sortBy.set($event); applyFilters()"
+        >
+          <option value="createdAt">Date Created</option>
+          <option value="askingPrice">Asking Price</option>
+          <option value="mileage">Mileage</option>
+          <option value="year">Model Year</option>
+        </select>
+        <button
+          type="button"
+          class="sort-toggle-btn"
+          (click)="sortOrder.set(sortOrder() === 'asc' ? 'desc' : 'asc'); applyFilters()"
+          [title]="sortOrder() === 'asc' ? 'Ascending' : 'Descending'"
+        >
+          <span class="material-symbols-outlined">
+            {{ sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Reset -->
+    <div class="filter-actions">
+      <button type="button" class="iid-btn iid-btn-secondary reset-btn" (click)="reset()">
+        <span class="material-symbols-outlined">restart_alt</span>
+        <span>Reset</span>
+      </button>
+    </div>
+  </div>
+</div>

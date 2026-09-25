@@ -1,0 +1,218 @@
+<div class="dealerships-page">
+  <!-- Top Bar -->
+  <div class="page-topbar">
+    <div class="topbar-title">
+      <h2>Dealership Network</h2>
+      <p>Manage retail showrooms, lot allocations, and regional automotive distribution hubs.</p>
+    </div>
+
+    <div class="topbar-actions">
+      <button
+        type="button"
+        class="iid-btn iid-btn-secondary"
+        (click)="dealershipService.loadDealerships()"
+        [disabled]="dealershipService.isLoading()"
+      >
+        <span class="material-symbols-outlined" [class.spin-icon]="dealershipService.isLoading()">refresh</span>
+        <span>Refresh</span>
+      </button>
+
+      @if (isManager()) {
+        <button type="button" class="iid-btn iid-btn-primary" (click)="openCreateModal()">
+          <span class="material-symbols-outlined">add_business</span>
+          <span>Register Dealership</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Metric Telemetry Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card iid-card">
+      <div class="metric-icon-wrap icon-purple">
+        <span class="material-symbols-outlined">storefront</span>
+      </div>
+      <div class="metric-content">
+        <span class="metric-label">Total Showrooms</span>
+        <div class="metric-value">{{ totalShowrooms() }}</div>
+        <span class="metric-sub">Active network points</span>
+      </div>
+    </div>
+
+    <div class="metric-card iid-card">
+      <div class="metric-icon-wrap icon-blue">
+        <span class="material-symbols-outlined">directions_car</span>
+      </div>
+      <div class="metric-content">
+        <span class="metric-label">Network Inventory</span>
+        <div class="metric-value">{{ totalVehicles() }}</div>
+        <span class="metric-sub">Vehicles distributed across lots</span>
+      </div>
+    </div>
+
+    <div class="metric-card iid-card">
+      <div class="metric-icon-wrap icon-emerald">
+        <span class="material-symbols-outlined">public</span>
+      </div>
+      <div class="metric-content">
+        <span class="metric-label">Regional Footprint</span>
+        <div class="metric-value">{{ totalStates() }}</div>
+        <span class="metric-sub">States & regional hubs</span>
+      </div>
+    </div>
+
+    <div class="metric-card iid-card active-hub-card">
+      <div class="metric-icon-wrap icon-amber">
+        <span class="material-symbols-outlined">verified</span>
+      </div>
+      <div class="metric-content">
+        <span class="metric-label">Active Global Showroom</span>
+        <div class="metric-value active-name">
+          {{ dealershipService.selectedDealership()?.name || 'All Dealerships' }}
+        </div>
+        <span class="metric-sub">
+          {{ dealershipService.selectedDealership()?.city }}, {{ dealershipService.selectedDealership()?.state }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Filter Bar -->
+  <div class="filter-bar iid-card">
+    <div class="search-box">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search dealerships by name, code (e.g. DAL-01), city or state..."
+        [value]="searchInputText()"
+        (input)="onSearchInput($any($event.target).value)"
+        (keydown.enter)="flushSearch()"
+      />
+      @if (searchInputText()) {
+        <button type="button" class="clear-btn" (click)="clearSearch()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      }
+    </div>
+    <div class="results-count">
+      Showing <strong>{{ filteredDealerships().length }}</strong> of <strong>{{ totalShowrooms() }}</strong> showrooms
+    </div>
+  </div>
+
+  <!-- Content State -->
+  @if (dealershipService.isLoading()) {
+    <iid-loading-spinner message="Loading dealership network fleet..." size="lg" />
+  } @else if (dealershipService.error()) {
+    <div class="error-banner iid-card">
+      <div class="error-left">
+        <span class="material-symbols-outlined error-icon">error</span>
+        <div>
+          <h4>Failed to load dealerships</h4>
+          <p>{{ dealershipService.error() }}</p>
+        </div>
+      </div>
+      <button type="button" class="iid-btn iid-btn-primary iid-btn-sm" (click)="dealershipService.loadDealerships()">
+        Retry
+      </button>
+    </div>
+  } @else if (filteredDealerships().length === 0) {
+    <iid-empty-state
+      icon="storefront"
+      title="No Dealerships Found"
+      description="No showrooms match your search query."
+      [actionLabel]="isManager() ? 'Register Dealership' : null"
+      (actionClick)="openCreateModal()"
+    />
+  } @else {
+    <!-- Dealership Cards Grid -->
+    <div class="dealerships-grid">
+      @for (d of filteredDealerships(); track d.id) {
+        <div
+          class="dealer-card iid-card"
+          [class.is-active-dealer]="d.id === dealershipService.selectedDealershipId()"
+        >
+          <div class="dealer-topbar">
+            <div class="dealer-code-badge">{{ d.code }}</div>
+            <div class="dealer-top-actions">
+              @if (d.id === dealershipService.selectedDealershipId()) {
+                <div class="active-badge">
+                  <span class="material-symbols-outlined">check_circle</span>
+                  <span>Selecting</span>
+                </div>
+              }
+              @if (isManager()) {
+                <button
+                  type="button"
+                  class="iid-btn-icon edit-btn"
+                  title="Edit Dealership Info"
+                  (click)="openEditModal(d)"
+                >
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <h3 class="dealer-name">{{ d.name }}</h3>
+
+          <div class="dealer-details">
+            <div class="detail-row">
+              <span class="material-symbols-outlined detail-icon">location_on</span>
+              <span class="detail-text">{{ d.city }}, {{ d.state }}</span>
+            </div>
+            @if (d.phone) {
+              <div class="detail-row">
+                <span class="material-symbols-outlined detail-icon">phone</span>
+                <span class="detail-text font-mono">{{ d.phone }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Inventory Count Box -->
+          <div class="inventory-status-box">
+            <div class="inv-left">
+              <span class="material-symbols-outlined inv-icon">directions_car</span>
+              <span class="inv-label">On-Lot Fleet</span>
+            </div>
+            <span class="inv-count">{{ d.vehicleCount ?? 0 }} units</span>
+          </div>
+
+          <!-- Card Actions -->
+          <div class="dealer-card-actions">
+            @if (d.id !== dealershipService.selectedDealershipId()) {
+              <button
+                type="button"
+                class="iid-btn iid-btn-secondary iid-btn-sm set-active-btn"
+                (click)="selectDealership(d)"
+                title="Select this dealership for global dashboard metrics"
+              >
+                <span class="material-symbols-outlined">storefront</span>
+                <span>Select</span>
+              </button>
+            }
+
+            <button
+              type="button"
+              class="iid-btn iid-btn-primary iid-btn-sm view-fleet-btn"
+              (click)="viewDealershipInventory(d)"
+              title="View vehicle stock at this dealership"
+            >
+              <span class="material-symbols-outlined">inventory_2</span>
+              <span>View Fleet</span>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Add / Edit Modal -->
+@if (showModal()) {
+  <iid-dealership-form-modal
+    [dealership]="selectedForEdit()"
+    (close)="showModal.set(false)"
+    (saved)="onModalSaved()"
+  />
+}

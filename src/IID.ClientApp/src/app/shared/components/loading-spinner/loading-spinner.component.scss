@@ -1,0 +1,57 @@
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+}
+
+.spinner-ring {
+  position: relative;
+  border-radius: 50%;
+  border: 3px solid rgba(99, 102, 241, 0.15);
+  border-top-color: var(--iid-primary);
+  border-right-color: var(--iid-accent);
+  animation: iidSpin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.ring-core {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px dashed rgba(14, 165, 233, 0.3);
+  animation: iidSpinReverse 1.8s linear infinite;
+}
+
+.spinner-message {
+  font-size: 0.875rem;
+  color: var(--iid-text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.size-sm .spinner-ring {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.size-md .spinner-ring {
+  width: 44px;
+  height: 44px;
+}
+
+.size-lg .spinner-ring {
+  width: 64px;
+  height: 64px;
+  border-width: 4px;
+}
+
+@keyframes iidSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes iidSpinReverse {
+  to { transform: rotate(-360deg); }
+}

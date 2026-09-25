@@ -1,0 +1,56 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <div class="sidebar-header">
+    <div class="brand">
+      <div class="logo-mark">
+        <span class="material-symbols-outlined logo-icon">electric_car</span>
+      </div>
+      @if (!collapsed()) {
+        <div class="brand-text">
+          <span class="brand-name">IID System</span>
+          <span class="brand-tag">Intelligent Inventory</span>
+        </div>
+      }
+    </div>
+    <button type="button" class="collapse-btn" (click)="toggleCollapse.emit()" [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+      <span class="material-symbols-outlined">{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</span>
+    </button>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">
+      @if (!collapsed()) {
+        <span>Main Menu</span>
+      }
+    </div>
+    <ul class="nav-list">
+      @for (item of navItems; track item.path) {
+        <li>
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: item.exact }"
+            class="nav-link"
+            [title]="item.label"
+          >
+            <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
+            @if (!collapsed()) {
+              <span class="nav-label">{{ item.label }}</span>
+            }
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    @if (!collapsed()) {
+      <div class="status-summary">
+        <div class="indicator-dot"></div>
+        <div class="summary-text">
+          <span class="summary-title">Live Engine</span>
+          <span class="summary-sub">SignalR Connected</span>
+        </div>
+      </div>
+    }
+  </div>
+</aside>

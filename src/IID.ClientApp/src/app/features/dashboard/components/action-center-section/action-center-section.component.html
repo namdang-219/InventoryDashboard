@@ -1,0 +1,154 @@
+<div class="action-center iid-card">
+  <!-- Header -->
+  <div class="action-header">
+    <div class="header-left">
+      <div class="header-title">
+        <span class="material-symbols-outlined icon">bolt</span>
+        <h3>Action Center & Smart Recommendations</h3>
+      </div>
+      <span class="badge">{{ items().length }} Attention Required</span>
+    </div>
+
+    <!-- Toolbar Filters & Sort -->
+    <div class="header-controls">
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeFilter() === 'all'"
+          (click)="activeFilter.set('all')"
+        >
+          All ({{ items().length }})
+        </button>
+        @if (criticalCount() > 0) {
+          <button
+            type="button"
+            class="tab-btn critical"
+            [class.active]="activeFilter() === 'critical'"
+            (click)="activeFilter.set('critical')"
+          >
+            <span class="dot"></span>
+            Critical ({{ criticalCount() }})
+          </button>
+        }
+        @if (warningCount() > 0) {
+          <button
+            type="button"
+            class="tab-btn warning"
+            [class.active]="activeFilter() === 'warning'"
+            (click)="activeFilter.set('warning')"
+          >
+            <span class="dot"></span>
+            Warning ({{ warningCount() }})
+          </button>
+        }
+        @if (demandCount() > 0) {
+          <button
+            type="button"
+            class="tab-btn demand"
+            [class.active]="activeFilter() === 'demand'"
+            (click)="activeFilter.set('demand')"
+          >
+            Demand ({{ demandCount() }})
+          </button>
+        }
+      </div>
+
+      <!-- Sort Dropdown -->
+      <div class="sort-wrap">
+        <span class="material-symbols-outlined sort-icon">sort</span>
+        <span class="sort-label">Sort:</span>
+        <select
+          class="sort-select"
+          [value]="activeSort()"
+          (change)="activeSort.set($any($event.target).value)"
+        >
+          <option value="priority">Priority (Critical & Low Demand)</option>
+          <option value="demand-asc">Demand Score (Lowest First)</option>
+          <option value="demand-desc">Demand Score (Highest First)</option>
+          <option value="aging-desc">Aging Days (Highest First)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content: Compact List -->
+  @if (filteredAndSortedItems().length === 0) {
+    <div class="empty-actions">
+      <span class="material-symbols-outlined">verified</span>
+      <p>All stock parameters within optimal velocity! No adjustments required in this view.</p>
+    </div>
+  } @else {
+    <div class="compact-list-container">
+      <div class="compact-action-list">
+        @for (item of filteredAndSortedItems(); track item.id; let idx = $index) {
+          <div
+            class="compact-action-row"
+            [class]="'sev-' + item.severity"
+            (click)="onItemClick(item)"
+          >
+            <!-- Severity Indicator & Icon -->
+            <div class="row-indicator">
+              <span class="rank-index">#{{ idx + 1 }}</span>
+              <div class="row-icon">
+                @switch (item.severity) {
+                  @case ('critical') {
+                    <span class="material-symbols-outlined icon-crit">crisis_alert</span>
+                  }
+                  @case ('warning') {
+                    <span class="material-symbols-outlined icon-warn">warning</span>
+                  }
+                  @default {
+                    <span class="material-symbols-outlined icon-info">trending_down</span>
+                  }
+                }
+              </div>
+            </div>
+
+            <!-- Main Info -->
+            <div class="row-content">
+              <div class="row-top">
+                <span class="category-badge" [class]="'cat-' + item.category">{{ item.category }}</span>
+                <span class="severity-pill" [class]="'sev-pill-' + item.severity">{{ item.severity }}</span>
+                <h4 class="row-title">{{ item.title }}</h4>
+              </div>
+              <p class="row-desc">{{ item.description }}</p>
+            </div>
+
+            <!-- Metrics Pills -->
+            <div class="row-metrics">
+              @if (getDemandScore(item); as score) {
+                <div class="metric-pill demand" [class.low]="score < 40" [class.med]="score >= 40 && score < 70" [class.high]="score >= 70" title="Demand Score">
+                  <span class="material-symbols-outlined">speed</span>
+                  <span class="metric-val">{{ score }}/100</span>
+                  <span class="metric-lbl">Demand</span>
+                </div>
+              }
+
+              @if (getDaysOnLot(item); as days) {
+                <div class="metric-pill aging" [class.crit]="days >= 90" [class.warn]="days >= 60 && days < 90" title="Days on lot">
+                  <span class="material-symbols-outlined">schedule</span>
+                  <span class="metric-val">{{ days }}d</span>
+                  <span class="metric-lbl">on lot</span>
+                </div>
+              }
+            </div>
+
+            <!-- Action CTA -->
+            <div class="row-cta">
+              <button
+                type="button"
+                class="iid-btn iid-btn-secondary iid-btn-sm action-btn"
+                (click)="onItemClick(item); $event.stopPropagation()"
+              >
+                <span>Take Action</span>
+                <span class="material-symbols-outlined">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

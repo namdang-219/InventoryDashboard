@@ -1,0 +1,134 @@
+<div class="iid-modal-backdrop" (click)="close.emit()">
+  <div class="modal-card iid-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="header-title">
+        <span class="material-symbols-outlined icon">swap_horiz</span>
+        <h3>Transfer Vehicle Showroom</h3>
+      </div>
+      <button type="button" class="close-btn" (click)="close.emit()" title="Close dialog">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Vehicle Details Summary -->
+    <div class="veh-summary-box">
+      <div class="veh-info">
+        <h4>{{ vehicle().year }} {{ vehicle().make }} {{ vehicle().model }}</h4>
+        <span class="vin-label">VIN: {{ vehicle().vin }} &bull; Stock: {{ vehicle().stockNumber }}</span>
+      </div>
+      <div class="veh-metrics">
+        <div class="metric-item">
+          <span class="label">Asking Price:</span>
+          <span class="val font-accent">{{ vehicle().askingPriceAmount | formatCurrency }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="label">Lot Aging:</span>
+          <span class="val" [class.aging-danger]="vehicle().isAging">{{ vehicle().daysInInventory }} days</span>
+        </div>
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="error-banner">
+        <span class="material-symbols-outlined">error</span>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="modal-form">
+      <!-- Transfer Route Visualization -->
+      <div class="transfer-route-card">
+        <div class="route-node source-node">
+          <div class="node-badge">FROM</div>
+          <div class="node-content">
+            <span class="material-symbols-outlined node-icon">storefront</span>
+            <div class="node-text">
+              <span class="node-label">Current Dealership</span>
+              <strong class="node-name">{{ currentDealershipName() }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="route-arrow">
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </div>
+
+        <div class="route-node dest-node">
+          <div class="node-badge">TO</div>
+          <div class="node-content">
+            <span class="material-symbols-outlined node-icon accent-icon">location_on</span>
+            <div class="node-text">
+              <span class="node-label">Destination Dealership *</span>
+              <select
+                id="targetDealershipId"
+                class="iid-select target-select"
+                formControlName="targetDealershipId"
+              >
+                @if (availableDealerships().length === 0) {
+                  <option value="" disabled>No other dealerships available</option>
+                }
+                @for (d of availableDealerships(); track d.id) {
+                  <option [value]="d.id">
+                    {{ d.name }} &bull; {{ d.city }}, {{ d.state }}
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      @if (form.controls.targetDealershipId.touched && form.controls.targetDealershipId.invalid) {
+        <span class="error-text">Please choose a destination dealership.</span>
+      }
+
+      <!-- Transfer Reason / Notes -->
+      <div class="form-group notes-group">
+        <label class="iid-form-label" for="transferNotes">
+          Transfer Reason / Operational Notes (Optional)
+        </label>
+        <textarea
+          id="transferNotes"
+          class="iid-textarea"
+          rows="3"
+          placeholder="E.g., High buyer demand in target market, rebalancing inventory lot density, dealer network trade..."
+          formControlName="notes"
+        ></textarea>
+      </div>
+
+      <!-- Realtime Policy Notice -->
+      <div class="policy-note">
+        <span class="material-symbols-outlined note-icon">sync</span>
+        <div>
+          <span>This action immediately transfers inventory ownership, logs an audit entry, and re-routes SignalR telemetry streams between showrooms.</span>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="iid-btn iid-btn-secondary"
+          (click)="close.emit()"
+          [disabled]="isSubmitting()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="iid-btn iid-btn-primary"
+          [disabled]="isSubmitting() || form.invalid || availableDealerships().length === 0"
+        >
+          @if (isSubmitting()) {
+            <span class="material-symbols-outlined spin-icon">progress_activity</span>
+            <span>Transferring...</span>
+          } @else {
+            <span class="material-symbols-outlined">swap_horiz</span>
+            <span>Confirm Transfer</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

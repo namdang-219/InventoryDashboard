@@ -1,0 +1,9 @@
+<div class="shell-layout">
+  <iid-sidebar [collapsed]="sidebarCollapsed()" (toggleCollapse)="toggleSidebar()" />
+  <div class="shell-main">
+    <iid-header />
+    <main class="shell-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

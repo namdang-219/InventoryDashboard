@@ -1,0 +1,9 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/.vs/
+
+# Local secrets / IDE
+.env
+.cursor/
+*.user

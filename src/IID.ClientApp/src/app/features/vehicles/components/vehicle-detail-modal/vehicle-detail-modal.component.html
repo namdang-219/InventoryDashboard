@@ -1,0 +1,174 @@
+<div class="iid-modal-backdrop" (click)="close.emit()">
+  <div class="modal-card iid-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-left">
+        <span class="material-symbols-outlined icon">directions_car</span>
+        <div>
+          <h3>{{ vehicle().year }} {{ vehicle().make }} {{ vehicle().model }}</h3>
+          <span class="sub-id">VIN: {{ vehicle().vin }} &bull; Stock: {{ vehicle().stockNumber }}</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="close-btn" (click)="close.emit()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable Modal Body -->
+    <div class="modal-body">
+      <!-- Status & Analytics Pills -->
+      <div class="pills-strip">
+        <iid-status-badge [status]="vehicle().status" />
+        <iid-aging-severity-badge [severity]="vehicle().agingSeverity" [days]="vehicle().daysInInventory" />
+        <iid-demand-badge [level]="vehicle().demandLevel" [score]="vehicle().demandScore" />
+        <span class="fuel-chip">{{ vehicle().fuelType }}</span>
+      </div>
+
+      <!-- Pricing & Profit Matrix -->
+      <div class="financials-card">
+        <div class="fin-item">
+          <span class="fin-label">Purchase Price</span>
+          <span class="fin-val">{{ vehicle().purchasePriceAmount | formatCurrency }}</span>
+        </div>
+        <div class="fin-item">
+          <span class="fin-label">Asking Price</span>
+          <span class="fin-val font-accent">{{ vehicle().askingPriceAmount | formatCurrency }}</span>
+        </div>
+        @if (vehicle().soldPriceAmount) {
+          <div class="fin-item">
+            <span class="fin-label">Sold Price</span>
+            <span class="fin-val font-sold">{{ vehicle().soldPriceAmount | formatCurrency }}</span>
+          </div>
+          <div class="fin-item">
+            <span class="fin-label">Realized Profit</span>
+            <span class="fin-val font-profit">{{ vehicle().grossProfitAmount | formatCurrency }} ({{ vehicle().grossMarginPercent }}%)</span>
+          </div>
+        } @else {
+          <div class="fin-item">
+            <span class="fin-label">Target Markup</span>
+            <span class="fin-val font-profit">
+              {{ vehicle().askingPriceAmount - vehicle().purchasePriceAmount | formatCurrency }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Specification Grid -->
+      <div class="specs-grid">
+        <div class="spec-item">
+          <span class="spec-label">Exterior Color</span>
+          <span class="spec-val">{{ vehicle().color }}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Odometer</span>
+          <span class="spec-val">{{ vehicle().mileage.toLocaleString() }} miles</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Days On Lot</span>
+          <span class="spec-val">{{ vehicle().daysInInventory }} days</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Date Inflow</span>
+          <span class="spec-val">{{ vehicle().dateAddedToInventoryUtc.substring(0, 10) }}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Demand Score</span>
+          <span class="spec-val">{{ vehicle().demandScore }}/100</span>
+        </div>
+        @if (vehicle().dealershipName) {
+          <div class="spec-item">
+            <span class="spec-label">Dealership Showroom</span>
+            <span class="spec-val font-accent">{{ vehicle().dealershipName }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Action History Section -->
+      <div class="detail-history-section">
+        <div class="section-title">
+          <span class="material-symbols-outlined">history</span>
+          <h4>Action History ({{ actions().length }})</h4>
+        </div>
+        @if (isLoadingActions()) {
+          <div class="history-empty">Loading logged actions...</div>
+        } @else if (actions().length === 0) {
+          <div class="history-empty">No actions logged for this vehicle yet.</div>
+        } @else {
+          <div class="detail-actions-list">
+            @for (action of actions(); track action.id) {
+              <div
+                class="detail-action-card"
+                [id]="'action-card-' + action.id.toLowerCase()"
+                [class.highlighted-action]="isActionHighlighted(action.id)"
+                tabindex="-1"
+              >
+                <div class="action-top">
+                  <div class="action-tag-group">
+                    <span class="action-tag">{{ action.actionType }}</span>
+                    @if (isActionHighlighted(action.id)) {
+                      <span class="action-highlight-badge">
+                        <span class="material-symbols-outlined">center_focus_strong</span>
+                        <span>Highlighted Event</span>
+                      </span>
+                    }
+                  </div>
+                  <span class="action-time">{{ action.loggedAtUtc | date:'MMM d, y, h:mm a' }}</span>
+                </div>
+                @if (action.notes) {
+                  <div class="action-note">{{ action.notes }}</div>
+                }
+                <div class="action-user">Logged by: <strong>{{ action.loggedByName || action.loggedByUserId }}</strong></div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Concurrency Footer Actions -->
+    <div class="modal-footer">
+      <button type="button" class="iid-btn iid-btn-secondary close-btn-footer" (click)="close.emit()">
+        Close
+      </button>
+
+      @if (isManager() && vehicle().status !== 'Sold') {
+        <button
+          type="button"
+          class="iid-btn iid-btn-secondary"
+          (click)="transferDealership.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">swap_horiz</span>
+          <span>Transfer Dealership</span>
+        </button>
+
+        <button
+          type="button"
+          class="iid-btn iid-btn-secondary"
+          (click)="editVehicle.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">edit</span>
+          <span>Edit Vehicle</span>
+        </button>
+
+        <button
+          type="button"
+          class="iid-btn iid-btn-secondary"
+          (click)="logAction.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">assignment_add</span>
+          <span>Log Action</span>
+        </button>
+
+        <button
+          type="button"
+          class="iid-btn iid-btn-primary"
+          (click)="markSold.emit(vehicle())"
+        >
+          <span class="material-symbols-outlined">monetization_on</span>
+          <span>Mark as Sold</span>
+        </button>
+      }
+    </div>
+  </div>
+</div>

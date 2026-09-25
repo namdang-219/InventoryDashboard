@@ -1,0 +1,8 @@
+<div class="spinner-container" [class]="'size-' + size()">
+  <div class="spinner-ring">
+    <div class="ring-core"></div>
+  </div>
+  @if (message()) {
+    <span class="spinner-message">{{ message() }}</span>
+  }
+</div>

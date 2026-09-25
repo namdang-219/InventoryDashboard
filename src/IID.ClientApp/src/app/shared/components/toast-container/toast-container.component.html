@@ -1,0 +1,29 @@
+<div class="toast-stack" aria-live="polite">
+  @for (toast of toasts(); track toast.id) {
+    <div class="toast-item" [class]="'toast-' + toast.type" (click)="dismiss(toast.id)">
+      <div class="toast-icon">
+        @switch (toast.type) {
+          @case ('success') {
+            <span class="material-symbols-outlined">check_circle</span>
+          }
+          @case ('error') {
+            <span class="material-symbols-outlined">error</span>
+          }
+          @case ('warning') {
+            <span class="material-symbols-outlined">warning</span>
+          }
+          @default {
+            <span class="material-symbols-outlined">info</span>
+          }
+        }
+      </div>
+      <div class="toast-body">
+        <h4 class="toast-title">{{ toast.title }}</h4>
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+      <button type="button" class="toast-close" (click)="dismiss(toast.id); $event.stopPropagation()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+  }
+</div>

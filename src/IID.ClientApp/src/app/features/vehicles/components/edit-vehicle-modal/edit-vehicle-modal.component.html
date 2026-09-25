@@ -1,0 +1,152 @@
+<div class="iid-modal-backdrop" (click)="close.emit()">
+  <div class="modal-card iid-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-title">
+        <span class="material-symbols-outlined icon">edit</span>
+        <div>
+          <h3>Edit Vehicle</h3>
+          <span class="sub-id">VIN: {{ vehicle().vin }} &bull; Stock: {{ vehicle().stockNumber }}</span>
+        </div>
+      </div>
+      <button type="button" class="close-btn" (click)="close.emit()" [disabled]="isSubmitting()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="modal-form-wrap">
+      <div class="modal-body">
+        <!-- Vehicle Identification Info Banner -->
+        <div class="vehicle-info-bar">
+          <div class="info-block">
+            <span class="label">VIN</span>
+            <span class="val font-mono">{{ vehicle().vin }}</span>
+          </div>
+          <div class="info-block">
+            <span class="label">Stock Number</span>
+            <span class="val font-mono">{{ vehicle().stockNumber }}</span>
+          </div>
+          <div class="info-block">
+            <span class="label">Days on Lot</span>
+            <span class="val font-accent">{{ vehicle().daysInInventory }} days</span>
+          </div>
+          <div class="info-block">
+            <span class="label">Current Status</span>
+            <div class="val">
+              <iid-status-badge [status]="vehicle().status" />
+            </div>
+          </div>
+        </div>
+
+        @if (errorMessage()) {
+          <div class="error-banner">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <div class="form-row three-col">
+          <div class="form-group">
+            <label class="iid-form-label" for="editMake">Make *</label>
+            <input id="editMake" type="text" class="iid-input" formControlName="make" placeholder="Tesla" />
+            @if (form.controls.make.touched && form.controls.make.invalid) {
+              <span class="error-text">Make is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="iid-form-label" for="editModel">Model *</label>
+            <input id="editModel" type="text" class="iid-input" formControlName="model" placeholder="Model 3" />
+            @if (form.controls.model.touched && form.controls.model.invalid) {
+              <span class="error-text">Model is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="iid-form-label" for="editYear">Year *</label>
+            <input id="editYear" type="number" class="iid-input font-mono" formControlName="year" />
+            @if (form.controls.year.touched && form.controls.year.invalid) {
+              <span class="error-text">Valid year required (1980–present)</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-row three-col">
+          <div class="form-group">
+            <label class="iid-form-label" for="editColor">Color *</label>
+            <input id="editColor" type="text" class="iid-input" formControlName="color" placeholder="Midnight Silver" />
+            @if (form.controls.color.touched && form.controls.color.invalid) {
+              <span class="error-text">Color is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="iid-form-label" for="editMileage">Mileage (Miles) *</label>
+            <input id="editMileage" type="number" class="iid-input font-mono" formControlName="mileage" />
+            @if (form.controls.mileage.touched && form.controls.mileage.invalid) {
+              <span class="error-text">Non-negative mileage required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="iid-form-label" for="editFuel">Fuel Type *</label>
+            <select id="editFuel" class="iid-input iid-select" formControlName="fuelType">
+              <option value="Petrol">Petrol</option>
+              <option value="Diesel">Diesel</option>
+              <option value="Electric">Electric</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="PluginHybrid">Plugin Hybrid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row three-col">
+          <div class="form-group">
+            <label class="iid-form-label" for="editPurchase">Purchase Price ($) *</label>
+            <input id="editPurchase" type="number" class="iid-input font-mono" formControlName="purchasePrice" />
+            @if (form.controls.purchasePrice.touched && form.controls.purchasePrice.invalid) {
+              <span class="error-text">Valid purchase price required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="iid-form-label" for="editAsking">Asking Price ($) *</label>
+            <input id="editAsking" type="number" class="iid-input font-mono" formControlName="askingPrice" />
+            @if (form.controls.askingPrice.touched && form.controls.askingPrice.invalid) {
+              <span class="error-text">Valid asking price required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="iid-form-label" for="editStatus">Status *</label>
+            <select id="editStatus" class="iid-input iid-select" formControlName="status">
+              <option value="Available">Available</option>
+              <option value="Pending">Pending</option>
+              <option value="Wholesale">Wholesale</option>
+            </select>
+          </div>
+        </div>
+
+        @if (errorMessage()) {
+          <div class="bottom-error-alert">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="iid-btn iid-btn-secondary" (click)="close.emit()" [disabled]="isSubmitting()">
+          Cancel
+        </button>
+        <button type="submit" class="iid-btn iid-btn-primary" [disabled]="isSubmitting() || form.invalid">
+          @if (isSubmitting()) {
+            <span>Saving Changes...</span>
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+            <span>Save Changes</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

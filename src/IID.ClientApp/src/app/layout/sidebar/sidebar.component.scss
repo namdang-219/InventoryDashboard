@@ -1,0 +1,213 @@
+.sidebar {
+  width: 260px;
+  background: var(--iid-bg-sidebar, rgba(14, 21, 37, 0.95));
+  backdrop-filter: var(--iid-glass-blur);
+  -webkit-backdrop-filter: var(--iid-glass-blur);
+  border-right: 1px solid var(--iid-border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  z-index: 100;
+}
+
+.sidebar.collapsed {
+  width: 72px;
+
+  .sidebar-header {
+    justify-content: center;
+    padding: 20px 8px;
+  }
+
+  .collapse-btn {
+    position: static;
+    margin-top: 10px;
+  }
+
+  .nav-link {
+    justify-content: center;
+    padding: 12px;
+  }
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--iid-border);
+  position: relative;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--iid-radius-md);
+  background: linear-gradient(135deg, var(--iid-primary), var(--iid-accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px var(--iid-primary-glow);
+
+  .logo-icon {
+    font-size: 22px;
+    color: #ffffff;
+  }
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--iid-text-primary);
+}
+
+.brand-tag {
+  font-size: 0.7rem;
+  color: var(--iid-text-muted);
+  font-weight: 500;
+}
+
+.collapse-btn {
+  background: transparent;
+  border: 1px solid var(--iid-border);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--iid-radius-sm);
+  color: var(--iid-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--iid-bg-surface-elevated);
+    color: var(--iid-text-primary);
+    border-color: var(--iid-border-hover);
+  }
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 10px;
+  overflow-y: auto;
+}
+
+.nav-section-title {
+  font-size: 0.685rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--iid-text-muted);
+  padding: 8px 12px;
+  margin-bottom: 4px;
+}
+
+.nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--iid-radius-md);
+  color: var(--iid-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    color: var(--iid-text-primary);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  &.active {
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--iid-primary), var(--iid-accent));
+    border: 1px solid rgba(99, 102, 241, 0.6);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+
+    .nav-icon {
+      color: #ffffff;
+    }
+  }
+
+  .nav-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .nav-label {
+    white-space: nowrap;
+  }
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--iid-border);
+}
+
+.status-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--iid-radius-md);
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--iid-success);
+  box-shadow: 0 0 10px var(--iid-success);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.summary-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #34d399;
+}
+
+.summary-sub {
+  font-size: 0.675rem;
+  color: var(--iid-text-muted);
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}

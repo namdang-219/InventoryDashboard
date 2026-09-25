@@ -1,0 +1,296 @@
+/* ── Google Fonts ────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+/* ── Design Tokens & Variables ───────────────────────────────── */
+:root, [data-theme='light'] {
+  /* Brand colors */
+  --iid-primary: #6366f1;
+  --iid-primary-hover: #4f46e5;
+  --iid-primary-glow: rgba(99, 102, 241, 0.2);
+  
+  --iid-accent: #0ea5e9;
+  --iid-accent-glow: rgba(14, 165, 233, 0.2);
+
+  --iid-success: #10b981;
+  --iid-success-bg: rgba(16, 185, 129, 0.12);
+  --iid-success-glow: rgba(16, 185, 129, 0.2);
+
+  --iid-warning: #f59e0b;
+  --iid-warning-bg: rgba(245, 158, 11, 0.12);
+  --iid-warning-glow: rgba(245, 158, 11, 0.2);
+
+  --iid-danger: #ef4444;
+  --iid-danger-bg: rgba(239, 68, 68, 0.12);
+  --iid-danger-glow: rgba(239, 68, 68, 0.2);
+
+  --iid-purple: #8b5cf6;
+  --iid-purple-bg: rgba(139, 92, 246, 0.12);
+
+  /* Surface layers (Light mode default) */
+  --iid-bg-page: #f1f5f9;
+  --iid-bg-card: rgba(255, 255, 255, 0.95);
+  --iid-bg-card-hover: #ffffff;
+  --iid-bg-surface: #ffffff;
+  --iid-bg-surface-elevated: #f8fafc;
+  --iid-bg-input: #ffffff;
+  --iid-bg-header: rgba(255, 255, 255, 0.92);
+  --iid-bg-sidebar: rgba(255, 255, 255, 0.96);
+
+  /* Borders */
+  --iid-border: rgba(203, 213, 225, 0.7);
+  --iid-border-hover: rgba(99, 102, 241, 0.45);
+  --iid-border-glow: rgba(99, 102, 241, 0.25);
+
+  /* Typography */
+  --iid-text-primary: #0f172a;
+  --iid-text-secondary: #475569;
+  --iid-text-muted: #64748b;
+  --iid-font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --iid-font-mono: 'JetBrains Mono', monospace;
+
+  /* Shadows & Glass */
+  --iid-glass-blur: blur(16px);
+  --iid-card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --iid-glow-shadow: 0 0 25px var(--iid-primary-glow);
+  --iid-dropdown-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+  --iid-radius-sm: 8px;
+  --iid-radius-md: 12px;
+  --iid-radius-lg: 18px;
+  --iid-radius-xl: 24px;
+  --iid-radius-pill: 9999px;
+}
+
+[data-theme='dark'] {
+  /* Surface layers (Dark mode) */
+  --iid-bg-page: #0b0f19;
+  --iid-bg-card: rgba(17, 24, 39, 0.85);
+  --iid-bg-card-hover: rgba(26, 36, 56, 0.95);
+  --iid-bg-surface: #131c2e;
+  --iid-bg-surface-elevated: #1e293b;
+  --iid-bg-input: rgba(15, 23, 42, 0.7);
+  --iid-bg-header: rgba(14, 21, 37, 0.85);
+  --iid-bg-sidebar: rgba(14, 21, 37, 0.95);
+
+  /* Borders */
+  --iid-border: rgba(148, 163, 184, 0.12);
+  --iid-border-hover: rgba(148, 163, 184, 0.25);
+  --iid-border-glow: rgba(99, 102, 241, 0.4);
+
+  /* Typography */
+  --iid-text-primary: #f8fafc;
+  --iid-text-secondary: #94a3b8;
+  --iid-text-muted: #64748b;
+
+  /* Shadows */
+  --iid-card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --iid-glow-shadow: 0 0 25px var(--iid-primary-glow);
+  --iid-dropdown-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Reset & Baseline ────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--iid-font-sans);
+  background-color: var(--iid-bg-page);
+  color: var(--iid-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ── Material Symbols icon baseline ─────────────────────────── */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  vertical-align: middle;
+  user-select: none;
+}
+
+/* ── Common Card & Container Utilities ──────────────────────── */
+.iid-card {
+  background: var(--iid-bg-card);
+  backdrop-filter: var(--iid-glass-blur);
+  -webkit-backdrop-filter: var(--iid-glass-blur);
+  border: 1px solid var(--iid-border);
+  border-radius: var(--iid-radius-lg);
+  box-shadow: var(--iid-card-shadow);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.iid-card-hover:hover {
+  border-color: var(--iid-border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Modern Buttons ─────────────────────────────────────────── */
+.iid-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--iid-radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.iid-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.iid-btn-primary {
+  background: linear-gradient(135deg, var(--iid-primary), #4338ca);
+  color: #ffffff;
+  box-shadow: 0 4px 14px var(--iid-primary-glow);
+}
+
+.iid-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--iid-primary-glow);
+  filter: brightness(1.1);
+}
+
+.iid-btn-secondary {
+  background: var(--iid-bg-surface-elevated);
+  color: var(--iid-text-primary);
+  border: 1px solid var(--iid-border);
+}
+
+.iid-btn-secondary:hover:not(:disabled) {
+  background: var(--iid-bg-card-hover);
+  border-color: var(--iid-border-hover);
+}
+
+.iid-btn-danger {
+  background: linear-gradient(135deg, var(--iid-danger), #b91c1c);
+  color: #ffffff;
+  box-shadow: 0 4px 14px var(--iid-danger-glow);
+}
+
+.iid-btn-sm {
+  padding: 6px 12px;
+  font-size: 0.775rem;
+  border-radius: var(--iid-radius-sm);
+}
+
+.iid-btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--iid-radius-md);
+  background: var(--iid-bg-surface);
+  border: 1px solid var(--iid-border);
+  color: var(--iid-text-secondary);
+}
+
+.iid-btn-icon:hover {
+  background: var(--iid-bg-surface-elevated);
+  color: var(--iid-text-primary);
+}
+
+/* ── Form Inputs ────────────────────────────────────────────── */
+.iid-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--iid-bg-input);
+  border: 1px solid var(--iid-border);
+  border-radius: var(--iid-radius-md);
+  color: var(--iid-text-primary);
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.iid-input:focus {
+  border-color: var(--iid-primary);
+  box-shadow: 0 0 0 3px var(--iid-primary-glow);
+}
+
+.iid-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.iid-form-label {
+  display: block;
+  font-size: 0.775rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--iid-text-secondary);
+  margin-bottom: 6px;
+}
+
+/* ── Modal Backdrop ─────────────────────────────────────────── */
+.iid-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+  animation: iidFadeIn 0.2s ease;
+}
+
+@keyframes iidFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Custom Scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: var(--iid-radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}

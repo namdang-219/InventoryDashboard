@@ -1,0 +1,82 @@
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--iid-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-icon {
+  font-size: 14px;
+}
+
+/* Available */
+.status-available {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.25);
+
+  .status-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  }
+}
+
+/* Sold */
+.status-sold {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.25);
+
+  .status-dot {
+    background: #6366f1;
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+  }
+}
+
+/* Pending */
+.status-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+
+  .status-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  }
+}
+
+/* Wholesale */
+.status-wholesale {
+  background: rgba(139, 92, 246, 0.12);
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.25);
+
+  .status-dot {
+    background: #8b5cf6;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+  }
+}
+
+/* Default */
+.status-default {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.2);
+
+  .status-dot {
+    background: #94a3b8;
+  }
+}

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IID.Api/IID.Api.csproj" />
+    <Project Path="src/IID.Application/IID.Application.csproj" />
+    <Project Path="src/IID.Domain/IID.Domain.csproj" />
+    <Project Path="src/IID.Infrastructure/IID.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IID.Domain.Tests/IID.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,7 @@
+<span class="demand-badge" [class]="levelClass()">
+  <span class="material-symbols-outlined icon">{{ icon() }}</span>
+  <span class="level-text">{{ level() }} Demand</span>
+  @if (score() !== null) {
+    <span class="score-pill">{{ score() }}</span>
+  }
+</span>
