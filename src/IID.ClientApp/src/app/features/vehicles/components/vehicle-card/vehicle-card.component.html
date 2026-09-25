@@ -86,7 +86,9 @@
         >
           <span class="material-symbols-outlined">swap_horiz</span>
         </button>
+      }
 
+      @if (canMarkSold() && vehicle().status !== 'Sold') {
         <button
           type="button"
           class="iid-btn iid-btn-primary iid-btn-sm"

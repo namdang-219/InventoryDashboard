@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 namespace IID.Infrastructure.Persistence;
 
 /// <summary>
-/// Seeds ASP.NET Identity roles (<c>Manager</c>, <c>Viewer</c>) and two default
+/// Seeds ASP.NET Identity roles (<c>Manager</c>, <c>Saler</c>) and two default
 /// users wired up to those roles. Idempotent: skips any role/user that already
 /// exists, so re-running the initializer never duplicates rows.
 /// </summary>
@@ -17,24 +17,24 @@ public sealed class IdentitySeeder(
     ILogger<IdentitySeeder> logger) : IidSeeder
 {
     private const string ManagerRole = "Manager";
-    private const string ViewerRole = "Viewer";
+    private const string SalerRole = "Saler";
 
     private const string AdminEmail = "admin@iid.local";
     private const string AdminUserName = "admin@iid.local";
-    private const string ViewerEmail = "viewer@iid.local";
-    private const string ViewerUserName = "viewer@iid.local";
+    private const string SalerEmail = "saler@iid.local";
+    private const string SalerUserName = "saler@iid.local";
 
-    // Default passwords — DEV ONLY. Override via Seed:AdminPassword / Seed:ViewerPassword
-    // (or env vars IID_SEED__ADMINPASSWORD / IID_SEED__VIEWERPASSWORD) in any non-dev env.
+    // Default passwords — DEV ONLY. Override via Seed:AdminPassword / Seed:SalerPassword
+    // (or env vars IID_SEED__ADMINPASSWORD / IID_SEED__SALERPASSWORD) in any non-dev env.
     private const string DefaultAdminPassword = "P@ssw0rd!Admin";
-    private const string DefaultViewerPassword = "P@ssw0rd!Viewer";
+    private const string DefaultSalerPassword = "P@ssw0rd!Saler";
 
     public int Order => 10;
 
     public async Task SeedAsync(CancellationToken ct = default)
     {
         await EnsureRoleAsync(ManagerRole);
-        await EnsureRoleAsync(ViewerRole);
+        await EnsureRoleAsync(SalerRole);
 
         await EnsureUserAsync(
             email: AdminEmail,
@@ -43,10 +43,18 @@ public sealed class IdentitySeeder(
             role: ManagerRole);
 
         await EnsureUserAsync(
-            email: ViewerEmail,
-            userName: ViewerUserName,
-            password: options.Value.ViewerPassword ?? DefaultViewerPassword,
-            role: ViewerRole);
+            email: SalerEmail,
+            userName: SalerUserName,
+            password: options.Value.SalerPassword ?? DefaultSalerPassword,
+            role: SalerRole);
+
+        // If legacy viewer@iid.local user exists, also assign Saler role so existing accounts remain valid
+        var legacyViewer = await users.FindByEmailAsync("viewer@iid.local");
+        if (legacyViewer is not null && !await users.IsInRoleAsync(legacyViewer, SalerRole))
+        {
+            await users.AddToRoleAsync(legacyViewer, SalerRole);
+            logger.LogInformation("Added Saler role to legacy viewer@iid.local user.");
+        }
     }
 
     private async Task EnsureRoleAsync(string role)

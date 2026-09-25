@@ -7,13 +7,18 @@ namespace IID.Api.Endpoints.Dashboard;
 /// <summary>
 /// GET /api/v1/dashboard/alerts/low-inventory — alerts for low-availability make/model combos.
 /// </summary>
+public sealed class GetLowInventoryAlertsRequest
+{
+    [QueryParam] public Guid? DealershipId { get; set; }
+}
+
 public sealed class GetLowInventoryAlertsEndpoint(ISender sender)
-    : EndpointWithoutRequest<object>
+    : Endpoint<GetLowInventoryAlertsRequest, object>
 {
     public override void Configure()
     {
         Get("/api/v1/dashboard/alerts/low-inventory");
-        Roles("Manager", "Viewer");
+        Roles("Manager", "Saler");
         Description(x => x.WithTags("Dashboard", "Alerts"));
         Summary(s =>
         {
@@ -24,9 +29,9 @@ public sealed class GetLowInventoryAlertsEndpoint(ISender sender)
         });
     }
 
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(GetLowInventoryAlertsRequest req, CancellationToken ct)
     {
-        var result = await sender.Send(new GetLowInventoryAlertsQuery(), ct);
+        var result = await sender.Send(new GetLowInventoryAlertsQuery(req.DealershipId), ct);
 
         if (!result.IsSuccess)
         {

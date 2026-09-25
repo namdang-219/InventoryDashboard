@@ -127,7 +127,8 @@ export class RealtimeService {
 
     this.hubConnection.on('VehicleAdded', (v: RealtimeVehicleResponse) => {
       this.vehicleAdded$.next(v);
-      this.toast.info('Vehicle Added', `${v.year} ${v.make} ${v.model} is now in stock.`);
+      // Toast is handled by the create-vehicle-modal on HTTP success.
+      // No duplicate toast here.
     });
 
     this.hubConnection.on('VehicleUpdated', (v: RealtimeVehicleResponse) => {

@@ -6,7 +6,8 @@ public sealed class ListVehiclesQueryValidator : AbstractValidator<ListVehiclesQ
 {
     private static readonly string[] AllowedSortFields =
     {
-        "createdAt", "updatedAt", "askingPrice", "purchasePrice", "mileage", "dateAddedToInventory"
+        "createdAt", "updatedAt", "askingPrice", "purchasePrice", "mileage", "dateAddedToInventory",
+        "soldAt", "soldDate", "dateSold", "year"
     };
 
     private static readonly string[] AllowedOrderValues = { "asc", "desc" };

@@ -174,7 +174,7 @@
         <div class="user-info">
           <span class="user-email">{{ u.email }}</span>
           <span class="user-role" [class.manager]="isManager()">
-            {{ isManager() ? 'Manager (Full Access)' : 'Viewer (Read Only)' }}
+            {{ isManager() ? 'Manager (Full Access)' : 'Saler' }}
           </span>
         </div>
       </div>
@@ -192,6 +192,7 @@
   <iid-vehicle-detail-modal
     [vehicle]="v"
     [isManager]="isManager()"
+    [canMarkSold]="canMarkSold()"
     [highlightActionId]="highlightedActionId()"
     (close)="closeDetailModal()"
     (editVehicle)="onEditFromDetail($event)"
@@ -220,6 +221,7 @@
 @if (selectedVehicleForSold(); as v) {
   <iid-mark-sold-modal
     [vehicle]="v"
+    [isManager]="isManager()"
     (close)="closeSoldModal()"
   />
 }

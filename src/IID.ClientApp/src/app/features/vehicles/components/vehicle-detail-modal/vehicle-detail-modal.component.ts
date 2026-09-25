@@ -26,6 +26,7 @@ export class VehicleDetailModalComponent implements OnInit {
 
   readonly vehicle = input.required<Vehicle>();
   readonly isManager = input<boolean>(false);
+  readonly canMarkSold = input<boolean>(false);
   readonly highlightActionId = input<string | null>(null);
 
   readonly close = output<void>();

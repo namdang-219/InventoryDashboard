@@ -31,27 +31,29 @@
   <!-- Card 4: Avg Days on Lot -->
   <iid-stat-card
     title="Avg Days on Lot"
-    [value]="(summary()?.averageDaysInInventory ?? 0) + ' days'"
+    [value]="(summary()?.averageDaysOnLot ?? 0) + ' days'"
     icon="schedule"
     accent="warning"
     subtitle="Lot turnaround velocity"
   />
 
-  <!-- Card 5: Total Capital Value -->
-  <iid-stat-card
-    title="Total Portfolio Value"
-    [value]="totalValueFormatted()"
-    icon="account_balance_wallet"
-    accent="purple"
-    subtitle="Total asking price"
-  />
+  @if (isManager()) {
+    <!-- Card 5: Total Capital Value -->
+    <iid-stat-card
+      title="Total Portfolio Value"
+      [value]="totalValueFormatted()"
+      icon="account_balance_wallet"
+      accent="purple"
+      subtitle="Total asking price"
+    />
 
-  <!-- Card 6: Average Unit Value -->
-  <iid-stat-card
-    title="Avg Unit Valuation"
-    [value]="avgValueFormatted()"
-    icon="payments"
-    accent="primary"
-    subtitle="Mean asking price"
-  />
+    <!-- Card 6: Average Unit Value -->
+    <iid-stat-card
+      title="Avg Unit Valuation"
+      [value]="avgValueFormatted()"
+      icon="payments"
+      accent="primary"
+      subtitle="Mean asking price"
+    />
+  }
 </div>

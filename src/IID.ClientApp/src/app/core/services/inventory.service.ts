@@ -117,13 +117,65 @@ export class InventoryService {
   }
 
   /**
+   * GET /api/v1/vehicle-actions
+   * Retrieves all vehicle actions across inventory with filters
+   */
+  getAllVehicleActions(params?: {
+    vehicleId?: string;
+    actionType?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Observable<PagedResponse<VehicleAction>> {
+    let httpParams = new HttpParams();
+    if (params?.vehicleId) httpParams = httpParams.set('vehicleId', params.vehicleId);
+    if (params?.actionType) httpParams = httpParams.set('actionType', params.actionType);
+    if (params?.search) httpParams = httpParams.set('search', params.search);
+    if (params?.page) httpParams = httpParams.set('page', params.page.toString());
+    if (params?.limit) httpParams = httpParams.set('limit', params.limit.toString());
+
+    const url = this.apiConfig.getApiUrl('/api/v1/vehicle-actions');
+    return this.http.get<PagedResponse<VehicleAction>>(url, { params: httpParams });
+  }
+
+  /**
+   * POST /api/v1/vehicle-actions
+   * Creates a new action for a vehicle
+   */
+  createVehicleAction(request: { vehicleId: string; actionType: string; notes?: string | null }): Observable<{ data: { id: string } }> {
+    const url = this.apiConfig.getApiUrl('/api/v1/vehicle-actions');
+    return this.http.post<{ data: { id: string } }>(url, request);
+  }
+
+  /**
+   * PUT /api/v1/vehicle-actions/{id}
+   * Updates an existing action
+   */
+  updateVehicleAction(id: string, request: { actionType: string; notes?: string | null }): Observable<{ data: { id: string } }> {
+    const url = this.apiConfig.getApiUrl(`/api/v1/vehicle-actions/${id}`);
+    return this.http.put<{ data: { id: string } }>(url, request);
+  }
+
+  /**
+   * DELETE /api/v1/vehicle-actions/{id}
+   * Soft deletes a vehicle action
+   */
+  deleteVehicleAction(id: string): Observable<{ data: { id: string } }> {
+    const url = this.apiConfig.getApiUrl(`/api/v1/vehicle-actions/${id}`);
+    return this.http.delete<{ data: { id: string } }>(url);
+  }
+
+  /**
    * GET /api/v1/vehicles/aging-stock
    * Lists vehicles on lot longer than threshold
    */
-  getAgingStock(page = 1, limit = 20): Observable<PagedResponse<Vehicle>> {
-    const params = new HttpParams()
+  getAgingStock(page = 1, limit = 20, dealershipId?: string | null): Observable<PagedResponse<Vehicle>> {
+    let params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
+    if (dealershipId) {
+      params = params.set('dealershipId', dealershipId);
+    }
 
     const url = this.apiConfig.getApiUrl('/api/v1/vehicles/aging-stock');
     return this.http.get<PagedResponse<Vehicle>>(url, { params });

@@ -56,6 +56,7 @@ export class HeaderComponent implements OnInit {
 
   readonly user = this.auth.currentUser;
   readonly isManager = this.auth.isManager;
+  readonly canMarkSold = this.auth.canMarkSold;
   readonly connectionStatus = this.realtime.connectionStatus;
   readonly activities = this.realtime.recentActivities;
   readonly hasMoreActivities = this.realtime.hasMoreActivities;
@@ -136,6 +137,10 @@ export class HeaderComponent implements OnInit {
   }
 
   onMarkSoldFromDetail(v: Vehicle): void {
+    if (!this.canMarkSold()) {
+      this.toast.warning('Permission Denied', 'Only Salers can mark vehicles as sold.');
+      return;
+    }
     this.closeDetailModal();
     this.selectedVehicleForSold.set(v);
   }

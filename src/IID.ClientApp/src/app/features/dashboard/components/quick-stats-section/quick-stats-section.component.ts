@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DashboardSummary, QuickStats } from '../../../../core/models/dashboard.model';
+import { AuthService } from '../../../../core/services/auth.service';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
 
 @Component({
@@ -11,8 +12,11 @@ import { StatCardComponent } from '../../../../shared/components/stat-card/stat-
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class QuickStatsSectionComponent {
+  private readonly auth = inject(AuthService);
+
   readonly summary = input<DashboardSummary | null>(null);
   readonly quickStats = input<QuickStats | null>(null);
+  readonly isManager = input<boolean>(this.auth.isManager());
 
   readonly totalValueFormatted = computed(() => {
     const s = this.summary();

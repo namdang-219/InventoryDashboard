@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MarkVehicleSoldRequest, Vehicle } from '../../../../core/models/vehicle.model';
+import { AuthService } from '../../../../core/services/auth.service';
 import { InventoryService } from '../../../../core/services/inventory.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { extractErrorMessage } from '../../../../core/utils/error-extractor';
@@ -23,8 +24,10 @@ interface MarkSoldForm {
 export class MarkSoldModalComponent {
   private readonly inventoryService = inject(InventoryService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
 
   readonly vehicle = input.required<Vehicle>();
+  readonly isManager = input<boolean>(this.auth.isManager());
   readonly close = output<void>();
   readonly soldSuccess = output<string>();
 

@@ -17,10 +17,12 @@
         <span class="vin-label">VIN: {{ vehicle().vin }} &bull; Stock: {{ vehicle().stockNumber }}</span>
       </div>
       <div class="price-tags">
-        <div class="price-item">
-          <span class="label">Purchase Cost:</span>
-          <span class="val">{{ vehicle().purchasePriceAmount | formatCurrency }}</span>
-        </div>
+        @if (isManager()) {
+          <div class="price-item">
+            <span class="label">Purchase Cost:</span>
+            <span class="val">{{ vehicle().purchasePriceAmount | formatCurrency }}</span>
+          </div>
+        }
         <div class="price-item">
           <span class="label">Asking Price:</span>
           <span class="val font-bold">{{ vehicle().askingPriceAmount | formatCurrency }}</span>
@@ -51,21 +53,23 @@
         </div>
       </div>
 
-      <!-- Live Profit Telemetry Projection -->
-      <div class="profit-projection-box">
-        <div class="projection-item">
-          <span class="proj-label">Projected Gross Profit</span>
-          <span class="proj-val" [class.profit-positive]="estimatedProfit() >= 0" [class.profit-negative]="estimatedProfit() < 0">
-            {{ estimatedProfit() | formatCurrency }}
-          </span>
+      <!-- Live Profit Telemetry Projection (Manager Only) -->
+      @if (isManager()) {
+        <div class="profit-projection-box">
+          <div class="projection-item">
+            <span class="proj-label">Projected Gross Profit</span>
+            <span class="proj-val" [class.profit-positive]="estimatedProfit() >= 0" [class.profit-negative]="estimatedProfit() < 0">
+              {{ estimatedProfit() | formatCurrency }}
+            </span>
+          </div>
+          <div class="projection-item">
+            <span class="proj-label">Profit Margin</span>
+            <span class="proj-val" [class.profit-positive]="estimatedMargin() >= 0" [class.profit-negative]="estimatedMargin() < 0">
+              {{ estimatedMargin() }}%
+            </span>
+          </div>
         </div>
-        <div class="projection-item">
-          <span class="proj-label">Profit Margin</span>
-          <span class="proj-val" [class.profit-positive]="estimatedMargin() >= 0" [class.profit-negative]="estimatedMargin() < 0">
-            {{ estimatedMargin() }}%
-          </span>
-        </div>
-      </div>
+      }
 
       <div class="concurrency-note">
         <span class="material-symbols-outlined icon">verified_user</span>

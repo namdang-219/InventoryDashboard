@@ -22,35 +22,7 @@
     </div>
   </div>
 
-  <!-- Chart 2: Monthly Sales & Revenue -->
-  <div class="chart-card iid-card">
-    <div class="chart-header">
-      <div class="header-left">
-        <span class="material-symbols-outlined icon">payments</span>
-        <h4>Sales & Revenue Trend</h4>
-      </div>
-      <span class="header-tag">Last 6 Months</span>
-    </div>
 
-    @if ((charts()?.monthlySales?.length ?? 0) === 0) {
-      <div class="chart-empty">No recent completed vehicle sales recorded.</div>
-    } @else {
-      <div class="sales-chart">
-        @for (sale of charts()?.monthlySales ?? []; track sale.month) {
-          <div class="sales-col">
-            <div class="revenue-val">{{ sale.revenue | formatCurrency }}</div>
-            <div class="sales-bar-track">
-              <div class="sales-bar-fill" [style.height.%]="getRevenueHeightPercent(sale.revenue)"></div>
-            </div>
-            <div class="sales-info">
-              <span class="sales-month">{{ sale.month }}</span>
-              <span class="units-sold">{{ sale.sold }} units</span>
-            </div>
-          </div>
-        }
-      </div>
-    }
-  </div>
 
   <!-- Chart 3: Fuel Type Breakdown -->
   <div class="chart-card iid-card">

@@ -39,6 +39,7 @@ export const routes: Routes = [
             m => m.VehicleListPageComponent
           )
       },
+
       {
         path: 'dealerships',
         canActivate: [managerGuard],

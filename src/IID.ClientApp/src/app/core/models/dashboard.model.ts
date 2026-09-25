@@ -20,7 +20,7 @@ export interface DashboardSummary {
   agingBySeverity: Record<string, number>;
   totalInventoryValue: number;
   averageAskingPrice: number;
-  averageDaysInInventory: number;
+  averageDaysOnLot: number;
   topMakes: readonly MakeDistribution[];
   fuelMix: readonly FuelTypeDistribution[];
   demandDistribution: readonly DemandLevelDistribution[];

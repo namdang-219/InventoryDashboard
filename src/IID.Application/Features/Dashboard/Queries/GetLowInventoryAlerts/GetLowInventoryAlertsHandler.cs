@@ -16,7 +16,12 @@ public sealed class GetLowInventoryAlertsHandler(
     {
         const int fetchSize = 1000;
         var (items, _) = await vehicles.ListAsync(
-            new VehicleListFilter(Status: VehicleStatus.Available, Limit: fetchSize, Sort: "dateAdded", Order: "desc"), ct);
+            new VehicleListFilter(
+                Status: VehicleStatus.Available,
+                Limit: fetchSize,
+                Sort: "dateAdded",
+                Order: "desc",
+                DealershipId: q.DealershipId), ct);
 
         // Group by make + model, flag combos with critically low availability.
         // Use a deterministic Guid derived from (Make|Model) so the same combo

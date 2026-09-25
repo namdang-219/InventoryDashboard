@@ -13,7 +13,7 @@ public sealed class GetAgingStockEndpoint(ISender sender) : Endpoint<GetAgingSto
     public override void Configure()
     {
         Get("/api/v1/vehicles/aging-stock");
-        Roles("Manager", "Viewer");
+        Roles("Manager", "Saler");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {
@@ -27,7 +27,7 @@ public sealed class GetAgingStockEndpoint(ISender sender) : Endpoint<GetAgingSto
 
     public override async Task HandleAsync(GetAgingStockRequest req, CancellationToken ct)
     {
-        var result = await sender.Send(new GetAgingStockQuery(req.Page, req.Limit), ct);
+        var result = await sender.Send(new GetAgingStockQuery(req.Page, req.Limit, req.DealershipId), ct);
         if (!result.IsSuccess)
         {
             AddError(result.Message ?? "Failed to load aging stock.");
@@ -43,4 +43,5 @@ public sealed class GetAgingStockRequest
 {
     [QueryParam] public int Page { get; set; } = 1;
     [QueryParam] public int Limit { get; set; } = 20;
+    [QueryParam] public Guid? DealershipId { get; set; }
 }

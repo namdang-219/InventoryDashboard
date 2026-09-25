@@ -106,17 +106,24 @@ public sealed class GetDashboardBundleHandler(
         }
         var agingHistogram = ageGroups.Select(kv => new AgingBucketDto(kv.Key, kv.Value)).ToList();
 
-        // Monthly sales: last 6 months from sold vehicles
-        var sixMonthsAgo = now.AddMonths(-6);
-        var soldVehicles = all
-            .Where(v => v.Status == VehicleStatus.Sold && v.SoldAt.HasValue && v.SoldAt.Value >= sixMonthsAgo)
-            .ToList();
-        var monthlySales = soldVehicles
-            .GroupBy(v => v.SoldAt!.Value.ToString("MMM yyyy"))
-            .Select(g => new MonthlySalesDto(g.Key, g.Count(), g.Where(v => v.SoldPrice is not null).Sum(v => v.SoldPrice!.Amount)))
-            .OrderBy(x => x.Month)
-            .TakeLast(6)
-            .ToList();
+        // Monthly sales: last 12 months (1 year) in chronological order for 3m, 6m, 9m, 1y range options
+        var monthlySales = new List<MonthlySalesDto>();
+        for (var i = 11; i >= 0; i--)
+        {
+            var targetMonth = now.AddMonths(-i);
+            var year = targetMonth.Year;
+            var month = targetMonth.Month;
+            var label = targetMonth.ToString("MMM yyyy");
+
+            var inMonth = all.Where(v => v.Status == VehicleStatus.Sold
+                && v.SoldAt.HasValue
+                && v.SoldAt.Value.Year == year
+                && v.SoldAt.Value.Month == month).ToList();
+
+            var count = inMonth.Count;
+            var revenue = inMonth.Where(v => v.SoldPrice is not null).Sum(v => v.SoldPrice!.Amount);
+            monthlySales.Add(new MonthlySalesDto(label, count, revenue));
+        }
 
         var charts = new InventoryChartsDto(statusBreakdown, fuelBreakdown, agingHistogram, monthlySales);
 

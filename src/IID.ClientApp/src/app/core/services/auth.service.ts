@@ -29,6 +29,13 @@ export class AuthService {
     const user = this._currentUser();
     return user ? user.roles.some(r => r.toLowerCase() === 'manager') : false;
   });
+  readonly isSaler = computed(() => {
+    const user = this._currentUser();
+    return user ? user.roles.some(r => r.toLowerCase() === 'saler' || r.toLowerCase() === 'viewer') : false;
+  });
+  readonly canMarkSold = computed(() => {
+    return this.isSaler() && !this.isManager();
+  });
 
   private getStoredUser(): UserDto | null {
     try {

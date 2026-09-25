@@ -59,10 +59,10 @@ public sealed class TransferDealershipHandler(
         logger.LogInformation("Vehicle {VehicleId} transferred from dealership {OldDealer} to {NewDealer}.",
             vehicle.Id, oldDealerId, targetDealer.Id);
 
-        // Broadcast to SignalR rooms
-        await notifier.VehicleUpdatedAsync(vehicle, ct);
+        // Broadcast to the source (A) and target (B) dealership groups only.
+        // No global broadcast — only the two affected dealerships need to refresh.
+        await notifier.VehicleTransferredAsync(vehicle, oldDealerId, ct);
         await notifier.VehicleActionLoggedAsync(action, vehicle, ct);
-        await notifier.InventoryChangedAsync(ct);
 
         return Result<Guid>.Success(vehicle.Id);
     }

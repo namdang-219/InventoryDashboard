@@ -39,12 +39,12 @@ IID/
 ## Database migrations & seeding
 On startup the API applies pending EF migrations and runs idempotent data seeders (identity roles/users, a small demo vehicle set, and a few action log rows). See `database/README.md` for the full list and opt-out flags.
 
-Default dev credentials (override in non-dev via `IID_SEED__ADMINPASSWORD` / `IID_SEED__VIEWERPASSWORD` env vars):
+Default dev credentials (override in non-dev via `IID_SEED__ADMINPASSWORD` / `IID_SEED__SALERPASSWORD` env vars):
 
 | Role    | Email             | Password         |
 |---------|-------------------|------------------|
 | Manager | admin@iid.local   | `P@ssw0rd!Admin` |
-| Viewer  | viewer@iid.local  | `P@ssw0rd!Viewer`|
+| Saler   | saler@iid.local   | `P@ssw0rd!Saler` |
 
 To regenerate migrations after changing the domain model:
 ```bash

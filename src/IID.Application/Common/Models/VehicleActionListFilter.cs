@@ -6,4 +6,6 @@ namespace IID.Application.Common.Models;
 public sealed record VehicleActionListFilter(
     Guid? VehicleId = null,
     int Page = 1,
-    int Limit = 20);
+    int Limit = 20,
+    string? ActionType = null,
+    string? Search = null);

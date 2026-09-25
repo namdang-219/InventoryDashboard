@@ -32,6 +32,11 @@ export interface VehicleAction {
   readonly loggedByName?: string;
   readonly loggedAtUtc: string;
   readonly createdAtUtc?: string;
+  readonly vehicleVin?: string | null;
+  readonly vehicleMake?: string | null;
+  readonly vehicleModel?: string | null;
+  readonly vehicleYear?: number | null;
+  readonly vehicleStockNumber?: string | null;
 }
 
 export interface Vehicle {

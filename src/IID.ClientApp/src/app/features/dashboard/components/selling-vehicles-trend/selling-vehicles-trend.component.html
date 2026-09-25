@@ -1,0 +1,154 @@
+<div class="sales-trend-card iid-card">
+  <!-- Card Header -->
+  <div class="trend-header">
+    <div class="header-left">
+      <div class="header-title-row">
+        <span class="material-symbols-outlined icon">trending_up</span>
+        <h3>Selling Vehicles Trend</h3>
+      </div>
+      <div class="header-metrics">
+        <span class="metric-sold"><strong>{{ totalSoldInPeriod() }}</strong> sold</span>
+        <span class="metric-divider">&bull;</span>
+        <span class="metric-avg">avg <strong>{{ avgSoldPerMonth() }}</strong>/mo</span>
+        @if (totalRevenueInPeriod() > 0) {
+          <span class="metric-divider">&bull;</span>
+          <span class="metric-rev">{{ totalRevenueInPeriod() | formatCurrency }}</span>
+        }
+      </div>
+    </div>
+
+    <!-- Range Selector: 3m - 6m - 9m - 1 year -->
+    <div class="range-selector">
+      @for (opt of rangeOptions; track opt.value) {
+        <button
+          type="button"
+          class="range-pill"
+          [class.active]="selectedRange() === opt.value"
+          (click)="setRange(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (chartPoints().length === 0) {
+    <div class="chart-empty">No recent vehicle sales recorded for this period.</div>
+  } @else {
+    <div class="line-chart-container">
+      <svg
+        class="line-chart-svg"
+        viewBox="0 0 560 210"
+        preserveAspectRatio="none"
+        (mouseleave)="hoveredPointIndex.set(null)"
+      >
+        <defs>
+          <linearGradient id="splitSalesGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0284c7" stop-opacity="0.38" />
+            <stop offset="55%" stop-color="#38bdf8" stop-opacity="0.12" />
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+
+        <!-- Horizontal Grid Lines and Y-Axis Labels -->
+        @for (step of yGridSteps(); track step.y) {
+          <line
+            x1="45"
+            [attr.y1]="step.y"
+            x2="535"
+            [attr.y2]="step.y"
+            class="grid-line"
+          />
+          <text
+            x="38"
+            [attr.y]="step.y + 4"
+            class="y-axis-label"
+            text-anchor="end"
+          >
+            {{ step.value }}
+          </text>
+        }
+
+        <!-- Gradient Area Fill -->
+        <path
+          [attr.d]="svgAreaPath()"
+          fill="url(#splitSalesGradient)"
+          class="chart-area-fill"
+        />
+
+        <!-- Main Smooth Curve Stroke Line -->
+        <path
+          [attr.d]="svgLinePath()"
+          class="chart-line"
+        />
+
+        <!-- Data Points & Interactive Target Columns -->
+        @for (pt of chartPoints(); track pt.month; let idx = $index) {
+          <!-- Hover column target -->
+          <rect
+            [attr.x]="pt.x - 20"
+            y="15"
+            width="40"
+            height="165"
+            class="hover-column-target"
+            (mouseenter)="hoveredPointIndex.set(idx)"
+          />
+
+          <!-- Vertical guide line on active hover -->
+          @if (hoveredPointIndex() === idx) {
+            <line
+              [attr.x1]="pt.x"
+              y1="25"
+              [attr.x2]="pt.x"
+              y2="175"
+              class="hover-guide-line"
+            />
+            <circle
+              [attr.cx]="pt.x"
+              [attr.cy]="pt.y"
+              r="7"
+              class="point-ring"
+            />
+          }
+
+          <!-- Point Inner Dot -->
+          <circle
+            [attr.cx]="pt.x"
+            [attr.cy]="pt.y"
+            [attr.r]="hoveredPointIndex() === idx ? 4.5 : 3.5"
+            class="point-dot"
+            [class.point-dot-active]="hoveredPointIndex() === idx"
+          />
+
+          <!-- X-Axis Month Labels -->
+          <text
+            [attr.x]="pt.x"
+            y="196"
+            class="x-axis-label"
+            [class.label-active]="hoveredPointIndex() === idx"
+            text-anchor="middle"
+          >
+            {{ pt.shortLabel }}
+          </text>
+        }
+      </svg>
+
+      <!-- Tooltip overlay -->
+      @if (hoveredPointIndex() !== null && chartPoints()[hoveredPointIndex()!]; as activePt) {
+        <div
+          class="chart-tooltip"
+          [style.left.%]="getTooltipLeft(activePt.x)"
+          [style.top.px]="getTooltipTop(activePt.y)"
+        >
+          <div class="tooltip-month">{{ activePt.month }}</div>
+          <div class="tooltip-sold">
+            <span class="sold-val">{{ activePt.sold }}</span> vehicles sold
+          </div>
+          @if (activePt.revenue > 0) {
+            <div class="tooltip-rev">{{ activePt.revenue | formatCurrency }} revenue</div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

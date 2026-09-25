@@ -37,17 +37,19 @@
   } @else {
     @if (bundle(); as b) {
       <!-- Quick Stats Metric Row -->
-      <iid-quick-stats-section [summary]="b.summary" [quickStats]="b.quickStats" />
+      <iid-quick-stats-section [summary]="b.summary" [quickStats]="b.quickStats" [isManager]="isManager()" />
 
-      <!-- Action Center Recommendations -->
-      @if (b.actionCenter.length > 0) {
+      <!-- Middle Split Row: Selling Vehicles Trend (Left, 3-card width) & Action Center Recommendations (Right, 3-card width) -->
+      <div class="dashboard-split-row">
+        <iid-selling-vehicles-trend [monthlySales]="b.charts.monthlySales" />
+
         <iid-action-center-section
           [items]="b.actionCenter"
           (actionClick)="handleActionItem($event)"
         />
-      }
+      </div>
 
-      <!-- Visual Charts Matrix -->
+      <!-- Distribution Charts Matrix (Aging Histogram, Powertrain, Status Breakdown) -->
       <iid-inventory-charts [charts]="b.charts" />
 
       <!-- Low Inventory Model Alerts -->

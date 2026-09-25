@@ -40,9 +40,9 @@
           <span>Register Vehicle</span>
         </button>
       } @else {
-        <div class="readonly-badge" title="Logged in with Viewer role">
-          <span class="material-symbols-outlined">visibility</span>
-          <span>Viewer Mode</span>
+        <div class="readonly-badge" title="Logged in with Saler role">
+          <span class="material-symbols-outlined">badge</span>
+          <span>Saler Mode</span>
         </div>
       }
     </div>
@@ -83,6 +83,7 @@
       <iid-vehicle-table
         [vehicles]="vehicles()"
         [isManager]="isManager()"
+        [canMarkSold]="canMarkSold()"
         (viewDetails)="openDetail($event)"
         (editVehicle)="openEditVehicle($event)"
         (markSold)="openMarkSold($event)"
@@ -95,6 +96,7 @@
           <iid-vehicle-card
             [vehicle]="veh"
             [isManager]="isManager()"
+            [canMarkSold]="canMarkSold()"
             (viewDetails)="openDetail($event)"
             (editVehicle)="openEditVehicle($event)"
             (markSold)="openMarkSold($event)"
@@ -124,7 +126,7 @@
         <button
           type="button"
           class="iid-btn iid-btn-secondary iid-btn-sm"
-          [disabled]="page() * limit() >= total() || vehicles().length < limit()"
+          [disabled]="page() * limit() >= total() || vehicles().length === 0"
           (click)="changePage(1)"
         >
           <span>Next</span>
@@ -146,6 +148,7 @@
 @if (vehicleForSold(); as v) {
   <iid-mark-sold-modal
     [vehicle]="v"
+    [isManager]="isManager()"
     (close)="vehicleForSold.set(null)"
     (soldSuccess)="onSoldSuccess()"
   />
@@ -171,6 +174,7 @@
   <iid-vehicle-detail-modal
     [vehicle]="v"
     [isManager]="isManager()"
+    [canMarkSold]="canMarkSold()"
     (close)="vehicleForDetail.set(null)"
     (editVehicle)="vehicleForDetail.set(null); openEditVehicle($event)"
     (markSold)="vehicleForDetail.set(null); openMarkSold($event)"

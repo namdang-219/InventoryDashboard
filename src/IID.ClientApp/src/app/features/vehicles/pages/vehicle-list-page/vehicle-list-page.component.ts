@@ -62,6 +62,7 @@ export class VehicleListPageComponent implements OnInit {
   }
 
   readonly isManager = this.auth.isManager;
+  readonly canMarkSold = this.auth.canMarkSold;
 
   // View state
   readonly isAgingOnly = signal<boolean>(false);
@@ -153,7 +154,8 @@ export class VehicleListPageComponent implements OnInit {
 
     if (this.isAgingOnly()) {
       // Calls GET /api/v1/vehicles/aging-stock
-      this.inventoryService.getAgingStock(this.page(), this.limit()).subscribe({
+      const dealerId = this.dealershipService.selectedDealershipId() ?? undefined;
+      this.inventoryService.getAgingStock(this.page(), this.limit(), dealerId).subscribe({
         next: res => {
           this.vehicles.set(res.data);
           this.total.set(res.meta.total);
@@ -196,6 +198,8 @@ export class VehicleListPageComponent implements OnInit {
   changePage(delta: number): void {
     const next = this.page() + delta;
     if (next < 1) return;
+    const maxPage = Math.ceil(this.total() / this.limit());
+    if (maxPage > 0 && next > maxPage) return;
     this.page.set(next);
     this.loadVehicles(true);
   }
@@ -214,8 +218,8 @@ export class VehicleListPageComponent implements OnInit {
   }
 
   openMarkSold(v: Vehicle): void {
-    if (!this.isManager()) {
-      this.toast.warning('Permission Denied', 'Only Managers can mark vehicles as sold.');
+    if (!this.canMarkSold()) {
+      this.toast.warning('Permission Denied', 'Only Salers can mark vehicles as sold.');
       return;
     }
     this.vehicleForSold.set(v);

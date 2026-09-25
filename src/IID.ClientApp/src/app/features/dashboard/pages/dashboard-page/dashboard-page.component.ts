@@ -5,6 +5,7 @@ import { ActionCenterItem, DashboardBundle, LowInventoryAlert } from '../../../.
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { DealershipService } from '../../../../core/services/dealership.service';
 import { RealtimeService } from '../../../../core/services/realtime.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { AgingSeverityBadgeComponent } from '../../../../shared/components/aging-severity-badge/aging-severity-badge.component';
 import { DemandBadgeComponent } from '../../../../shared/components/demand-badge/demand-badge.component';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
@@ -14,6 +15,7 @@ import { ActionCenterSectionComponent } from '../../components/action-center-sec
 import { InventoryChartsComponent } from '../../components/inventory-charts/inventory-charts.component';
 import { LowInventoryAlertsComponent } from '../../components/low-inventory-alerts/low-inventory-alerts.component';
 import { QuickStatsSectionComponent } from '../../components/quick-stats-section/quick-stats-section.component';
+import { SellingVehiclesTrendComponent } from '../../components/selling-vehicles-trend/selling-vehicles-trend.component';
 
 @Component({
   selector: 'iid-dashboard-page',
@@ -21,8 +23,9 @@ import { QuickStatsSectionComponent } from '../../components/quick-stats-section
   imports: [
     RouterLink,
     QuickStatsSectionComponent,
-    InventoryChartsComponent,
+    SellingVehiclesTrendComponent,
     ActionCenterSectionComponent,
+    InventoryChartsComponent,
     LowInventoryAlertsComponent,
     LoadingSpinnerComponent,
     StatusBadgeComponent,
@@ -38,8 +41,10 @@ export class DashboardPageComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly dealershipService = inject(DealershipService);
   private readonly realtime = inject(RealtimeService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  readonly isManager = this.auth.isManager;
   readonly bundle = signal<DashboardBundle | null>(null);
   readonly alerts = signal<readonly LowInventoryAlert[]>([]);
   readonly loading = signal<boolean>(true);
@@ -49,24 +54,37 @@ export class DashboardPageComponent implements OnInit {
     effect(() => {
       // Re-trigger load when active dealership changes
       const dealerId = this.dealershipService.selectedDealershipId();
-      if (dealerId !== undefined) {
+      const isDealerLoading = this.dealershipService.isLoading();
+      const dealerError = this.dealershipService.error();
+
+      if (dealerId) {
         this.loadDashboard(true);
         this.loadAlerts();
+      } else if (!isDealerLoading && dealerError) {
+        this.loading.set(false);
+        this.error.set(`Failed to load dealerships: ${dealerError}`);
+      } else if (!isDealerLoading && this.dealershipService.dealerships().length === 0 && !dealerId) {
+        this.loading.set(false);
+        this.error.set('No dealership available. Please create or assign a dealership first.');
       }
     });
 
     this.realtime.inventoryChanged$
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        this.loadDashboard(false);
-        this.loadAlerts();
+        if (this.dealershipService.selectedDealershipId()) {
+          this.loadDashboard(false);
+          this.loadAlerts();
+        }
       });
 
     this.realtime.summaryUpdated$
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        this.loadDashboard(false);
-        this.loadAlerts();
+        if (this.dealershipService.selectedDealershipId()) {
+          this.loadDashboard(false);
+          this.loadAlerts();
+        }
       });
 
     this.realtime.alertsUpdated$
@@ -75,22 +93,30 @@ export class DashboardPageComponent implements OnInit {
         // Aging-alerts feed (top of dashboard). Re-fetch the full dashboard
         // bundle so summary, charts and inventory stay in sync with the
         // server-side computed alert set.
-        this.loadDashboard(false);
-        this.loadAlerts();
+        if (this.dealershipService.selectedDealershipId()) {
+          this.loadDashboard(false);
+          this.loadAlerts();
+        }
       });
   }
 
   ngOnInit(): void {
-    // Loaded via effect on init
+    if (this.dealershipService.dealerships().length === 0 && !this.dealershipService.isLoading()) {
+      this.dealershipService.loadDealerships();
+    }
   }
 
   loadDashboard(showLoading = true): void {
+    const dealershipId = this.dealershipService.selectedDealershipId();
+    if (!dealershipId) {
+      return;
+    }
+
     if (showLoading) {
       this.loading.set(true);
     }
     this.error.set(null);
 
-    const dealershipId = this.dealershipService.selectedDealershipId();
     this.dashboardService.getDashboardBundle(1, 10, dealershipId).subscribe({
       next: res => {
         this.bundle.set(res.data);
@@ -104,7 +130,12 @@ export class DashboardPageComponent implements OnInit {
   }
 
   loadAlerts(): void {
-    this.dashboardService.getLowInventoryAlerts().subscribe({
+    const dealershipId = this.dealershipService.selectedDealershipId();
+    if (!dealershipId) {
+      return;
+    }
+
+    this.dashboardService.getLowInventoryAlerts(dealershipId).subscribe({
       next: res => {
         this.alerts.set(res.data);
       }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -23,7 +23,7 @@ import { DealershipFormModalComponent } from '../../components/dealership-form-m
   styleUrl: './dealership-list-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DealershipListPageComponent {
+export class DealershipListPageComponent implements OnInit {
   readonly dealershipService = inject(DealershipService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -47,6 +47,12 @@ export class DealershipListPageComponent {
       .subscribe(query => {
         this.debouncedQuery.set(query);
       });
+  }
+
+  ngOnInit(): void {
+    if (this.dealershipService.dealerships().length === 0 || this.dealershipService.error()) {
+      this.dealershipService.loadDealerships();
+    }
   }
 
   onSearchInput(value: string): void {

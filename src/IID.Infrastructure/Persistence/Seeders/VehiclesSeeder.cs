@@ -116,6 +116,9 @@ public sealed class VehiclesSeeder(IidDbContext db, TimeProvider clock, ILogger<
 
     public async Task SeedAsync(CancellationToken ct = default)
     {
+        var now = clock.GetUtcNow();
+        await EnsureHistoricalSalesAsync(now, ct);
+
         var existingCount = await db.Vehicles.CountAsync(ct);
         if (existingCount >= 500)
         {
@@ -123,7 +126,6 @@ public sealed class VehiclesSeeder(IidDbContext db, TimeProvider clock, ILogger<
             return;
         }
 
-        var now = clock.GetUtcNow();
         var dealerships = await db.Dealerships.OrderBy(d => d.Id).ToListAsync(ct);
         if (dealerships.Count == 0)
         {
@@ -234,6 +236,34 @@ public sealed class VehiclesSeeder(IidDbContext db, TimeProvider clock, ILogger<
             await db.SaveChangesAsync(ct);
             logger.LogInformation("Seeded {Count} new vehicles across {Dealerships} dealerships. Total inventory: {Total}",
                 vehiclesToAdd.Count, dealerships.Count, existingCount + vehiclesToAdd.Count);
+        }
+
+    }
+
+    private async Task EnsureHistoricalSalesAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var soldCount = await db.Vehicles.CountAsync(v => v.Status == VehicleStatus.Sold && v.SoldAt != null, ct);
+        if (soldCount < 20)
+        {
+            var candidates = await db.Vehicles
+                .Where(v => v.Status == VehicleStatus.Available)
+                .Take(48)
+                .ToListAsync(ct);
+
+            for (var idx = 0; idx < candidates.Count; idx++)
+            {
+                var v = candidates[idx];
+                var monthsAgo = idx % 12;
+                var daysOffset = (idx * 5) % 25;
+                var soldDate = now.AddMonths(-monthsAgo).AddDays(-daysOffset);
+                var soldPrice = Money.Of(Math.Round(v.AskingPrice.Amount * 0.96m, 2), v.AskingPrice.Currency);
+                v.MarkSold(soldPrice, soldDate, "system-seeder");
+            }
+            if (candidates.Count > 0)
+            {
+                await db.SaveChangesAsync(ct);
+                logger.LogInformation("Seeded {Count} historical sold vehicles across past 12 months.", candidates.Count);
+            }
         }
     }
 

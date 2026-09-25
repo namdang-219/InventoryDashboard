@@ -21,6 +21,7 @@ import { FormatCurrencyPipe } from '../../../../shared/pipes/format-currency.pip
 export class VehicleTableComponent {
   readonly vehicles = input.required<readonly Vehicle[]>();
   readonly isManager = input<boolean>(false);
+  readonly canMarkSold = input<boolean>(false);
 
   readonly viewDetails = output<Vehicle>();
   readonly editVehicle = output<Vehicle>();

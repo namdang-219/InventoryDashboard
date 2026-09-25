@@ -4,5 +4,10 @@ using MediatR;
 
 namespace IID.Application.VehicleActions.Queries.GetVehicleActions;
 
-public sealed record GetVehicleActionsQuery(Guid VehicleId, int Page = 1, int Limit = 50)
+public sealed record GetVehicleActionsQuery(
+    Guid? VehicleId = null,
+    int Page = 1,
+    int Limit = 50,
+    string? ActionType = null,
+    string? Search = null)
     : IRequest<Result<PagedResult<VehicleActionDto>>>;

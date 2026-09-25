@@ -20,6 +20,7 @@ public class SeedOptionsTests
         var options = new SeedOptions();
 
         options.AdminPassword.Should().BeNull();
+        options.SalerPassword.Should().BeNull();
         options.ViewerPassword.Should().BeNull();
     }
 

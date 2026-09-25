@@ -22,7 +22,9 @@ public sealed class GetAgingStockHandler(
             Page: page,
             Limit: limit,
             Sort: "dateAdded",
-            Order: "asc");
+            Order: "asc",
+            DealershipId: q.DealershipId,
+            ExcludeSold: true);
         var (items, total) = await vehicles.ListAsync(filter, ct);
 
         var analytics = new VehicleAnalyticsService(now);

@@ -16,6 +16,7 @@ public interface IDealershipRepository
 public interface IVehicleRepository
 {
     Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<Vehicle>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
     Task<bool> VinExistsAsync(string vin, CancellationToken ct);
     Task<bool> StockNumberExistsAsync(string stockNumber, CancellationToken ct);
     Task AddAsync(Vehicle vehicle, CancellationToken ct);
@@ -26,7 +27,9 @@ public interface IVehicleRepository
 
 public interface IVehicleActionRepository
 {
+    Task<Domain.VehicleActions.VehicleAction?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task AddAsync(Domain.VehicleActions.VehicleAction action, CancellationToken ct);
+    void Update(Domain.VehicleActions.VehicleAction action);
     void Remove(Domain.VehicleActions.VehicleAction action);
     Task<(IReadOnlyList<Domain.VehicleActions.VehicleAction> Items, int Total)> ListAsync(
         VehicleActionListFilter filter, CancellationToken ct = default);
@@ -66,6 +69,10 @@ public interface IVehicleHubNotifier
     Task VehicleUpdatedAsync(Vehicle v, CancellationToken ct);
     Task VehicleRemovedAsync(Guid vehicleId, CancellationToken ct);
     Task VehicleAgingAsync(Vehicle v, CancellationToken ct);
+    /// <summary>
+    /// Broadcasts a transfer event to BOTH the source and the target dealership groups.
+    /// </summary>
+    Task VehicleTransferredAsync(Vehicle v, Guid sourceDealershipId, CancellationToken ct);
     Task VehicleActionLoggedAsync(Domain.VehicleActions.VehicleAction a, Vehicle? v, CancellationToken ct);
     Task VehicleActionLoggedAsync(Domain.VehicleActions.VehicleAction a, CancellationToken ct);
     Task DashboardSummaryUpdatedAsync(DashboardSummaryDto summary, CancellationToken ct);

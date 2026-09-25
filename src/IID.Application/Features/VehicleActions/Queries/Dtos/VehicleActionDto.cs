@@ -8,4 +8,9 @@ public sealed record VehicleActionDto(
     string LoggedByUserId,
     string LoggedByName,
     DateTimeOffset LoggedAtUtc,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    string? VehicleVin = null,
+    string? VehicleMake = null,
+    string? VehicleModel = null,
+    int? VehicleYear = null,
+    string? VehicleStockNumber = null);

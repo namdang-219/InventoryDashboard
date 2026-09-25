@@ -114,6 +114,13 @@ public sealed class SeedOptions
     /// <summary>Override the admin password seeded in Identity. Leave null to use the dev default.</summary>
     public string? AdminPassword { get; set; }
 
-    /// <summary>Override the viewer password seeded in Identity. Leave null to use the dev default.</summary>
-    public string? ViewerPassword { get; set; }
+    /// <summary>Override the saler password seeded in Identity. Leave null to use the dev default.</summary>
+    public string? SalerPassword { get; set; }
+
+    /// <summary>Backwards-compatible alias for SalerPassword.</summary>
+    public string? ViewerPassword
+    {
+        get => SalerPassword;
+        set => SalerPassword = value;
+    }
 }

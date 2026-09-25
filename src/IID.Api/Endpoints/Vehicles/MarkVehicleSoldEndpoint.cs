@@ -14,12 +14,14 @@ public sealed class MarkVehicleSoldEndpoint(ISender sender) : Endpoint<MarkVehic
     public override void Configure()
     {
         Post("/api/v1/vehicles/{id}/mark-sold");
-        Roles("Manager");
+        Roles("Saler");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {
-            s.Description = "Mark a vehicle as sold. Optimistic concurrency via rowVersion.";
+            s.Summary = "Mark a vehicle as sold (Saler only)";
+            s.Description = "Mark a vehicle as sold (Saler only). Optimistic concurrency via rowVersion.";
             s.Response(200, "Vehicle marked as sold.");
+            s.Response(403, "Forbidden. Only Salers can mark vehicles as sold.");
             s.Response(404, "Vehicle not found.");
             s.Response(409, "Concurrency conflict or already sold.");
             s.Response(422, "Validation failed (e.g. missing rowVersion).");

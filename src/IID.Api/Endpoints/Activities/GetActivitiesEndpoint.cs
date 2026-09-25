@@ -15,7 +15,7 @@ public sealed class GetActivitiesEndpoint(ISender sender) : Endpoint<GetActiviti
     public override void Configure()
     {
         Get("/api/v1/activities");
-        Roles("Manager", "Viewer");
+        Roles("Manager", "Saler");
         Description(x => x.WithTags("Activities"));
         Summary(s =>
         {

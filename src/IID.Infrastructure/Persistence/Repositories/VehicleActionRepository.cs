@@ -9,8 +9,13 @@ namespace IID.Infrastructure.Persistence.Repositories;
 
 public sealed class VehicleActionRepository(IidDbContext db) : IVehicleActionRepository
 {
+    public async Task<Domain.VehicleActions.VehicleAction?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => await db.VehicleActions.FirstOrDefaultAsync(a => a.Id == id, ct);
+
     public async Task AddAsync(Domain.VehicleActions.VehicleAction action, CancellationToken ct)
         => await db.VehicleActions.AddAsync(action, ct);
+
+    public void Update(Domain.VehicleActions.VehicleAction action) => db.VehicleActions.Update(action);
 
     public void Remove(Domain.VehicleActions.VehicleAction action) => db.VehicleActions.Remove(action);
 
@@ -19,6 +24,43 @@ public sealed class VehicleActionRepository(IidDbContext db) : IVehicleActionRep
     {
         IQueryable<Domain.VehicleActions.VehicleAction> q = db.VehicleActions.AsNoTracking();
         if (filter.VehicleId.HasValue) q = q.Where(a => a.VehicleId == filter.VehicleId.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.ActionType) &&
+            Enum.TryParse<Domain.VehicleActions.VehicleActionType>(filter.ActionType, true, out var parsedType))
+        {
+            q = q.Where(a => a.ActionType == parsedType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            List<Guid> matchingVehicleIds;
+            if (db.Database.ProviderName?.EndsWith("InMemory", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                matchingVehicleIds = await db.Vehicles.AsNoTracking()
+                    .Where(v => v.Vin.Value.Contains(search)
+                             || v.Make.Contains(search)
+                             || v.Model.Contains(search)
+                             || (v.StockNumber != null && v.StockNumber.Contains(search)))
+                    .Select(v => v.Id)
+                    .ToListAsync(ct);
+            }
+            else
+            {
+                matchingVehicleIds = await db.Vehicles.AsNoTracking()
+                    .Where(v => ((string)(object)v.Vin).Contains(search)
+                             || v.Make.Contains(search)
+                             || v.Model.Contains(search)
+                             || (v.StockNumber != null && v.StockNumber.Contains(search)))
+                    .Select(v => v.Id)
+                    .ToListAsync(ct);
+            }
+
+            q = q.Where(a => (a.Notes != null && a.Notes.Contains(search))
+                          || a.LoggedByUserId.Contains(search)
+                          || matchingVehicleIds.Contains(a.VehicleId));
+        }
+
         var total = await q.CountAsync(ct);
         var page = Math.Max(1, filter.Page);
         var limit = Math.Clamp(filter.Limit, 1, 100);

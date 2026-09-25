@@ -27,10 +27,12 @@
 
       <!-- Pricing & Profit Matrix -->
       <div class="financials-card">
-        <div class="fin-item">
-          <span class="fin-label">Purchase Price</span>
-          <span class="fin-val">{{ vehicle().purchasePriceAmount | formatCurrency }}</span>
-        </div>
+        @if (isManager()) {
+          <div class="fin-item">
+            <span class="fin-label">Purchase Price</span>
+            <span class="fin-val">{{ vehicle().purchasePriceAmount | formatCurrency }}</span>
+          </div>
+        }
         <div class="fin-item">
           <span class="fin-label">Asking Price</span>
           <span class="fin-val font-accent">{{ vehicle().askingPriceAmount | formatCurrency }}</span>
@@ -40,11 +42,13 @@
             <span class="fin-label">Sold Price</span>
             <span class="fin-val font-sold">{{ vehicle().soldPriceAmount | formatCurrency }}</span>
           </div>
-          <div class="fin-item">
-            <span class="fin-label">Realized Profit</span>
-            <span class="fin-val font-profit">{{ vehicle().grossProfitAmount | formatCurrency }} ({{ vehicle().grossMarginPercent }}%)</span>
-          </div>
-        } @else {
+          @if (isManager()) {
+            <div class="fin-item">
+              <span class="fin-label">Realized Profit</span>
+              <span class="fin-val font-profit">{{ vehicle().grossProfitAmount | formatCurrency }} ({{ vehicle().grossMarginPercent }}%)</span>
+            </div>
+          }
+        } @else if (isManager()) {
           <div class="fin-item">
             <span class="fin-label">Target Markup</span>
             <span class="fin-val font-profit">
@@ -159,7 +163,9 @@
           <span class="material-symbols-outlined">assignment_add</span>
           <span>Log Action</span>
         </button>
+      }
 
+      @if (canMarkSold() && vehicle().status !== 'Sold') {
         <button
           type="button"
           class="iid-btn iid-btn-primary"

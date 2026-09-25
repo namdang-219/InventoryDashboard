@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
+import { DealershipService } from '../../../../core/services/dealership.service';
+
 interface LoginForm {
   email: FormControl<string>;
   password: FormControl<string>;
@@ -21,6 +23,7 @@ export class LoginPageComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly dealershipService = inject(DealershipService);
 
   readonly isLoading = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
@@ -36,7 +39,7 @@ export class LoginPageComponent {
     })
   });
 
-  fillDemo(role: 'admin' | 'viewer'): void {
+  fillDemo(role: 'admin' | 'saler' | 'viewer'): void {
     if (role === 'admin') {
       this.form.patchValue({
         email: 'admin@iid.local',
@@ -45,10 +48,10 @@ export class LoginPageComponent {
       this.toast.info('Quick Fill', 'Loaded Manager account credentials.');
     } else {
       this.form.patchValue({
-        email: 'viewer@iid.local',
-        password: 'P@ssw0rd!Viewer'
+        email: 'saler@iid.local',
+        password: 'P@ssw0rd!Saler'
       });
-      this.toast.info('Quick Fill', 'Loaded Viewer account credentials.');
+      this.toast.info('Quick Fill', 'Loaded Saler account credentials.');
     }
   }
 
@@ -66,6 +69,7 @@ export class LoginPageComponent {
     this.auth.login({ email, password }).subscribe({
       next: () => {
         this.isLoading.set(false);
+        this.dealershipService.loadDealerships();
         this.router.navigate(['/dashboard']);
       },
       error: err => {

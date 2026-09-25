@@ -17,4 +17,5 @@ public sealed record VehicleListFilter(
     string Order = "desc",
     Guid? DealershipId = null,
     string? Vin = null,
-    string? StockNumber = null);
+    string? StockNumber = null,
+    bool ExcludeSold = false);

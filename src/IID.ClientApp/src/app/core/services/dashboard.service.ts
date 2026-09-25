@@ -51,8 +51,12 @@ export class DashboardService {
    * GET /api/v1/dashboard/alerts/low-inventory
    * Low inventory make/model threshold alerts
    */
-  getLowInventoryAlerts(): Observable<{ data: readonly LowInventoryAlert[] }> {
+  getLowInventoryAlerts(dealershipId?: string | null): Observable<{ data: readonly LowInventoryAlert[] }> {
+    let params = new HttpParams();
+    if (dealershipId) {
+      params = params.set('dealershipId', dealershipId);
+    }
     const url = this.apiConfig.getApiUrl('/api/v1/dashboard/alerts/low-inventory');
-    return this.http.get<{ data: readonly LowInventoryAlert[] }>(url);
+    return this.http.get<{ data: readonly LowInventoryAlert[] }>(url, { params });
   }
 }

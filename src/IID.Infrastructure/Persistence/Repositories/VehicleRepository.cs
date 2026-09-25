@@ -11,6 +11,13 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
             .Include(v => v.Dealership)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
 
+    public async Task<IReadOnlyList<Vehicle>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0) return [];
+        return await db.Vehicles.AsNoTracking().Where(v => idList.Contains(v.Id)).ToListAsync(ct);
+    }
+
     public async Task<bool> VinExistsAsync(string vin, CancellationToken ct)
     {
         var normalized = vin.Trim().ToUpperInvariant();
@@ -79,19 +86,34 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
         if (effectiveMaxAge.HasValue)
             q = q.Where(v => v.DateAddedToInventory >= DateTimeOffset.UtcNow.AddDays(-effectiveMaxAge.Value));
 
-        if (filter.Status.HasValue) q = q.Where(v => v.Status == filter.Status.Value);
-
-        q = (filter.Sort, filter.Order) switch
+        if (filter.Status.HasValue)
         {
-            ("dateAdded", "asc") => q.OrderBy(v => v.DateAddedToInventory),
-            ("dateAdded", _) => q.OrderByDescending(v => v.DateAddedToInventory),
-            (_, "asc") => q.OrderBy(v => v.CreatedAt),
-            _ => q.OrderByDescending(v => v.CreatedAt)
+            q = q.Where(v => v.Status == filter.Status.Value);
+        }
+        else if (filter.ExcludeSold)
+        {
+            q = q.Where(v => v.Status != VehicleStatus.Sold);
+        }
+
+        q = (filter.Sort?.ToLowerInvariant(), filter.Order?.ToLowerInvariant()) switch
+        {
+            ("dateadded", "asc") => q.OrderBy(v => v.DateAddedToInventory).ThenBy(v => v.Id),
+            ("dateadded", _) => q.OrderByDescending(v => v.DateAddedToInventory).ThenByDescending(v => v.Id),
+            ("soldat" or "solddate" or "datesold", "asc") => q.OrderBy(v => v.SoldAt == null ? 1 : 0).ThenBy(v => v.SoldAt).ThenBy(v => v.Id),
+            ("soldat" or "solddate" or "datesold", _) => q.OrderBy(v => v.SoldAt == null ? 1 : 0).ThenByDescending(v => v.SoldAt).ThenByDescending(v => v.Id),
+            ("askingprice", "asc") => q.OrderBy(v => v.AskingPrice.Amount).ThenBy(v => v.Id),
+            ("askingprice", _) => q.OrderByDescending(v => v.AskingPrice.Amount).ThenByDescending(v => v.Id),
+            ("mileage", "asc") => q.OrderBy(v => v.Mileage).ThenBy(v => v.Id),
+            ("mileage", _) => q.OrderByDescending(v => v.Mileage).ThenByDescending(v => v.Id),
+            ("year", "asc") => q.OrderBy(v => v.Year).ThenBy(v => v.Id),
+            ("year", _) => q.OrderByDescending(v => v.Year).ThenByDescending(v => v.Id),
+            (_, "asc") => q.OrderBy(v => v.CreatedAt).ThenBy(v => v.Id),
+            _ => q.OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id)
         };
 
         var total = await q.CountAsync(ct);
         var page = Math.Max(1, filter.Page);
-        var limit = Math.Clamp(filter.Limit, 1, 100);
+        var limit = Math.Clamp(filter.Limit, 1, 1000);
         var items = await q.Skip((page - 1) * limit).Take(limit).ToListAsync(ct);
         return (items, total);
     }
