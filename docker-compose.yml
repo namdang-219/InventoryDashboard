@@ -60,13 +60,45 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE:-iid.client}
       Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-60}
       Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      OpenObserve__Enabled: "true"
+      OpenObserve__Endpoint: "http://openobserve:5080/api/default"
+      OpenObserve__AuthToken: ${OPENOBSERVE_AUTH_TOKEN:-YWRtaW5AaWlkLmxvY2FsOlBAc3N3MHJkIU9wZW5PYnNlcnZl}
+      OpenObserve__StreamName: ${OPENOBSERVE_STREAM_NAME:-iid-api}
+      OpenObserve__ServiceName: ${OTEL_SERVICE_NAME:-IID.Api}
+      OpenObserve__ServiceVersion: ${OTEL_SERVICE_VERSION:-1.0.0}
+      OpenObserve__Environment: ${OTEL_ENVIRONMENT:-Production}
     ports:
       - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
+      openobserve:
+        condition: service_started
+    deploy:
+      resources:
+        reservations:
+          cpus: '2'
+          memory: 4096M
+        limits:
+          cpus: '2'
+          memory: 4096M
+    restart: unless-stopped
+
+  openobserve:
+    image: openobserve/openobserve:latest
+    container_name: iid-openobserve
+    environment:
+      ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_EMAIL:-admin@iid.local}
+      ZO_ROOT_USER_PASSWORD: ${OPENOBSERVE_PASSWORD:-P@ssw0rd!OpenObserve}
+      ZO_DATA_DIR: /data
+    ports:
+      - "5080:5080"
+    volumes:
+      - iid_openobserve_data:/data
     restart: unless-stopped
 
 volumes:
   iid_mssql_data:
     name: iid_mssql_data
+  iid_openobserve_data:
+    name: iid_openobserve_data

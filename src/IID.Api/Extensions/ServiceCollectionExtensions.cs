@@ -20,6 +20,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 using IID.Api.Middleware;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 namespace IID.Api.Extensions;
 
@@ -46,6 +50,7 @@ public static class ServiceCollectionExtensions
             .AddIidRealtime()
             .AddIidApplication()
             .AddIidInfrastructure()
+            .AddIidObservability(configuration)
             .AddIidCors(configuration)
             .AddIidFastEndpointsWithSwagger(configuration);
     }
@@ -68,7 +73,8 @@ public static class ServiceCollectionExtensions
         services
             .Configure<JwtConfiguration>(configuration.GetSection(JwtConfiguration.Name))
             .Configure<SwaggerConfiguration>(configuration.GetSection(SwaggerConfiguration.Name))
-            .Configure<CorsConfiguration>(configuration.GetSection(CorsConfiguration.Name));
+            .Configure<CorsConfiguration>(configuration.GetSection(CorsConfiguration.Name))
+            .Configure<OpenObserveConfiguration>(configuration.GetSection(OpenObserveConfiguration.Name));
         return services;
     }
 
@@ -211,6 +217,66 @@ public static class ServiceCollectionExtensions
                 s.Title = swagger.Title;
                 s.Version = swagger.Version;
             });
+        return services;
+    }
+
+    /// <summary>
+    /// OpenTelemetry Tracing and Metrics exporting to OpenObserve (or any OTLP collector).
+    /// </summary>
+    public static IServiceCollection AddIidObservability(this IServiceCollection services, IConfiguration configuration)
+    {
+        var config = configuration
+            .GetSection(OpenObserveConfiguration.Name)
+            .Get<OpenObserveConfiguration>() ?? new OpenObserveConfiguration();
+
+        if (!config.Enabled)
+            return services;
+
+        var endpoint = config.Endpoint.TrimEnd('/');
+        var environment = string.IsNullOrWhiteSpace(config.Environment)
+            ? configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production"
+            : config.Environment;
+        var authHeader = !string.IsNullOrWhiteSpace(config.AuthToken)
+            ? $"Authorization=Basic {config.AuthToken},stream-name={config.StreamName}"
+            : null;
+
+        services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource
+                .AddService(serviceName: config.ServiceName, serviceVersion: config.ServiceVersion)
+                .AddAttributes(new Dictionary<string, object>
+                {
+                    ["deployment.environment"] = environment
+                }))
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .AddAspNetCoreInstrumentation(o =>
+                    {
+                        o.Filter = ctx => !ctx.Request.Path.StartsWithSegments("/hubs/inventory");
+                    })
+                    .AddHttpClientInstrumentation()
+                    .AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri($"{endpoint}/v1/traces");
+                        o.Protocol = OtlpExportProtocol.HttpProtobuf;
+                        if (!string.IsNullOrWhiteSpace(authHeader))
+                            o.Headers = authHeader;
+                    });
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri($"{endpoint}/v1/metrics");
+                        o.Protocol = OtlpExportProtocol.HttpProtobuf;
+                        if (!string.IsNullOrWhiteSpace(authHeader))
+                            o.Headers = authHeader;
+                    });
+            });
+
         return services;
     }
 }

@@ -67,3 +67,10 @@ dotnet ef migrations add <Name> \
 - User: `sa`
 - Password: value of `MSSQL_SA_PASSWORD` in `.env`
 - Trust server certificate: yes (already in the connection string)
+
+## Observability with OpenObserve
+The stack includes [OpenObserve](https://openobserve.ai/) for centralized Logs, Traces (APM), and Metrics.
+- **Web UI**: [http://localhost:5080](http://localhost:5080)
+- **User**: `admin@iid.local`
+- **Password**: `P@ssw0rd!OpenObserve`
+- **Features**: Real-time log search, distributed HTTP waterfall tracing, memory/CPU metrics, and customizable dashboards.
