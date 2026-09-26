@@ -466,6 +466,8 @@ Production readiness requires comprehensive observability across the three core 
 - **Trace Context Propagation:** Adheres to the W3C Trace Context specification (`traceparent`, `tracestate`). Incoming requests from clients or API gateways carry trace IDs that flow through MediatR pipeline behaviors and into EF Core SQL queries as SQL comment tags (`/*traceparent='...'*/`).
 - **OpenObserve Integration:** Distributed traces are forwarded to OpenObserve via standard OTLP HTTP/Protobuf (`/v1/traces`). OpenObserve constructs real-time waterfall distributed traces detailing execution time spent across middleware, handlers, SQL transactions, and SignalR socket pushes.
 
+![OpenObserve Live Telemetry & Structured Log Stream](./images/oo.png)
+
 ### 6.2 Metrics & Service Level Objectives (SLOs)
 The system tracks metrics adhering to the **RED Method** (Rate, Errors, Duration) and emits low-overhead CLR performance counters, visualized on live OpenObserve dashboards:
 
