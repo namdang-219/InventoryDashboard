@@ -16,7 +16,7 @@ public sealed class CreateVehicleActionEndpoint(ISender sender) : Endpoint<Creat
     public override void Configure()
     {
         Post("/api/v1/vehicle-actions");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("VehicleActions"));
         Summary(s =>
         {
@@ -44,7 +44,7 @@ public sealed class CreateVehicleActionEndpoint(ISender sender) : Endpoint<Creat
             return;
         }
 
-        HttpContext.Response.StatusCode = 201;
-        await Send.OkAsync(new { data = new { id = result.Value } }, ct);
+        await Send.CreatedAtAsync($"/api/v1/vehicle-actions/{result.Value}",
+            new { data = new { id = result.Value } }, cancellation: ct);
     }
 }

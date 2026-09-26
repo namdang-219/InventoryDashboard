@@ -28,7 +28,6 @@ public sealed class DealershipTests
         Assert.Equal("(213) 555-0101", dealership.Phone);
         Assert.Equal(now, dealership.CreatedAt);
         Assert.Equal(now, dealership.UpdatedAt);
-        Assert.Empty(dealership.Vehicles);
     }
 
     [Theory]

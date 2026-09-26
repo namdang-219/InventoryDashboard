@@ -1,6 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace IID.Infrastructure.Realtime;
+
+public static class InventoryHubConstants
+{
+    public const string DashboardGroup = "inventory-dashboard";
+    public static string DealershipGroup(Guid dealershipId) => $"dealership:{dealershipId}";
+}
 
 public interface IInventoryClient
 {
@@ -14,11 +21,12 @@ public interface IInventoryClient
     Task InventoryChanged();
 }
 
+[Authorize]
 public sealed class InventoryHub : Hub<IInventoryClient>
 {
     public override async Task OnConnectedAsync()
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, InventoryPolicy.AgingDashboardGroup);
+        await Groups.AddToGroupAsync(Context.ConnectionId, InventoryHubConstants.DashboardGroup);
         await base.OnConnectedAsync();
     }
 
@@ -26,7 +34,7 @@ public sealed class InventoryHub : Hub<IInventoryClient>
     {
         if (dealershipId != Guid.Empty)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, InventoryPolicy.GetDealershipGroup(dealershipId));
+            await Groups.AddToGroupAsync(Context.ConnectionId, InventoryHubConstants.DealershipGroup(dealershipId));
         }
     }
 
@@ -34,7 +42,7 @@ public sealed class InventoryHub : Hub<IInventoryClient>
     {
         if (dealershipId != Guid.Empty)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, InventoryPolicy.GetDealershipGroup(dealershipId));
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, InventoryHubConstants.DealershipGroup(dealershipId));
         }
     }
 }

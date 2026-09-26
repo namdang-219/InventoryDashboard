@@ -2,12 +2,12 @@ namespace IID.Domain.Vehicles;
 
 /// <summary>
 /// Money value object: non-negative amount + ISO 4217 currency code.
-/// Modeled as a class so EF Core 10 can map it as an owned entity.
+/// Modeled as a record so it has value-based equality in accordance with DDD.
 /// </summary>
-public sealed class Money
+public sealed record Money
 {
-    public decimal Amount { get; private set; }
-    public string Currency { get; private set; } = "USD";
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = "USD";
 
     private Money() { }
 

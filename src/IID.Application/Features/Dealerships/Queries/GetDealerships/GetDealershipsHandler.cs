@@ -12,7 +12,16 @@ public sealed class GetDealershipsHandler(
     public async Task<Result<IReadOnlyList<DealershipDto>>> Handle(GetDealershipsQuery request, CancellationToken ct)
     {
         var items = await dealerships.ListAsync(ct);
-        var dtos = items.Select(DealershipDto.From).ToList();
+        var counts = await dealerships.GetVehicleCountsAsync(ct);
+
+        var dtos = items.Select(d => new DealershipDto(
+            d.Id,
+            d.Name,
+            d.Code,
+            d.City,
+            d.State,
+            d.Phone,
+            counts.TryGetValue(d.Id, out var count) ? count : 0)).ToList();
 
         logger.LogDebug("Retrieved {Count} dealerships", dtos.Count);
         return Result<IReadOnlyList<DealershipDto>>.Success(dtos);

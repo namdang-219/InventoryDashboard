@@ -1,11 +1,12 @@
+using IID.Domain.Common;
+
 namespace IID.Domain.VehicleActions;
 
 /// <summary>
 /// A logged proposal or decision on a vehicle, distinct aggregate referencing Vehicle.
 /// </summary>
-public sealed class VehicleAction
+public sealed class VehicleAction : Entity
 {
-    public Guid Id { get; private set; }
     public Guid VehicleId { get; private set; }
     public VehicleActionType ActionType { get; private set; }
     public string? Notes { get; private set; }

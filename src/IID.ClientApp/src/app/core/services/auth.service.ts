@@ -31,7 +31,7 @@ export class AuthService {
   });
   readonly isSaler = computed(() => {
     const user = this._currentUser();
-    return user ? user.roles.some(r => r.toLowerCase() === 'saler' || r.toLowerCase() === 'viewer') : false;
+    return user ? user.roles.some(r => r.toLowerCase() === 'saler' || r.toLowerCase() === 'sales' || r.toLowerCase() === 'viewer') : false;
   });
   readonly canMarkSold = computed(() => {
     return this.isSaler() && !this.isManager();

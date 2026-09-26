@@ -18,6 +18,7 @@ public sealed class IdentitySeeder(
 {
     private const string ManagerRole = "Manager";
     private const string SalerRole = "Saler";
+    private const string SalesRole = "Sales";
 
     private const string AdminEmail = "admin@iid.local";
     private const string AdminUserName = "admin@iid.local";
@@ -35,6 +36,7 @@ public sealed class IdentitySeeder(
     {
         await EnsureRoleAsync(ManagerRole);
         await EnsureRoleAsync(SalerRole);
+        await EnsureRoleAsync(SalesRole);
 
         await EnsureUserAsync(
             email: AdminEmail,
@@ -47,6 +49,12 @@ public sealed class IdentitySeeder(
             userName: SalerUserName,
             password: options.Value.SalerPassword ?? DefaultSalerPassword,
             role: SalerRole);
+
+        var salerUser = await users.FindByEmailAsync(SalerEmail);
+        if (salerUser is not null && !await users.IsInRoleAsync(salerUser, SalesRole))
+        {
+            await users.AddToRoleAsync(salerUser, SalesRole);
+        }
 
         // If legacy viewer@iid.local user exists, also assign Saler role so existing accounts remain valid
         var legacyViewer = await users.FindByEmailAsync("viewer@iid.local");

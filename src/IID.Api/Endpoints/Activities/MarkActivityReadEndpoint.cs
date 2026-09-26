@@ -11,7 +11,7 @@ public sealed class MarkActivityReadEndpoint(ISender sender) : Endpoint<MarkActi
     public override void Configure()
     {
         Post("/api/v1/activities/read");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("Activities"));
         Summary(s =>
         {

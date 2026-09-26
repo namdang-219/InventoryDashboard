@@ -1,5 +1,3 @@
-using IID.Domain.Dealerships;
-
 namespace IID.Application.Features.Dealerships.Queries.GetDealerships;
 
 public sealed record DealershipDto(
@@ -9,8 +7,4 @@ public sealed record DealershipDto(
     string City,
     string State,
     string Phone,
-    int VehicleCount)
-{
-    public static DealershipDto From(Dealership d)
-        => new(d.Id, d.Name, d.Code, d.City, d.State, d.Phone, d.Vehicles.Count);
-}
+    int VehicleCount);

@@ -9,7 +9,8 @@ public sealed class UpdateVehicleHandler(
     IVehicleRepository vehicles,
     IUnitOfWork uow,
     IClock clock,
-    ICurrentUser currentUser) : IRequestHandler<UpdateVehicleCommand, Result<Guid>>
+    ICurrentUser currentUser,
+    IVehicleHubNotifier notifier) : IRequestHandler<UpdateVehicleCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(UpdateVehicleCommand c, CancellationToken ct)
     {
@@ -42,12 +43,7 @@ public sealed class UpdateVehicleHandler(
         if (!saveResult.IsSuccess)
             return Result<Guid>.Failure(saveResult.ErrorKind, saveResult.Message ?? "Failed to save vehicle updates.");
 
-        // Real-time fan-out is performed by INotificationHandler<VehicleUpdated>
-        // implementations (e.g. DashboardRealtimeEventHandler), driven by the
-        // VehicleUpdated domain event raised inside Vehicle.Update() and
-        // dispatched by DomainEventDispatchInterceptor after this SaveChanges
-        // commits. The handler intentionally does not call IVehicleHubNotifier
-        // directly to avoid duplicate broadcasts.
+        await notifier.VehicleUpdatedAsync(vehicle, ct);
 
         return Result<Guid>.Success(vehicle.Id);
     }

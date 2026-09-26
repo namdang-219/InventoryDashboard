@@ -30,14 +30,25 @@ public sealed class UserActivityReadRepository(IidDbContext db) : IUserActivityR
             .Select(x => x.ActivityId)
             .ToListAsync(ct);
 
-        var readIdSet = readIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (readIds.Count == 0)
+        {
+            return await db.VehicleActions.AsNoTracking().CountAsync(ct);
+        }
 
-        var allActionGuids = await db.VehicleActions
-            .AsNoTracking()
-            .Select(a => a.Id)
-            .ToListAsync(ct);
+        var readGuids = readIds
+            .Select(id => Guid.TryParse(id, out var g) ? g : Guid.Empty)
+            .Where(g => g != Guid.Empty)
+            .ToList();
 
-        return allActionGuids.Count(guid => !readIdSet.Contains(guid.ToString()));
+        if (readGuids.Count < 2000)
+        {
+            return await db.VehicleActions
+                .AsNoTracking()
+                .CountAsync(a => !readGuids.Contains(a.Id), ct);
+        }
+
+        var total = await db.VehicleActions.AsNoTracking().CountAsync(ct);
+        return Math.Max(0, total - readGuids.Count);
     }
 
     public async Task MarkAsReadAsync(string userId, IEnumerable<string> activityIds, CancellationToken ct)
@@ -55,8 +66,7 @@ public sealed class UserActivityReadRepository(IidDbContext db) : IUserActivityR
         {
             if (!ex.IsRead)
             {
-                ex.IsRead = true;
-                ex.ReadAtUtc = DateTimeOffset.UtcNow;
+                ex.MarkAsRead(DateTimeOffset.UtcNow);
             }
         }
 
@@ -73,13 +83,6 @@ public sealed class UserActivityReadRepository(IidDbContext db) : IUserActivityR
 
     public async Task MarkAllAsReadAsync(string userId, CancellationToken ct)
     {
-        var allActionGuids = await db.VehicleActions
-            .AsNoTracking()
-            .Select(a => a.Id)
-            .ToListAsync(ct);
-
-        if (allActionGuids.Count == 0) return;
-
         var existing = await db.UserActivityReadStatuses
             .Where(x => x.UserId == userId)
             .ToListAsync(ct);
@@ -90,25 +93,23 @@ public sealed class UserActivityReadRepository(IidDbContext db) : IUserActivityR
         {
             if (!ex.IsRead)
             {
-                ex.IsRead = true;
-                ex.ReadAtUtc = DateTimeOffset.UtcNow;
+                ex.MarkAsRead(DateTimeOffset.UtcNow);
             }
         }
 
-        var newStatuses = new List<UserActivityReadStatus>();
-        foreach (var actGuid in allActionGuids)
-        {
-            var actId = actGuid.ToString();
-            if (!existingSet.Contains(actId))
-            {
-                newStatuses.Add(UserActivityReadStatus.Create(userId, actId));
-                existingSet.Add(actId);
-            }
-        }
+        var allActionGuids = await db.VehicleActions
+            .AsNoTracking()
+            .Select(a => a.Id)
+            .ToListAsync(ct);
 
-        if (newStatuses.Count > 0)
+        var toAdd = allActionGuids
+            .Where(g => !existingSet.Contains(g.ToString()))
+            .Select(g => UserActivityReadStatus.Create(userId, g.ToString()))
+            .ToList();
+
+        if (toAdd.Count > 0)
         {
-            await db.UserActivityReadStatuses.AddRangeAsync(newStatuses, ct);
+            await db.UserActivityReadStatuses.AddRangeAsync(toAdd, ct);
         }
 
         await db.SaveChangesAsync(ct);

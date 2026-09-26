@@ -16,14 +16,18 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ITokenService, Services.TokenService>();
         services.AddScoped<IAuthService, Services.AuthService>();
         services.AddScoped<IUserDisplayNameProvider, Identity.UserDisplayNameProvider>();
-        // IHubContext<InventoryHub, IInventoryClient> is registered automatically by AddSignalR() in the API layer.
-        services.AddScoped<IVehicleHubNotifier, Realtime.SignalRVehicleHubNotifier>();
 
-        // Domain events: scoped interceptor so SaveChanges can publish via MediatR.
+        // Persistence Repositories & Unit of Work
+        services.AddScoped<IUnitOfWork, Persistence.Repositories.UnitOfWork>();
+        services.AddScoped<IDealershipRepository, Persistence.Repositories.DealershipRepository>();
+        services.AddScoped<IVehicleRepository, Persistence.Repositories.VehicleRepository>();
+        services.AddScoped<IVehicleActionRepository, Persistence.Repositories.VehicleActionRepository>();
+        services.AddScoped<IUserActivityReadRepository, Persistence.Repositories.UserActivityReadRepository>();
+        services.AddScoped<IID.Application.Features.Dashboard.Services.DashboardService>();
+        services.AddScoped<IDashboardService, IID.Application.Features.Dashboard.Services.DashboardService>();
+
+        // Domain events interceptor
         services.AddScoped<DomainEventDispatchInterceptor>();
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
-            typeof(IID.Application.Vehicles.Commands.CreateVehicle.CreateVehicleCommand).Assembly,
-            typeof(IID.Domain.Vehicles.Vehicle).Assembly));
 
         return services;
     }

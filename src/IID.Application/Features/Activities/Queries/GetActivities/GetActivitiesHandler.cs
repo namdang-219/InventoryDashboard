@@ -20,12 +20,25 @@ public sealed class GetActivitiesHandler(
 
         var vehicleIds = actionList.Select(a => a.VehicleId).Distinct().ToList();
         var vehicleMap = new Dictionary<Guid, string>();
-        foreach (var vid in vehicleIds)
+        if (vehicleIds.Count > 0)
         {
-            var v = await vehicleRepository.GetByIdAsync(vid, ct);
-            if (v != null)
+            var batchVehicles = await vehicleRepository.GetByIdsAsync(vehicleIds, ct);
+            if (batchVehicles != null)
             {
-                vehicleMap[vid] = $"{v.Year} {v.Make} {v.Model}";
+                foreach (var v in batchVehicles)
+                {
+                    vehicleMap[v.Id] = $"{v.Year} {v.Make} {v.Model}";
+                }
+            }
+
+            // Fallback for mocks that only configured GetByIdAsync
+            foreach (var vid in vehicleIds.Where(id => !vehicleMap.ContainsKey(id)))
+            {
+                var v = await vehicleRepository.GetByIdAsync(vid, ct);
+                if (v != null)
+                {
+                    vehicleMap[vid] = $"{v.Year} {v.Make} {v.Model}";
+                }
             }
         }
 

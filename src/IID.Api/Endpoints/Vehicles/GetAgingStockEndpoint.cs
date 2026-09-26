@@ -13,7 +13,7 @@ public sealed class GetAgingStockEndpoint(ISender sender) : Endpoint<GetAgingSto
     public override void Configure()
     {
         Get("/api/v1/vehicles/aging-stock");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {

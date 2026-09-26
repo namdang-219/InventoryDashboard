@@ -18,7 +18,7 @@ public sealed class UpdateVehicleCommandValidator : AbstractValidator<UpdateVehi
             .MaximumLength(50).WithMessage("Model must not exceed 50 characters.");
 
         RuleFor(x => x.Year)
-            .InclusiveBetween(1900, DateTime.UtcNow.Year + 2).WithMessage("Year is out of valid range.");
+            .InclusiveBetween(1980, DateTime.UtcNow.Year + 1).WithMessage("Year is out of valid range.");
 
         RuleFor(x => x.Color)
             .NotEmpty().WithMessage("Color is required.")

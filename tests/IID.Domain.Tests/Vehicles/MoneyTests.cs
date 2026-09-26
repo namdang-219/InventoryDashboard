@@ -50,4 +50,16 @@ public class MoneyTests
         money.Amount.Should().Be(0m);
         money.Currency.Should().Be("EUR");
     }
+
+    [Fact]
+    public void Money_Should_HaveValueEquality()
+    {
+        var m1 = Money.Of(100m, "USD");
+        var m2 = Money.Of(100m, "USD");
+        var m3 = Money.Of(200m, "USD");
+
+        (m1 == m2).Should().BeTrue();
+        m1.Should().Be(m2);
+        (m1 != m3).Should().BeTrue();
+    }
 }

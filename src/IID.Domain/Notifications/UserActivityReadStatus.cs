@@ -1,27 +1,37 @@
-using System;
+using IID.Domain.Common;
 
 namespace IID.Domain.Notifications;
 
 /// <summary>
 /// Tracks whether a user account has read an activity feed notification.
 /// </summary>
-public sealed class UserActivityReadStatus
+public sealed class UserActivityReadStatus : Entity
 {
-    public Guid Id { get; set; }
-    public string UserId { get; set; } = string.Empty;
-    public string ActivityId { get; set; } = string.Empty;
-    public bool IsRead { get; set; } = true;
-    public DateTimeOffset ReadAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public string UserId { get; private set; } = string.Empty;
+    public string ActivityId { get; private set; } = string.Empty;
+    public bool IsRead { get; private set; } = true;
+    public DateTimeOffset ReadAtUtc { get; private set; } = DateTimeOffset.UtcNow;
 
-    public static UserActivityReadStatus Create(string userId, string activityId)
+    private UserActivityReadStatus() { }
+
+    public static UserActivityReadStatus Create(string userId, string activityId, DateTimeOffset? readAtUtc = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId, nameof(userId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(activityId, nameof(activityId));
+
         return new UserActivityReadStatus
         {
             Id = Guid.NewGuid(),
-            UserId = userId,
-            ActivityId = activityId,
+            UserId = userId.Trim(),
+            ActivityId = activityId.Trim(),
             IsRead = true,
-            ReadAtUtc = DateTimeOffset.UtcNow
+            ReadAtUtc = readAtUtc ?? DateTimeOffset.UtcNow
         };
+    }
+
+    public void MarkAsRead(DateTimeOffset readAtUtc)
+    {
+        IsRead = true;
+        ReadAtUtc = readAtUtc;
     }
 }

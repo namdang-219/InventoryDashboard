@@ -22,7 +22,7 @@ public sealed class DealershipConfiguration : IEntityTypeConfiguration<Dealershi
 
         b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("UX_Dealership_Code");
 
-        b.HasMany(d => d.Vehicles)
+        b.HasMany<Vehicle>()
             .WithOne(v => v.Dealership)
             .HasForeignKey(v => v.DealershipId)
             .OnDelete(DeleteBehavior.Restrict);

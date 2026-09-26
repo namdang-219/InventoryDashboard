@@ -8,10 +8,10 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
 {
     private static VehicleResponse MapVehicle(Vehicle v)
     {
-        var aging = new AgingStockIdentifier(DateTimeOffset.UtcNow);
+        var analytics = new VehicleAnalyticsService(DateTimeOffset.UtcNow);
         return new VehicleResponse(
             v.Id, v.Vin.Value, v.Make, v.Model, v.Year,
-            aging.DaysInInventory(v), aging.IsAging(v), v.Status.ToString(), v.DealershipId);
+            analytics.DaysInInventory(v), analytics.IsAging(v), v.Status.ToString(), v.DealershipId);
     }
 
     private static DashboardSummaryResponse MapSummary(DashboardSummaryDto dto)
@@ -22,7 +22,7 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
         => new(dto.VehicleId, dto.Message, dto.Severity, dto.CreatedAtUtc);
 
     private static string? DealershipGroup(Guid dealershipId)
-        => dealershipId != Guid.Empty ? InventoryPolicy.GetDealershipGroup(dealershipId) : null;
+        => dealershipId != Guid.Empty ? InventoryHubConstants.DealershipGroup(dealershipId) : null;
 
     public Task VehicleAddedAsync(Vehicle v, CancellationToken ct)
     {
@@ -39,7 +39,7 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
     }
 
     public Task VehicleRemovedAsync(Guid vehicleId, CancellationToken ct)
-        => Task.CompletedTask; // vehicleId alone has no dealershipId context — caller should use VehicleUpdatedAsync before delete
+        => hub.Clients.All.VehicleRemoved(vehicleId);
 
     public Task VehicleAgingAsync(Vehicle v, CancellationToken ct)
     {
@@ -79,11 +79,11 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
         => VehicleActionLoggedAsync(a, null, ct);
 
     public Task DashboardSummaryUpdatedAsync(DashboardSummaryDto summary, CancellationToken ct)
-        => Task.CompletedTask;
+        => hub.Clients.All.DashboardSummaryUpdated(MapSummary(summary));
 
     public Task DashboardAlertsUpdatedAsync(IReadOnlyList<DashboardAlertDto> alerts, CancellationToken ct)
-        => Task.CompletedTask;
+        => hub.Clients.All.DashboardAlertsUpdated(alerts.Select(MapAlert).ToList());
 
     public Task InventoryChangedAsync(CancellationToken ct)
-        => Task.CompletedTask;
+        => hub.Clients.All.InventoryChanged();
 }

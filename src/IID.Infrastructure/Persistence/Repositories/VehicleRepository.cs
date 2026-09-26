@@ -41,6 +41,12 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
     public void Update(Vehicle vehicle) => db.Vehicles.Update(vehicle);
     public void Remove(Vehicle vehicle) => db.Vehicles.Remove(vehicle);
 
+    public void SetRowVersion(Vehicle vehicle, byte[] rowVersion)
+    {
+        vehicle.SetRowVersion(rowVersion);
+        db.Entry(vehicle).Property(x => x.RowVersion).OriginalValue = rowVersion;
+    }
+
     public async Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAsync(
         VehicleListFilter filter, CancellationToken ct = default)
     {

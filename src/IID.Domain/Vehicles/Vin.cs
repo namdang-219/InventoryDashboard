@@ -23,5 +23,16 @@ public readonly partial record struct Vin
         return new Vin(value.ToUpperInvariant());
     }
 
-    public override string ToString() => Value;
+    public static bool TryParse(string? value, out Vin result)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && VinRegex().IsMatch(value.Trim()))
+        {
+            result = new Vin(value.Trim().ToUpperInvariant());
+            return true;
+        }
+        result = default;
+        return false;
+    }
+
+    public override string ToString() => Value ?? string.Empty;
 }

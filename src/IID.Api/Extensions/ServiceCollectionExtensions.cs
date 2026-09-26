@@ -88,12 +88,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddIidPersistence(this IServiceCollection services, IConfiguration configuration)
     {
         var connStr = configuration.GetConnectionString("IID")
-            ?? throw new InvalidOperationException("ConnectionStrings:IID missing.");
-
-        // Register the domain-event interceptor as a singleton so it can be
-        // injected into IidDbContext's primary constructor.  It is safe to
-        // be a singleton because it only holds an IServiceProvider reference.
-        services.AddSingleton<DomainEventDispatchInterceptor>();
+            ?? throw new InvalidOperationException("ConnectionStrings:IID missing.");        // Register the domain-event interceptor as scoped to match DbContext lifetime.
+        services.AddScoped<DomainEventDispatchInterceptor>();
 
         services.AddDbContext<IidDbContext>((sp, opts) =>
         {
@@ -147,6 +143,19 @@ public static class ServiceCollectionExtensions
                     ValidAudience = jwtConfig.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.Key))
                 };
+                o.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
             });
         return services;
     }
@@ -161,21 +170,12 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// SignalR + Application/Infrastructure composition: hubs, notifiers, repositories.
+    /// SignalR and real-time event notifiers.
     /// </summary>
     public static IServiceCollection AddIidRealtime(this IServiceCollection services)
     {
         services.AddSignalR();
-        services.AddScoped<IVehicleHubNotifier>(sp =>
-            new SignalRVehicleHubNotifier(
-                sp.GetRequiredService<IHubContext<InventoryHub, IInventoryClient>>()));
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<IDealershipRepository, DealershipRepository>();
-        services.AddScoped<IVehicleRepository, VehicleRepository>();
-        services.AddScoped<IVehicleActionRepository, VehicleActionRepository>();
-        services.AddScoped<IUserActivityReadRepository, UserActivityReadRepository>();
-        services.AddScoped<DashboardService>();
-        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IVehicleHubNotifier, SignalRVehicleHubNotifier>();
         return services;
     }
 

@@ -30,7 +30,9 @@ public sealed class Vehicle : AggregateRoot
     public string? CreatedByUserId { get; private set; }
     public string? UpdatedByUserId { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
-    public byte[] RowVersion { get; set; } = [];
+    public byte[] RowVersion { get; private set; } = [];
+
+    public void SetRowVersion(byte[] rowVersion) => RowVersion = rowVersion ?? [];
 
     private Vehicle() { } // EF Core
 

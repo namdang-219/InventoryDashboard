@@ -1,5 +1,4 @@
 using IID.Domain.Common;
-using IID.Domain.Vehicles;
 
 namespace IID.Domain.Dealerships;
 
@@ -12,9 +11,6 @@ public sealed class Dealership : AggregateRoot
     public string Phone { get; private set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
-
-    private readonly List<Vehicle> _vehicles = [];
-    public IReadOnlyCollection<Vehicle> Vehicles => _vehicles.AsReadOnly();
 
     private Dealership() { } // EF Core
 

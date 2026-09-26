@@ -12,7 +12,7 @@ public sealed class GetVehicleByIdEndpoint(ISender sender) : EndpointWithoutRequ
     public override void Configure()
     {
         Get("/api/v1/vehicles/{id}");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {

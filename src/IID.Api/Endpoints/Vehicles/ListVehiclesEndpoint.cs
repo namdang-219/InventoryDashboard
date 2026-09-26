@@ -13,7 +13,7 @@ public sealed class ListVehiclesEndpoint(ISender sender) : Endpoint<ListVehicles
     public override void Configure()
     {
         Get("/api/v1/vehicles");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {

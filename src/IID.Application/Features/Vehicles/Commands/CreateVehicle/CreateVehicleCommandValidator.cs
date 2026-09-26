@@ -9,7 +9,7 @@ public sealed class CreateVehicleCommandValidator : AbstractValidator<CreateVehi
             .WithMessage("VIN must be 17 chars, charset [A-HJ-NPR-Z0-9].");
         RuleFor(c => c.Make).NotEmpty().MaximumLength(50);
         RuleFor(c => c.Model).NotEmpty().MaximumLength(50);
-        RuleFor(c => c.Year).InclusiveBetween(1900, DateTimeOffset.UtcNow.Year + 1);
+        RuleFor(c => c.Year).InclusiveBetween(1980, DateTimeOffset.UtcNow.Year + 1);
         RuleFor(c => c.Color).NotEmpty().MaximumLength(30);
         RuleFor(c => c.Mileage).GreaterThanOrEqualTo(0);
         RuleFor(c => c.PurchasePrice).GreaterThanOrEqualTo(0);

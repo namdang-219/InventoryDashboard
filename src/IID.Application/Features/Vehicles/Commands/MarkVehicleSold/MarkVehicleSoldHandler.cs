@@ -29,7 +29,9 @@ public sealed class MarkVehicleSoldHandler(
         {
             try
             {
-                vehicle.RowVersion = Convert.FromBase64String(c.RowVersionBase64);
+                var rowVersionBytes = Convert.FromBase64String(c.RowVersionBase64);
+                vehicle.SetRowVersion(rowVersionBytes);
+                vehicles.SetRowVersion(vehicle, rowVersionBytes);
             }
             catch (FormatException)
             {
@@ -40,7 +42,8 @@ public sealed class MarkVehicleSoldHandler(
         }
         else if (c.RowVersion is { Length: > 0 })
         {
-            vehicle.RowVersion = c.RowVersion;
+            vehicle.SetRowVersion(c.RowVersion);
+            vehicles.SetRowVersion(vehicle, c.RowVersion);
         }
 
         var currency = c.SoldPriceCurrency ?? vehicle.AskingPrice.Currency;

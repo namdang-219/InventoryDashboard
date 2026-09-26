@@ -12,7 +12,7 @@ public sealed class LogVehicleActionEndpoint(ISender sender) : Endpoint<LogVehic
     public override void Configure()
     {
         Post("/api/v1/vehicles/{id}/actions");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {

@@ -15,7 +15,7 @@ public sealed class UpdateVehicleActionEndpoint(ISender sender) : Endpoint<Updat
     public override void Configure()
     {
         Put("/api/v1/vehicle-actions/{id}");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("VehicleActions"));
         Summary(s =>
         {

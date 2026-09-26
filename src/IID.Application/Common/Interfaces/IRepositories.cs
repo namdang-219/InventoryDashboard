@@ -8,6 +8,7 @@ public interface IDealershipRepository
 {
     Task<Dealership?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<Dealership>> ListAsync(CancellationToken ct);
+    Task<IReadOnlyDictionary<Guid, int>> GetVehicleCountsAsync(CancellationToken ct);
     Task<bool> CodeExistsAsync(string code, Guid? excludeId, CancellationToken ct);
     Task AddAsync(Dealership dealership, CancellationToken ct);
     void Update(Dealership dealership);
@@ -22,6 +23,7 @@ public interface IVehicleRepository
     Task AddAsync(Vehicle vehicle, CancellationToken ct);
     void Update(Vehicle vehicle);
     void Remove(Vehicle vehicle);
+    void SetRowVersion(Vehicle vehicle, byte[] rowVersion);
     Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAsync(VehicleListFilter filter, CancellationToken ct = default);
 }
 

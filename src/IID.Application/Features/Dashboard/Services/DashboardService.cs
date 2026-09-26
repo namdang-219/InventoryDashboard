@@ -17,31 +17,58 @@ public sealed class DashboardService : IDashboardService
 
     public async Task<DashboardSummaryDto> GetSummaryAsync(CancellationToken cancellationToken)
     {
+        var now = _clock.UtcNow;
         var (items, _) = await _vehicles.ListAsync(
             new VehicleListFilter(Limit: 1000, Sort: "dateAdded", Order: "desc"), cancellationToken);
+
+        var analytics = new VehicleAnalyticsService(now);
 
         var available = items.Count(v => v.Status == VehicleStatus.Available);
         var pending = items.Count(v => v.Status == VehicleStatus.Pending);
         var sold = items.Count(v => v.Status == VehicleStatus.Sold);
         var wholesale = items.Count(v => v.Status == VehicleStatus.Wholesale);
-        var agingCount = items.Count(v => v.IsAging());
+        var agingCount = items.Count(analytics.IsAging);
         var totalValue = items.Sum(v => v.AskingPrice.Amount);
+        var avgPrice = items.Count == 0 ? 0m : Math.Round(totalValue / items.Count, 2);
+        var avgDays = items.Count == 0 ? 0 : (int)items.Average(v => (double)analytics.DaysInInventory(v));
+
+        var agingBuckets = analytics.BucketByAging(items);
+        var agingBySeverity = agingBuckets.ToDictionary(
+            kv => kv.Key.ToString(), kv => kv.Value);
+
+        var topMakes = items
+            .GroupBy(v => v.Make)
+            .Select(g => new MakeDistributionDto(g.Key, g.Count(), g.Sum(v => v.AskingPrice.Amount)))
+            .OrderByDescending(x => x.Count)
+            .Take(5)
+            .ToList();
+
+        var fuelMix = items
+            .GroupBy(v => v.FuelType.ToString())
+            .Select(g => new FuelTypeDistributionDto(g.Key, g.Count()))
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
+        var demandGroups = items
+            .GroupBy(v => analytics.GetDemandLevel(v).ToString())
+            .Select(g => new DemandLevelDto(g.Key, g.Count()))
+            .ToList();
 
         return new DashboardSummaryDto(
-            _clock.UtcNow,
+            now,
             items.Count,
             available,
             pending,
             sold,
             wholesale,
             agingCount,
-            new Dictionary<string, int>(),
-            totalValue,
-            0m,
-            0,
-            new List<MakeDistributionDto>(),
-            new List<FuelTypeDistributionDto>(),
-            new List<DemandLevelDto>());
+            agingBySeverity,
+            Math.Round(totalValue, 2),
+            avgPrice,
+            avgDays,
+            topMakes,
+            fuelMix,
+            demandGroups);
     }
 
     public async Task<IReadOnlyList<DashboardAlertDto>> GetAlertsAsync(CancellationToken cancellationToken)

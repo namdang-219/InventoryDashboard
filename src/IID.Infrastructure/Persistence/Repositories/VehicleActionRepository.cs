@@ -34,27 +34,20 @@ public sealed class VehicleActionRepository(IidDbContext db) : IVehicleActionRep
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
             var search = filter.Search.Trim();
-            List<Guid> matchingVehicleIds;
-            if (db.Database.ProviderName?.EndsWith("InMemory", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                matchingVehicleIds = await db.Vehicles.AsNoTracking()
+            var isInMemory = db.Database.ProviderName?.EndsWith("InMemory", StringComparison.OrdinalIgnoreCase) == true;
+            IQueryable<Guid> matchingVehicleIds = isInMemory
+                ? db.Vehicles.AsNoTracking()
                     .Where(v => v.Vin.Value.Contains(search)
                              || v.Make.Contains(search)
                              || v.Model.Contains(search)
                              || (v.StockNumber != null && v.StockNumber.Contains(search)))
                     .Select(v => v.Id)
-                    .ToListAsync(ct);
-            }
-            else
-            {
-                matchingVehicleIds = await db.Vehicles.AsNoTracking()
-                    .Where(v => ((string)(object)v.Vin).Contains(search)
+                : db.Vehicles.AsNoTracking()
+                    .Where(v => EF.Property<string>(v, "Vin").Contains(search)
                              || v.Make.Contains(search)
                              || v.Model.Contains(search)
                              || (v.StockNumber != null && v.StockNumber.Contains(search)))
-                    .Select(v => v.Id)
-                    .ToListAsync(ct);
-            }
+                    .Select(v => v.Id);
 
             q = q.Where(a => (a.Notes != null && a.Notes.Contains(search))
                           || a.LoggedByUserId.Contains(search)
@@ -87,7 +80,7 @@ public sealed class VehicleActionRepository(IidDbContext db) : IVehicleActionRep
                     DateTimeOffset.TryParse(parts[0], null, DateTimeStyles.RoundtripKind, out var cursorTime) &&
                     Guid.TryParse(parts[1], out var cursorId))
                 {
-                    q = q.Where(a => a.LoggedAt < cursorTime || (a.LoggedAt == cursorTime && a.Id != cursorId));
+                    q = q.Where(a => a.LoggedAt < cursorTime || (a.LoggedAt == cursorTime && a.Id < cursorId));
                 }
             }
             catch

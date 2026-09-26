@@ -13,7 +13,7 @@ public sealed class GetDashboardAgingEndpoint(ISender sender)
     public override void Configure()
     {
         Get("/api/v1/dashboard/aging");
-        Roles("Manager", "Saler");
+        Roles("Manager", "Sales", "Saler");
         Description(x => x.WithTags("Dashboard"));
         Summary(s =>
         {

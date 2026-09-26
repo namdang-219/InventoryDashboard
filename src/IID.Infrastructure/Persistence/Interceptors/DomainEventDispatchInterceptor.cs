@@ -20,12 +20,6 @@ public sealed class DomainEventDispatchInterceptor(IServiceProvider serviceProvi
         return await base.SavedChangesAsync(eventData, result, cancellationToken);
     }
 
-    public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
-    {
-        if (eventData.Context is not null)
-            DispatchEventsAsync(eventData.Context, CancellationToken.None).GetAwaiter().GetResult();
-        return base.SavedChanges(eventData, result);
-    }
 
     private async Task DispatchEventsAsync(DbContext context, CancellationToken cancellationToken)
     {

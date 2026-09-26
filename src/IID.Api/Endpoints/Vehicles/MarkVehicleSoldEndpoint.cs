@@ -14,7 +14,7 @@ public sealed class MarkVehicleSoldEndpoint(ISender sender) : Endpoint<MarkVehic
     public override void Configure()
     {
         Post("/api/v1/vehicles/{id}/mark-sold");
-        Roles("Saler");
+        Roles("Sales", "Saler");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {
