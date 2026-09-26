@@ -23,20 +23,7 @@ The **Intelligent Inventory Dashboard (IID)** is an enterprise vehicle inventory
 
 Clean Architecture with CQRS (MediatR), FastEndpoints (REPR), in-process domain events, EF Core 10, SQL Server 2022, SignalR, and OpenTelemetry observability.
 
-```
-ClientApp (Angular 19 SPA)  --REST /api/v1-->  IID.Api (FastEndpoints REPR)
-         ^                                              |
-         | SignalR /hubs/inventory                      v
-         |                                  Application (MediatR CQRS + Validation)
-         |                                              |
-         +---- IVehicleHubNotifier <----------- Domain Events (In-Process)
-                                                        |
-                                                 Infrastructure (EF Core 10)
-                                                        |
-                                                 SQL Server 2022
-                                                        |
-                                                 OpenTelemetry -> OpenObserve
-```
+![Architecture Overview](./docs/images/overview.png)
 
 **Design decisions**
 
