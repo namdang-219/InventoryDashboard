@@ -11,9 +11,62 @@
 
 ## Executive Summary
 
-The **Intelligent Inventory Dashboard (IID)** is an enterprise supply-domain solution engineered to provide dealership general managers and sales executives with real-time, decision-grade visibility into their vehicle stock. The core objective is addressing lot depreciation and carrying costs by systematically identifying **"aging stock"** (vehicles on the lot for more than 90 calendar days) and enabling immediate, persisted workflow actions (such as price reductions, wholesale disposition, or manager review).
+The **Intelligent Inventory Dashboard (IID)** is an enterprise supply-domain platform engineered to provide automotive dealership general managers, sales executives, and inventory controllers with real-time, decision-grade visibility and actionable workflow controls over their vehicle assets.
 
-The solution utilizes a **Clean Architecture** and **Domain-Driven Design (DDD)** approach implemented in **C# ASP.NET Core (.NET 10 LTS)**, fully containerized with **Docker & Docker Compose**, persisting to **Azure SQL Database / MSSQL 2022** via **Entity Framework Core 10**, and monitored through **OpenTelemetry** and **OpenObserve**.
+### The Business Challenge: Carrying Costs & Lot Depreciation
+In modern automotive retail, vehicle inventory represents a dealership's largest working capital investment. However, physical vehicles parked on the lot are rapidly depreciating assets subject to severe **floor-plan financing costs** (typically running between **$25 to $40 per vehicle per day** in floor-plan interest, lot insurance, physical wear, and lot space opportunity costs).
+
+When a vehicle surpasses **90 calendar days on the lot ("Aging Stock")**, its probability of retail sale drops precipitously. Retail gross margins erode by 10% to 25%, turning potentially profitable units into capital sinks. Traditional Dealership Management Systems (DMS) fail to solve this challenge due to key operational gaps:
+- **Siloed & Batch-Oriented Architecture:** Critical inventory data is buried in overnight batch reports or static tabular exports reviewed only during month-end accounting reconciliations.
+- **Lack of Decision-Grade Prioritization:** Inventory managers cannot easily cross-correlate lot tenure with real-time market demand metrics.
+- **Disconnected Operational Remediation:** Identifying an aging vehicle does not trigger a collaborative, trackable workflow to remediate pricing or route the unit to wholesale auction.
+
+The Intelligent Inventory Dashboard directly bridges the gap between real-time data streaming and executive decision-making across three primary business workflows:
+
+---
+
+### 1. Executive Inventory & Portfolio Cockpit
+The primary executive interface delivers an instant, real-time health assessment of total dealership working capital, lot turnaround velocity, and capital risk exposure.
+
+![Executive Inventory Dashboard & Portfolio Overview](./images/dashboard.png)
+
+- **Total Working Capital Visibility:** Real-time valuation of the dealership's asset base (e.g., **$3,146,400** portfolio value across 72 units at Silverstone Motor Cars, with an average unit valuation of **$46,961**).
+- **Turnaround Velocity Tracking:** Instant measurement of the lot's overall turnaround velocity (**63 days average on lot**) against targeted inventory turnover benchmarks.
+- **Critical Aging Alerts:** Instant visibility into capital at risk—flagging **12 units (>90 days)** requiring immediate managerial intervention.
+- **Action Center & Smart Recommendations:** Proactively prioritizes at-risk units (e.g., vehicles with 268+ days on lot paired with low demand scores) alongside monthly sales velocity trends, powertrain mix distributions (64% Petrol, 18% Hybrid, 15% Electric), and live status breakdowns (50 Available, 15 Pending, 7 Sold).
+
+---
+
+### 2. Targeted Aging Stock Management & Prioritization
+For lot managers and pricing directors, the platform provides a dedicated aging stock command center designed to eliminate guesswork, spreadsheet tracking, and manual lot walks.
+
+![Aging Stock Management Table & Critical Units](./images/agingstock.png)
+
+- **Lot Tenure Outlier Detection:** Surfaces high-risk aging units (e.g., 2020 Ford Bronco at **268 days**, 2020 Honda Pilot at **267 days**, 2020 Toyota Prius at **266 days**) with exact lot day counters and visual critical badges.
+- **Market Demand & Pricing Alignment:** Displays vehicle asking price, mileage, and fuel type alongside proprietary demand scores (e.g., `Low Demand 10`), enabling managers to evaluate carrying costs against market willingness to pay.
+- **Direct Operational Triggers:** Provides single-click actions from any row to inspect, reprice, transfer, or log mitigations directly within the primary operational view.
+
+---
+
+### 3. Auditable Remediation Workflows (Action Logging)
+Insight without rapid operational execution produces zero ROI. IID closes the loop between analytics and remediation through an integrated action logging engine.
+
+![Vehicle Action Logging Workflow](./images/action.png)
+
+- **Standardized Mitigation Types:** Managers select from defined business actions, including **Price Reduction Planned**, **Wholesale Transfer**, **Ad Campaign Boost**, or **General Manager Review**, preventing untracked pricing changes or lost inventory oversight.
+- **Suggested Operational Quick-Notes:** Accelerates workflow execution with predefined templates (e.g., *"Reduce 5%"*, *"Wholesale transfer"*, *"Ad Campaign"*).
+- **Immutable Audit Trail (`Action History`):** Every recorded action logs the authenticated manager identity, UTC timestamp, and operational notes into an immutable history, ensuring organizational governance and audit compliance.
+- **Real-Time Synchronized Broadcast:** Submitting an action automatically stages domain events and publishes WebSocket updates to all active managerial sessions via SignalR, ensuring the entire sales floor and finance desk operate on identical, real-time data without page refreshes.
+
+---
+
+### Quantifiable Business Impact & Architectural Foundation
+By combining automated aging detection with streamlined action logging, the Intelligent Inventory Dashboard delivers measurable financial and operational ROI:
+1. **Accelerated Cash-to-Cash Cycle:** Reduces average days-on-lot by enabling rapid price adjustments and auction transfers before carrying costs exceed profit margins.
+2. **Floor-Plan Interest Reduction:** Mitigates hundreds of dollars in daily interest expenses across aging inventory lines.
+3. **Data-Driven Governance:** Replaces gut-feel lot management with auditable, metric-backed inventory policies.
+
+Technologically, the platform is engineered as a high-performance, containerized micro-service stack using **Clean Architecture** and **Domain-Driven Design (DDD)** in **C# ASP.NET Core (.NET 10 LTS)** with **FastEndpoints**, persisting to **Azure SQL Database / MSSQL 2022** via **Entity Framework Core 10**, synchronized to an **Angular 19 SPA** via **SignalR**, and comprehensively monitored through **OpenTelemetry** and **OpenObserve**.
 
 ---
 
@@ -86,10 +139,12 @@ The core workflow of the Intelligent Inventory Dashboard scenario centers on:
 
 The backend architecture is engineered around the principles of **Clean Architecture**, **Vertical-Slice REPR (Request-Endpoint-Response)**, and **Domain-Driven Design (DDD)**, deployed as containerized micro-services on .NET 10 LTS.
 
-![Clean Architecture & Layer Dependency Flow](./images/API%20Contracts%20Flow%20in-2026-09-26-123807.png)
+![Backend Architecture & Request Flow Overview](./images/overview.png)
 
 #### 5.1.1 Architectural Highlights & Design Philosophy
 - **Clean Architecture Boundary Isolation:** The domain core (`IID.Domain`) is entirely independent of external frameworks, libraries, database drivers, or presentation engines. Dependencies flow inward toward the domain, ensuring long-term maintainability and testability.
+
+![Clean Architecture & Layer Dependency Flow](./images/backend.png)
 - **Vertical-Slice REPR Architecture with FastEndpoints:** Replaces monolithic ASP.NET Core MVC controllers with discrete, isolated endpoint classes. By eliminating controller reflection scanning, complex filter pipelines, and dynamic route compilation, FastEndpoints drastically decreases request allocation overhead and improves throughput.
 - **CQRS via MediatR:** Commands (which mutate inventory state) and Queries (which fetch read-optimized projections) are strictly decoupled. This guarantees single-responsibility handlers, deterministic side-effects, and independent optimization paths for reads and writes.
 - **Cross-Cutting Pipeline Behaviors:** MediatR pipeline behaviors enforce cross-cutting operational concerns without polluting use-case logic:
@@ -144,37 +199,7 @@ To trace how requests traverse the backend architecture, consider the lifecycle 
 
 The frontend tier is implemented as a single-page application (SPA) built with **Angular 19**, designed to provide dealership managers with instant inventory visibility, interactive analytics, and responsive real-time workflow controls.
 
-```
-  ┌─────────────────────────────────────────────────────────────────┐
-  │                 Angular 19 SPA (IID.ClientApp)                  │
-  │                                                                 │
-  │  ┌───────────────────────┐             ┌─────────────────────┐  │
-  │  │  Feature Modules      │             │  Layout & Shell     │  │
-  │  │  - Dashboard Analytics│             │  - Navbar & Sidebar │  │
-  │  │  - Vehicles Table     │             │  - Dark/Light Theme │  │
-  │  │  - Action Log Modals  │             │  - Toast Containers │  │
-  │  └───────────┬───────────┘             └─────────────────────┘  │
-  │              │                                                  │
-  │              ▼                                                  │
-  │  ┌───────────────────────────────────────────────────────────┐  │
-  │  │  Reactive State Layer: Angular Signals & RxJS Streams     │  │
-  │  └───────────┬───────────────────────────────────────────────┘  │
-  │              │                                                  │
-  │              ├───────────────────────────────┐                  │
-  │              ▼                               ▼                  │
-  │  ┌───────────────────────┐     ┌─────────────────────────────┐  │
-  │  │  REST Client Layer    │     │  Real-Time WebSocket Layer  │  │
-  │  │  - HttpClient         │     │  - RealtimeService (SignalR)│  │
-  │  │  - Auth Interceptor   │     │  - Auto-reconnect & Retry   │  │
-  │  │  - Role Guards        │     │  - Push Event Dispatcher    │  │
-  │  └───────────┬───────────┘     └─────────────┬───────────────┘  │
-  └──────────────┼───────────────────────────────┼──────────────────┘
-                 │ HTTP/JSON                     │ WebSockets
-                 ▼                               ▼
-  ┌─────────────────────────────────────────────────────────────────┐
-  │                 Backend Server (IID.Api)                        │
-  └─────────────────────────────────────────────────────────────────┘
-```
+![Frontend Architecture & Layer Interactions](./images/frontend.png)
 
 #### 5.2.1 Core Framework & Highlights (Angular 19 SPA)
 - **Standalone Component Architecture:** Implemented entirely using Angular 19 standalone components (`standalone: true`). By bypassing legacy `NgModule` declarations, the application achieves cleaner component hierarchies, optimized tree-shaking, and smaller initial download bundles.
@@ -216,6 +241,172 @@ The frontend tier is implemented as a single-page application (SPA) built with *
 | **Performance** | Angular Signals minimize DOM re-renders; lazy loading minimizes initial JavaScript bundle payload. | Low-overhead binary WebSocket framing delivers millisecond-latency UI updates upon database commits. | Direct HTTP invocations with minimal JSON overhead for automated testing and CI/CD validation. |
 | **Reliability** | TypeScript strict mode and reactive form validation catch input defects before requests leave the client. | Built-in automatic reconnection policy gracefully handles network hiccups and device sleep/wake cycles. | Deterministic OpenAPI v3 contracts guarantee strict schema adherence across all integration channels. |
 | **Maintainability** | Standalone component architecture eliminates NgModule boilerplate; modular structure isolates feature code. | Centralized `RealtimeService` abstracts connection management and event subscriptions behind clean RxJS observables. | Auto-generated OpenAPI specifications from backend code ensure documentation stays 100% in sync with API changes. |
+
+---
+
+### 5.3 Automated Testing Strategy & Unit Test Architecture
+
+The Intelligent Inventory Dashboard employs a rigorous **Test-Driven & Verification-First** engineering discipline. To maintain high velocity without compromising business correctness or performance, automated testing is organized around the **Clean Architecture Test Pyramid**, ensuring every layer—from immutable domain invariants to reactive frontend signals—is verified in complete isolation with deterministic, fast-running test suites.
+
+![Clean Architecture Test Pyramid Hierarchy](./images/testing.png)
+
+#### 5.3.1 Clean Architecture Test Layering & Isolation
+Each architectural layer has a dedicated test project mirroring the system's structural boundaries:
+
+1. **`IID.Domain.Tests` (123 Tests — 59 ms execution):**
+   - **Zero Mocks Principle:** The domain layer contains zero external dependencies. Tests execute purely against in-memory entity instantiations, value objects, and domain services.
+   - **Invariant Protection:** Verifies that aggregate roots (`Vehicle`, `VehicleAction`) never transition into invalid states, constructor guards reject nulls, and domain events stage correctly.
+   - **Boundary & Specification Testing:** Validates ISO 3779 VIN formats, currency mathematical precision (`Money`), and calendar-day lot tenure calculations (`AgingStockIdentifier`).
+
+2. **`IID.Application.Tests` (108 Tests — 188 ms execution):**
+   - **Isolated CQRS Use-Case Verification:** Commands and Queries are tested against their respective handlers (`LogVehicleActionHandler`, `ListVehiclesHandler`, `UpdateVehiclePriceHandler`) by mocking all secondary ports (`IVehicleRepository`, `IUnitOfWork`, `IVehicleHubNotifier`, `ICurrentUser`, `IClock`).
+   - **Result Pattern Validation:** Asserts that business rule failures return strongly-typed functional results (`ErrorKind.NotFound`, `ErrorKind.Unauthorized`, `ErrorKind.Conflict`) rather than throwing unhandled exceptions.
+   - **Pre-Execution Pipeline Validation:** Leverages `FluentValidation.TestHelper` to verify validation rules before handlers execute.
+
+3. **`IID.Infrastructure.Tests` (12 Tests — 831 ms execution):**
+   - **EF Core Persistence & Query Semantics:** Utilizes `Microsoft.EntityFrameworkCore.InMemory` to verify repository query logic, filtered LINQ expressions, and soft-delete filters (`WHERE DeletedAtUtc IS NULL`).
+   - **Database Seeder Verification:** Tests data initialization routines and lot aging calculations against seeded vehicle datasets.
+
+4. **`IID.Api.Tests` (8 Tests — 120 ms execution):**
+   - **Endpoint Contract & Presentation Testing:** Verifies FastEndpoints routing, HTTP status code translation (mapping `ErrorKind.NotFound` to `404 ProblemDetails`), and middleware execution.
+
+5. **`IID.ClientApp` (Frontend Jasmine/Karma Unit Tests):**
+   - **Signals & Reactive State Verification:** Tests Angular 19 signals (`signal()`, `computed()`) to ensure reactive state transitions correctly when stock actions are triggered.
+   - **Service & Interceptor Mocks:** Employs `HttpClientTestingModule` and mock `RealtimeService` to verify JWT bearer token injection and WebSocket event dispatching without live network connections.
+
+---
+
+#### 5.3.2 Testing Tooling & Technology Stack Choices
+
+| Technology | Role & Responsibility | Architectural Justification |
+|---|---|---|
+| **xUnit 2.9.2** | Core Backend Test Framework | Parallel test runner with isolated test class instantiation per test, eliminating shared static state and test pollution. Supports parameterized `[Theory]` and `[InlineData]` for edge-case fuzzing. |
+| **FluentAssertions 6.12.1** | Readable Assertion Engine | Provides expressive, intention-revealing assertion syntax (`result.IsSuccess.Should().BeTrue()`, `action.Should().NotBeNull()`). Produces rich, contextual failure messages that pinpoint exact diffs. |
+| **Moq 4.20.72** | Behavioral Mocking Library | Configures deterministic stubs and verifies critical side-effects on outbound interfaces (e.g., verifying `_notifier.Verify(n => n.VehicleActionLoggedAsync(...), Times.Once)`). |
+| **EF Core In-Memory 10.0.0** | Ephemeral Persistence Provider | Allows repository query logic and LINQ filters to run in-memory within milliseconds without spinning up heavyweight SQL Server containers for unit-level verification. |
+| **FluentValidation.TestHelper** | Contract Validation Assertions | Provides dedicated `.ShouldHaveValidationErrorFor()` and `.ShouldNotHaveValidationErrorFor()` extensions for validating command rules independently of handler execution. |
+| **Jasmine & Karma** | Frontend Unit Testing Stack | Standard Angular testing toolchain integrated with Angular TestBed for headless component rendering, change detection cycle verification, and RxJS stream validation. |
+
+---
+
+#### 5.3.3 Implementation Patterns & Concrete Code Practices
+
+##### 1. The Arrange-Act-Assert (AAA) & SUT Factory Pattern
+To ensure maintainability and insulate test methods against constructor signature changes, all application tests utilize the **SUT (Subject Under Test) Factory Pattern**:
+
+```csharp
+public class LogVehicleActionHandlerTests
+{
+    private readonly Mock<IVehicleRepository> _vehicles = new();
+    private readonly Mock<IVehicleActionRepository> _actions = new();
+    private readonly Mock<IUnitOfWork> _uow = new();
+    private readonly Mock<IVehicleHubNotifier> _notifier = new();
+    private readonly Mock<IClock> _clock = new();
+    private readonly Mock<ICurrentUser> _user = new();
+
+    // Centralized SUT instantiation with default stubs
+    private LogVehicleActionHandler CreateSut()
+    {
+        _clock.SetupGet(c => c.UtcNow).Returns(DateTimeOffset.UtcNow);
+        _user.SetupGet(u => u.Id).Returns("manager-guid-001");
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<int>.Success(1));
+
+        return new LogVehicleActionHandler(
+            _vehicles.Object, _actions.Object, _uow.Object,
+            _notifier.Object, _clock.Object, _user.Object,
+            NullLogger<LogVehicleActionHandler>.Instance);
+    }
+}
+```
+
+##### 2. Domain Invariant & Edge-Case Parameterized Testing
+Domain unit tests strictly enforce business invariants. Value objects reject malformed inputs at construction time, preventing illegal states from ever entering the system:
+
+```csharp
+public class VinTests
+{
+    [Theory]
+    [InlineData("5YJ3E1EA7JF000001")] // Standard 17-character alphanumeric
+    [InlineData("JH4DA1760HS000001")]
+    public void Accepts_valid_vin(string raw)
+    {
+        var vin = Vin.Parse(raw);
+        Assert.Equal(raw.Length, vin.Value.Length);
+    }
+
+    [Theory]
+    [InlineData("")]                    // Empty
+    [InlineData("5YJ3E1EA7JF00000I")]   // 'I' forbidden under ISO 3779 standard
+    [InlineData("5YJ3E1EA7JF00000")]    // 16 chars (too short)
+    [InlineData("5YJ3E1EA7JF0000012")]  // 18 chars (too long)
+    public void Rejects_invalid_vin(string raw)
+    {
+        Assert.Throws<ArgumentException>(() => Vin.Parse(raw));
+    }
+}
+```
+
+##### 3. Handler Verification & Side-Effect Assertion
+Application handler unit tests verify three essential outcomes:
+1. **State Mutation:** Target entity is retrieved, business rules are executed, and changes are committed via `IUnitOfWork`.
+2. **Notification Dispatch:** Real-time push notifications are dispatched to active WebSocket clients via `_notifier.Verify(..., Times.Once)`.
+3. **Deterministic Error Mapping:** Unauthenticated callers receive `ErrorKind.Unauthorized`, and missing records return `ErrorKind.NotFound`:
+
+```csharp
+[Fact]
+public async Task Handle_Should_NotifyHub_OnSuccess()
+{
+    // Arrange
+    var vehicle = CreateVehicle();
+    _vehicles.Setup(v => v.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+             .ReturnsAsync(vehicle);
+
+    // Act
+    var command = new LogVehicleActionCommand(vehicle.Id, VehicleActionType.PriceReductionPlanned, "Lower price 5%");
+    var result = await CreateSut().Handle(command, CancellationToken.None);
+
+    // Assert: Verify business success and real-time SignalR push
+    result.IsSuccess.Should().BeTrue();
+    _actions.Verify(a => a.AddAsync(It.IsAny<VehicleAction>(), It.IsAny<CancellationToken>()), Times.Once);
+    _notifier.Verify(n => n.VehicleActionLoggedAsync(
+        It.IsAny<VehicleAction>(), It.IsAny<Vehicle>(), It.IsAny<CancellationToken>()), Times.Once);
+}
+```
+
+---
+
+#### 5.3.4 Frontend Unit Testing Approach (Angular 19 SPA)
+Frontend testing mirrors backend rigor by verifying reactive state propagation and HTTP contract fidelity:
+- **Angular Signal Reactivity:** Verifies that when `VehicleStore` updates its `vehicles` signal, computed signals (`agingStockCount`, `totalPortfolioValue`) update synchronously without triggering manual change detection.
+- **Mocking Real-Time WebSockets:** Uses a stubbed `RealtimeService` emitting RxJS Subjects to simulate incoming `VehicleActionLogged` events, asserting that UI toast notifications and action badges update in real time.
+- **HTTP Interceptor Verification:** Verifies that `auth.interceptor.ts` transparently injects the bearer token and traps `401 Unauthorized` responses to trigger clean session termination.
+
+---
+
+#### 5.3.5 Automated Test Suite Execution Metrics & Justification Matrix
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                             Automated Test Suite Summary                         │
+├────────────────────────┬─────────────┬───────────┬──────────────┬────────────────┤
+│ Test Project           │ Total Tests │ Passed    │ Failed/Skip  │ Run Duration   │
+├────────────────────────┼─────────────┼───────────┼──────────────┼────────────────┤
+│ IID.Domain.Tests       │ 123         │ 123 (100%)│ 0            │ 59 ms          │
+│ IID.Application.Tests  │ 108         │ 108 (100%)│ 0            │ 188 ms         │
+│ IID.Infrastructure.Tests│ 12         │ 12 (100%) │ 0            │ 831 ms         │
+│ IID.Api.Tests          │ 8           │ 8 (100%)  │ 0            │ 120 ms         │
+├────────────────────────┼─────────────┼───────────┼──────────────┼────────────────┤
+│ Total Solution Tests   │ 251         │ 251 (100%)│ 0            │ ~1.20 Seconds  │
+└────────────────────────┴─────────────┴───────────┴──────────────┴────────────────┘
+```
+
+| Dimension | Domain Tests | Application Tests | Infrastructure Tests | Frontend Unit Tests |
+|---|---|---|---|---|
+| **Speed & Feedback** | Instant (< 60 ms). Zero I/O overhead enables continuous test running during active coding. | Ultra-fast (< 200 ms). Moq stubs eliminate database access while testing full business flows. | Fast (< 1 sec). In-memory EF Core database avoids network roundtrips. | Fast (< 2 sec). Headless Chrome execution tests component reactivity. |
+| **Isolation** | 100% pure C#. No framework, database, or DI container coupling. | Isolated per use-case. External ports abstracted behind clean interfaces. | Validates EF Core mapping and LINQ translation in process. | Components tested independently of server uptime using TestBed. |
+| **Maintainability** | High resilience. Tests change only when underlying business rules or policies change. | SUT Factory pattern insulates tests against constructor parameter refactoring. | In-memory provider requires zero Docker environment orchestration. | Standalone components reduce test setup boilerplate. |
+| **Regression Safety** | Catches edge cases in VIN parsing, monetary math, and aging calculations. | Guarantees CQRS commands and queries handle validation, authorization, and notifications. | Prevents silent bugs in EF Core soft-delete query filters or indexes. | Prevents broken UI bindings, signal regressions, and styling glitches. |
 
 ---
 
@@ -274,14 +465,27 @@ Load testing serves five essential architectural objectives:
 5. **Container Sizing & Resource Boundary Verification:** Confirms that Docker container limits (CPU reservation `0.5`, limit `2.0`; RAM reservation `1024M`, limit `4096M`) provide ample headroom without triggering CPU throttling or kernel Out-Of-Memory (OOM) termination.
 
 ### 7.2 Target APIs & Key Workloads Measured
-The benchmark suite targets the core read and reporting aggregation paths representing the heaviest operational workload on the system:
 
-| API Endpoint | HTTP Method | Target Workload & Scenario | Payload / Query Verification |
-|---|---|---|---|
-| `/api/v1/dashboard?page=1&pageSize=20` | `GET` | **Global Inventory Bundle:** Returns top-level lot KPI summaries (Total Units, Aging Units, Total Value, Carrying Cost Exposure) along with paginated vehicle lists. | Validates HTTP 200, checks `data.summary.totalInventory` is a valid integer, and verifies payload arrival < 500ms. |
-| `/api/v1/dashboard?dealershipId={id}&page=1&pageSize=20` | `GET` | **Filtered Dealership Bundle:** Parameterized query simulating multi-lot filtering across active dealership branches. Dynamic rotation avoids database query plan caching artifacts. | Validates HTTP 200, ensures filtered dataset matches dealership scope, and measures response time under index filtering. |
-| `/api/v1/auth/login` | `POST` | **Pre-Test Token Issuance:** Automated authentication helper retrieves a signed JWT Bearer token before test scenarios execute. | Authenticates `admin@iid.local` and validates bearer token format. |
-| `/api/v1/dealerships` | `GET` | **Dynamic Metadata Discovery:** Setup hook queries active dealership IDs to seed randomized query parameterization across Virtual Users (VUs). | Discovers live dealership IDs to parameterize traffic distribution evenly (50% global vs. 50% dealership-filtered). |
+To render the comprehensive **Dealership Inventory Dashboard**, the client application must trigger a computationally heavy aggregation query that calculates and consolidates multiple business domains into a unified response:
+
+![Dealership Dashboard Requiring Heavy Aggregation Calculations](./images/dashboard.png)
+
+As shown above, rendering this single screen requires significant server-side processing:
+- **Financial Valuations:** Dynamically calculating total portfolio valuation ($3,146,400) and average unit prices across 72 units.
+- **Lot Tenure & Aging Analysis:** Evaluating calendar-day lot tenure ($T_{\text{now}} - T_{\text{added}} > 90 \text{ days}$) across the entire fleet to isolate critical aging stock (12 units) and determine average lot velocity (63 days).
+- **Multi-Dimensional Analytics:** Computing sales velocity trends, powertrain mix distributions (64% Petrol, 18% Hybrid, 15% Electric), and prioritizing units with low demand scores in the Action Center.
+- **Paginated Asset Records:** Streaming sorted, filtered vehicle rows with live status badges.
+
+Because this endpoint represents the single most resource-intensive and critical query path in the system, we decided to focus our load testing directly on:
+
+```http
+GET /api/v1/dashboard?dealershipId={id}&page=1&pageSize=20
+```
+
+#### Key Workload Breakdown:
+- **Primary Load Target (`GET /api/v1/dashboard?dealershipId={id}&page=1&pageSize=20`):** Rotates parameterized queries across active dealerships to evaluate database index efficiency (`IX_Vehicle_Aging_Active`) and EF Core compilation without relying on artificial query-cache artifacts.
+- **Pre-Test Token Issuance (`POST /api/v1/auth/login`):** Automated setup helper that retrieves signed JWT Bearer tokens for test execution.
+- **Dynamic Discovery (`GET /api/v1/dealerships`):** Queries active dealership IDs at test initialization to evenly distribute virtual user (VU) traffic across branches.
 
 ### 7.3 Test Harness Architecture & Setup Instructions
 The performance testing infrastructure is maintained under `tools/k6` as an automated, version-controlled suite powered by [Grafana k6](https://k6.io/):
@@ -380,7 +584,27 @@ During test execution, telemetry streams simultaneously into **OpenObserve** via
 
 Throughout the system design and architecture phase of the Intelligent Inventory Dashboard, I strategically utilized Generative AI tools as an interactive architectural sounding board, code reviewer, and design accelerator. Rather than treating AI outputs as authoritative, I used an iterative, inquiry-driven methodology, critically validating every recommendation against established engineering principles, domain invariants, and empirical performance testing.
 
-### 8.1 Architectural Brainstorming & Paradigm Selection
+### 8.1 Requirements Deconstruction & Domain Modeling (The `docs/plan` Genesis)
+The project began with a concise 12-line requirement specification (`docs/requirement.txt`) outlining three high-level capabilities: *Inventory Visualization*, *Aging Stock Identification (>90 days)*, and *Actionable Insights (logging proposed mitigation actions)*. Rather than jumping straight into ad-hoc coding, I engaged Generative AI as an interactive domain analyst to deconstruct the problem, explore automotive dealership economics, and create a comprehensive implementation plan stored under [`docs/plan/`](./plan):
+
+1. **Unpacking Automotive Supply Economics:**  
+   I tasked the AI with analyzing the real-world business mechanics of vehicle carrying costs. This dialogue surfaced critical domain factors—such as floor-plan financing interest, insurance holding costs ($25 to $40 per vehicle per day), and exponential retail gross margin erosion past the 90-day threshold. This economic insight directly elevated the system from a passive CRUD table into an active capital-preservation tool.
+
+2. **Formulating the Ubiquitous Language & Invariants ([`docs/plan/business.md`](./plan/business.md)):**  
+   Working collaboratively with the AI, I codified the domain rules into a formal business plan that serves as the system's **single source of truth**. We established the core actors (*Dealership Manager*, *Viewer*, *System*), bounded contexts, KPIs (< 1 minute aging notification, < 24h action turnaround), and 20 immutable business invariants (V-001..V-010 for Vehicles, AG-001..AG-004 for Aging Rules, and A-001..A-006 for Action Logging). Critically, I established the governance rule:  
+   > *"[`business.md`](./plan/business.md) is authoritative for what and why; technical plans are authoritative for how. When code or technical designs disagree with the business plan, the business plan wins until formally amended."*
+
+3. **Multi-Disciplinary Technical Planning ([`docs/plan/`](./plan)):**  
+   With the domain rules anchored, I directed the AI to generate coordinated technical blueprints:
+   - **[`backend.md`](./plan/backend.md):** Architectural mapping of Clean Architecture, DDD, .NET 10 LTS, FastEndpoints 8, EF Core 10, MediatR 14, and SignalR real-time event broadcasting.
+   - **[`database.md`](./plan/database.md):** Relational schema definition, CHECK constraints mirroring business invariants, filtered covering indexes (`IX_Vehicle_Aging_Active`, `UX_Vehicle_Vin_Active`), audit history, and pre-indexed views (`vw_AgingStock`).
+   - **[`frontend.md`](./plan/frontend.md):** Single-page application specifications, component hierarchies, state management, and real-time WebSocket bindings.
+   - **[`README.md`](./plan/README.md):** Cross-cutting coverage matrix connecting every raw requirement from `requirement.txt` to specific implementation files and test suites.
+
+4. **Architectural Scope Control:**  
+   Throughout this initial phase, I actively pruned speculative complexity proposed by the AI (such as multi-tenant isolation, customer-facing public inventory pages, or premature microservice splitting in v1) to keep the initial delivery lean, deterministic, and focused strictly on the Dealership Manager's decision loop.
+
+### 8.2 Architectural Brainstorming & Paradigm Selection
 At the inception of the project, I used Generative AI to explore the trade-offs between three distinct backend API patterns for our .NET 10 solution:
 1. Traditional ASP.NET Core Controller-based architecture.
 2. Minimal APIs introduced in recent .NET versions.
@@ -390,12 +614,12 @@ I prompted the AI to evaluate each pattern across four metrics: cold-start overh
 
 **Verification:** Before adopting this advice, I reviewed the [FastEndpoints benchmark repository](https://fast-endpoints.com/benchmarks) and inspected how it handled dependency injection lifetimes. I confirmed that FastEndpoints avoids reflection during runtime request dispatch by generating routing expressions during application boot, which aligned with our target of sub-50ms latencies.
 
-### 8.2 Vetting the Container Hosting & Data Access Strategy
+### 8.3 Vetting the Container Hosting & Data Access Strategy
 When architecting the hosting and deployment model, I engaged the AI to evaluate bare-metal VM deployment versus Docker containerization. The AI highlighted that Docker containerization with multi-stage builds (`mcr.microsoft.com/dotnet/aspnet:10.0-alpine`) provides complete environment consistency, rapid CI/CD test execution, and isolated memory/CPU boundaries without virtualization overhead.
 
 For persistence, the AI initially suggested a NoSQL document database (such as MongoDB or Azure Cosmos DB), citing flexibility for arbitrary vehicle metadata. I rejected this recommendation. In the automotive supply domain, lot managers require strict ACID transactional guarantees when logging inventory actions, updating price structures, and preventing duplicate VIN insertions. I directed the design toward Azure SQL Database paired with EF Core 10, utilizing filtered indexes (`WHERE DeletedAtUtc IS NULL`) and SQL `rowversion` concurrency tokens to satisfy high-concurrency consistency requirements.
 
-### 8.3 Generative Modeling of the Mermaid Architecture Diagram
+### 8.4 Generative Modeling of the Mermaid Architecture Diagram
 To communicate the architecture effectively, I collaborated with the AI to generate the Mermaid.js system topology. I provided the AI with our concrete component boundaries:
 - Ingress via Docker container gateway / reverse proxy.
 - FastEndpoints and SignalR in the presentation layer.
@@ -406,7 +630,7 @@ To communicate the architecture effectively, I collaborated with the AI to gener
 
 I instructed the AI to structure the diagram using hierarchical subgraphs matching our five logical tiers. When the initial Mermaid output produced cluttered connection lines that obscured the data flow, I iteratively refined the syntax, requiring strict directional flow (`TB` and `LR`), clear node styling, and distinct callouts for authentication and telemetry pipelines.
 
-### 8.4 Empirical Validation & Performance Verification
+### 8.5 Empirical Validation & Performance Verification
 Crucially, I never accepted architectural assertions without automated, empirical verification. To validate whether the designed architecture could sustain production enterprise loads, I utilized Grafana k6 scripts (`tools/k6/run.sh load`) to subject the API to a 10-minute continuous load test at **150 iterations/second** (representing over 100 simultaneous active lot managers querying dashboard bundles and logging vehicle actions).
 
 The empirical results conclusively verified the system design:
