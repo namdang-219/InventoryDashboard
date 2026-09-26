@@ -268,6 +268,8 @@ public static class ServiceCollectionExtensions
                 metrics
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
+                    .AddProcessInstrumentation()
+                    .AddRuntimeInstrumentation()
                     .AddOtlpExporter(o =>
                     {
                         o.Endpoint = new Uri($"{endpoint}/v1/metrics");

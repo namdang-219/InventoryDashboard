@@ -9,27 +9,31 @@ const dashboardDuration = new Trend('dashboard_bundle_duration_ms', true);
 const dashboardSuccessRate = new Rate('dashboard_bundle_success_rate');
 const dashboardTotalRequests = new Counter('dashboard_bundle_total_requests');
 
-// Execution profiles
+// Execution profiles (Constant Arrival Rate / Requests per second)
 const profiles = {
   smoke: {
-    vus: 1,
-    duration: '20s',
+    executor: 'constant-arrival-rate',
+    rate: Number(__ENV.RATE) || 100, // 100 req/s
+    timeUnit: '1s',
+    duration: __ENV.DURATION || '5m', // 5 minutes
+    preAllocatedVUs: 50,
+    maxVUs: 200,
   },
   load: {
-    stages: [
-      { duration: '20s', target: 10 }, // Ramp up to 10 VUs
-      { duration: '40s', target: 20 }, // Scale to 20 VUs
-      { duration: '30s', target: 20 }, // Sustain peak load
-      { duration: '15s', target: 0 },  // Ramp down to 0
-    ],
+    executor: 'constant-arrival-rate',
+    rate: Number(__ENV.RATE) || 150, // 150 req/s
+    timeUnit: '1s',
+    duration: __ENV.DURATION || '5m', // 5 minutes
+    preAllocatedVUs: 75,
+    maxVUs: 300,
   },
   stress: {
-    stages: [
-      { duration: '30s', target: 25 },
-      { duration: '45s', target: 50 },
-      { duration: '45s', target: 100 },
-      { duration: '30s', target: 0 },
-    ],
+    executor: 'constant-arrival-rate',
+    rate: Number(__ENV.RATE) || 250, // 250 req/s
+    timeUnit: '1s',
+    duration: __ENV.DURATION || '5m', // 5 minutes
+    preAllocatedVUs: 100,
+    maxVUs: 500,
   },
 };
 
@@ -37,12 +41,7 @@ const selectedProfile = __ENV.PROFILE || 'load';
 
 export const options = {
   scenarios: {
-    dashboard_bundle: {
-      executor: profiles[selectedProfile]?.stages ? 'ramping-vus' : 'constant-vus',
-      ...(profiles[selectedProfile]?.stages
-        ? { stages: profiles[selectedProfile].stages }
-        : { vus: profiles[selectedProfile].vus, duration: profiles[selectedProfile].duration }),
-    },
+    dashboard_bundle: profiles[selectedProfile] || profiles.load,
   },
   thresholds: {
     // 95% of requests must complete below 500ms, 99% below 1000ms
@@ -85,7 +84,8 @@ export function setup() {
 }
 
 /**
- * Default VU execution loop
+ * Default VU execution loop (1 iteration = 1 request)
+ * Alternates between global dashboard and dealership-filtered dashboard.
  */
 export default function (data) {
   const headers = {
@@ -93,67 +93,40 @@ export default function (data) {
     'Accept': 'application/json',
   };
 
-  // Scenario 1: Global dashboard (all dealerships, default pagination)
-  group('Get Global Dashboard Bundle', () => {
-    const url = `${config.baseUrl}/api/v1/dashboard?page=1&pageSize=20`;
-    const res = http.get(url, { headers });
+  // 50% request Global dashboard, 50% request Filtered dashboard
+  const hasDealerships = data.dealershipIds && data.dealershipIds.length > 0;
+  const isFiltered = hasDealerships && Math.random() < 0.5;
 
-    dashboardTotalRequests.add(1);
-    dashboardDuration.add(res.timings.duration);
+  const url = isFiltered
+    ? `${config.baseUrl}/api/v1/dashboard?dealershipId=${data.dealershipIds[Math.floor(Math.random() * data.dealershipIds.length)]}&page=1&pageSize=20`
+    : `${config.baseUrl}/api/v1/dashboard?page=1&pageSize=20`;
 
-    const isOk = check(res, {
-      'status is 200': (r) => r.status === 200,
-      'has data payload': (r) => {
-        try {
-          const body = JSON.parse(r.body);
-          return body && body.data !== undefined;
-        } catch {
-          return false;
-        }
-      },
-      'has summary metrics': (r) => {
-        try {
-          const body = JSON.parse(r.body);
-          return body?.data?.summary && typeof body.data.summary.totalInventory === 'number';
-        } catch {
-          return false;
-        }
-      },
-      'response time < 500ms': (r) => r.timings.duration < 500,
-    });
+  const tag = isFiltered ? 'dashboard_filtered' : 'dashboard_global';
+  const res = http.get(url, { headers, tags: { name: tag } });
 
-    dashboardSuccessRate.add(isOk);
+  dashboardTotalRequests.add(1);
+  dashboardDuration.add(res.timings.duration);
+
+  const isOk = check(res, {
+    'status is 200': (r) => r.status === 200,
+    'has data payload': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body && body.data !== undefined;
+      } catch {
+        return false;
+      }
+    },
+    'has summary metrics': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body?.data?.summary && typeof body.data.summary.totalInventory === 'number';
+      } catch {
+        return false;
+      }
+    },
+    'response time < 500ms': (r) => r.timings.duration < 500,
   });
 
-  sleep(0.5);
-
-  // Scenario 2: Parameterized dashboard with Dealership filter
-  if (data.dealershipIds && data.dealershipIds.length > 0) {
-    group('Get Dealership-Filtered Dashboard Bundle', () => {
-      const randomDealershipId = data.dealershipIds[Math.floor(Math.random() * data.dealershipIds.length)];
-      const url = `${config.baseUrl}/api/v1/dashboard?dealershipId=${randomDealershipId}&page=1&pageSize=20`;
-      const res = http.get(url, { headers });
-
-      dashboardTotalRequests.add(1);
-      dashboardDuration.add(res.timings.duration);
-
-      const isOk = check(res, {
-        'filtered status is 200': (r) => r.status === 200,
-        'filtered has data payload': (r) => {
-          try {
-            const body = JSON.parse(r.body);
-            return body && body.data !== undefined;
-          } catch {
-            return false;
-          }
-        },
-        'filtered response time < 500ms': (r) => r.timings.duration < 500,
-      });
-
-      dashboardSuccessRate.add(isOk);
-    });
-  }
-
-  // Realistic think time between user actions
-  sleep(1);
+  dashboardSuccessRate.add(isOk);
 }
