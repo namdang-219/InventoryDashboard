@@ -15,7 +15,7 @@ const profiles = {
     executor: 'constant-arrival-rate',
     rate: Number(__ENV.RATE) || 100, // 100 req/s
     timeUnit: '1s',
-    duration: __ENV.DURATION || '5m', // 5 minutes
+    duration: __ENV.DURATION || '10m', // 10 minutes
     preAllocatedVUs: 50,
     maxVUs: 200,
   },
@@ -23,7 +23,7 @@ const profiles = {
     executor: 'constant-arrival-rate',
     rate: Number(__ENV.RATE) || 150, // 150 req/s
     timeUnit: '1s',
-    duration: __ENV.DURATION || '5m', // 5 minutes
+    duration: __ENV.DURATION || '10m', // 10 minutes
     preAllocatedVUs: 75,
     maxVUs: 300,
   },
@@ -31,7 +31,7 @@ const profiles = {
     executor: 'constant-arrival-rate',
     rate: Number(__ENV.RATE) || 250, // 250 req/s
     timeUnit: '1s',
-    duration: __ENV.DURATION || '5m', // 5 minutes
+    duration: __ENV.DURATION || '10m', // 10 minutes
     preAllocatedVUs: 100,
     maxVUs: 500,
   },

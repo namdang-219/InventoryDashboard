@@ -27,13 +27,13 @@ tools/k6/
 The runner script will automatically use local `k6` if installed, or fallback to `docker run grafana/k6`:
 
 ```bash
-# Run smoke test (100 req/s for 5m)
+# Run smoke test (100 req/s for 10m)
 ./tools/k6/run.sh smoke
 
-# Run standard load test (150 req/s for 5m)
+# Run standard load test (150 req/s for 10m)
 ./tools/k6/run.sh load
 
-# Run stress test (250 req/s for 5m)
+# Run stress test (250 req/s for 10m)
 ./tools/k6/run.sh stress
 ```
 

@@ -481,7 +481,7 @@
             "show_legends": false,
             "legends_position": null,
             "unit": "milliseconds",
-            "decimals": 2,
+            "decimals": 0,
             "line_thickness": 1.5,
             "step_value": "0",
             "top_results_others": false,
@@ -565,7 +565,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT service_name,\n    histogram(_timestamp, '1 minute') AS \"Time\", \n    APPROX_PERCENTILE_CONT(elapsed, 0.50) AS p50, \n    APPROX_PERCENTILE_CONT(elapsed, 0.95) AS p95, \n    APPROX_PERCENTILE_CONT(elapsed, 0.99) AS p99 \nFROM \"iid_api\" \nGROUP BY \"Time\" , \"service_name\"\nORDER BY \"Time\" ASC",
+              "query": "SELECT service_name,\n    histogram(_timestamp, '1 minute') AS \"Time\", \n    APPROX_PERCENTILE_CONT(cast(elapsed as float), 0.50) AS p50, \n    APPROX_PERCENTILE_CONT(cast(elapsed as float), 0.95) AS p95, \n    APPROX_PERCENTILE_CONT(cast(elapsed as float), 0.99) AS p99 \nFROM \"iid_api\" \nGROUP BY \"Time\" , \"service_name\"\nORDER BY \"Time\" ASC",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
