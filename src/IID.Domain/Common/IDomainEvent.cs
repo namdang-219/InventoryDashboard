@@ -1,11 +1,9 @@
-using MediatR;
-
 namespace IID.Domain.Common;
 
 /// <summary>
-/// Domain event marker that also implements MediatR INotification for in-process publishing.
+/// Domain event marker for pure domain concepts (zero external framework dependency).
 /// </summary>
-public interface IDomainEvent : INotification
+public interface IDomainEvent
 {
-    DateTime OccurredOnUtc { get; }
+    DateTimeOffset OccurredOnUtc { get; }
 }

@@ -222,6 +222,15 @@ public class VehicleTests
     }
 
     [Fact]
+    public void GrossProfit_Should_SupportNegative_WhenSoldAtLoss()
+    {
+        var v = CreateSample(); // PurchasePrice = 20000m
+        v.MarkSold(Money.Of(17000m), DateTimeOffset.UtcNow, "user-1");
+
+        v.GrossProfit!.Amount.Should().Be(-3000m);
+    }
+
+    [Fact]
     public void GetAgingSeverity_Should_BeCritical_After90Days()
     {
         var now = DateTimeOffset.UtcNow;
@@ -497,8 +506,10 @@ public class VehicleTests
         v.TransferDealership(targetId, now, "manager-1");
 
         v.DealershipId.Should().Be(targetId);
-        var transferEvent = v.DomainEvents.OfType<IID.Domain.Vehicles.Events.VehicleUpdated>().Single();
+        var transferEvent = v.DomainEvents.OfType<IID.Domain.Vehicles.Events.VehicleTransferred>().Single();
         transferEvent.VehicleId.Should().Be(v.Id);
+        transferEvent.PreviousDealershipId.Should().Be(originId);
+        transferEvent.NewDealershipId.Should().Be(targetId);
         transferEvent.Make.Should().Be(v.Make);
     }
 

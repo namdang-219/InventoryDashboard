@@ -7,11 +7,12 @@ namespace IID.Application.Features.Dashboard.EventHandlers;
 public sealed class DashboardRealtimeEventHandler(
     IDashboardService dashboardService,
     IVehicleHubNotifier hubNotifier) :
-    INotificationHandler<VehicleAdded>,
-    INotificationHandler<VehicleStatusChanged>,
-    INotificationHandler<VehicleSold>,
-    INotificationHandler<VehicleRemoved>,
-    INotificationHandler<VehicleUpdated>
+    IDomainEventHandler<VehicleAdded>,
+    IDomainEventHandler<VehicleStatusChanged>,
+    IDomainEventHandler<VehicleSold>,
+    IDomainEventHandler<VehicleRemoved>,
+    IDomainEventHandler<VehicleUpdated>,
+    IDomainEventHandler<VehicleTransferred>
 {
     public Task Handle(VehicleAdded notification, CancellationToken cancellationToken)
         => BroadcastUpdateAsync(cancellationToken);
@@ -26,6 +27,9 @@ public sealed class DashboardRealtimeEventHandler(
         => BroadcastUpdateAsync(cancellationToken);
 
     public Task Handle(VehicleUpdated notification, CancellationToken cancellationToken)
+        => BroadcastUpdateAsync(cancellationToken);
+
+    public Task Handle(VehicleTransferred notification, CancellationToken cancellationToken)
         => BroadcastUpdateAsync(cancellationToken);
 
     private async Task BroadcastUpdateAsync(CancellationToken cancellationToken)

@@ -1,5 +1,6 @@
 using FluentValidation;
 using FluentValidation.Results;
+using IID.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 namespace IID.Application.Common.Behaviors;
@@ -68,6 +69,17 @@ public static class ApplicationServiceCollectionExtensions
                     services.AddTransient(iface, t);
             }
         }
+        // Scan and register all IDomainEventHandler<T> implementations.
+        var domainEventHandlerType = typeof(IDomainEventHandler<>);
+        foreach (var t in assembly.GetTypes().Where(t => !t.IsAbstract && !t.IsInterface))
+        {
+            foreach (var iface in t.GetInterfaces())
+            {
+                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == domainEventHandlerType)
+                    services.AddScoped(iface, t);
+            }
+        }
+
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         return services;
     }

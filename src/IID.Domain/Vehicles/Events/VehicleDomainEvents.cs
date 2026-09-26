@@ -8,14 +8,23 @@ public sealed record VehicleAdded(
     string Model,
     VehicleStatus Status) : IDomainEvent
 {
-    public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
+    public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
 }
 
 public sealed record VehicleUpdated(
     Guid VehicleId,
     string Make) : IDomainEvent
 {
-    public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
+    public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
+}
+
+public sealed record VehicleTransferred(
+    Guid VehicleId,
+    Guid PreviousDealershipId,
+    Guid NewDealershipId,
+    string Make) : IDomainEvent
+{
+    public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
 }
 
 public sealed record VehicleStatusChanged(
@@ -24,7 +33,7 @@ public sealed record VehicleStatusChanged(
     VehicleStatus NewStatus,
     string Make) : IDomainEvent
 {
-    public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
+    public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
 }
 
 public sealed record VehicleSold(
@@ -33,12 +42,12 @@ public sealed record VehicleSold(
     DateTimeOffset SoldAtUtc,
     int DaysToSell) : IDomainEvent
 {
-    public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
+    public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
 }
 
 public sealed record VehicleRemoved(
     Guid VehicleId,
     string Make) : IDomainEvent
 {
-    public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
+    public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
 }

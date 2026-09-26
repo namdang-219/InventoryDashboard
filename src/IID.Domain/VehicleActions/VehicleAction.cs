@@ -1,11 +1,12 @@
 using IID.Domain.Common;
+using IID.Domain.VehicleActions.Events;
 
 namespace IID.Domain.VehicleActions;
 
 /// <summary>
-/// A logged proposal or decision on a vehicle, distinct aggregate referencing Vehicle.
+/// A logged proposal or decision on a vehicle, distinct aggregate root referencing Vehicle.
 /// </summary>
-public sealed class VehicleAction : Entity
+public sealed class VehicleAction : AggregateRoot
 {
     public Guid VehicleId { get; private set; }
     public VehicleActionType ActionType { get; private set; }
@@ -25,7 +26,7 @@ public sealed class VehicleAction : Entity
         if (vehicleId == Guid.Empty) throw new ArgumentException("VehicleId is required.", nameof(vehicleId));
         if (string.IsNullOrWhiteSpace(loggedByUserId)) throw new ArgumentException("LoggedByUserId is required.", nameof(loggedByUserId));
         if (notes is { Length: > 2000 }) throw new ArgumentException("Notes must be ≤ 2000 chars.", nameof(notes));
-        return new VehicleAction
+        var action = new VehicleAction
         {
             Id = Guid.NewGuid(),
             VehicleId = vehicleId,
@@ -38,6 +39,8 @@ public sealed class VehicleAction : Entity
             CreatedByUserId = loggedByUserId,
             UpdatedByUserId = loggedByUserId
         };
+        action.RaiseDomainEvent(new VehicleActionLogged(action.Id, action.VehicleId, action.ActionType, action.LoggedByUserId));
+        return action;
     }
 
     public void Update(VehicleActionType actionType, string? notes, DateTimeOffset nowUtc, string updatedByUserId)

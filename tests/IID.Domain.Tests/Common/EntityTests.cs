@@ -97,7 +97,7 @@ public class AggregateRootTests
 
     private sealed class TestEvent : IDomainEvent
     {
-        public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
+        public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
     }
 
     [Fact]

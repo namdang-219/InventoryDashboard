@@ -13,5 +13,6 @@ public sealed class VehicleActionConfiguration : IEntityTypeConfiguration<Vehicl
         b.HasQueryFilter(e => e.DeletedAt == null);
         b.HasOne<Vehicle>().WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(x => new { x.VehicleId, x.LoggedAt }).HasFilter("[DeletedAt] IS NULL").HasDatabaseName("IX_VehicleAction_VehicleId_LoggedAt");
+        b.Ignore(x => x.DomainEvents);
     }
 }

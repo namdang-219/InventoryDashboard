@@ -32,7 +32,7 @@ public sealed record VehicleResponse(
     Guid? DealershipId = null,
     string? DealershipName = null)
 {
-    public static VehicleResponse From(Vehicle v, VehicleAnalyticsService analytics)
+    public static VehicleResponse From(Vehicle v, VehicleAnalyticsService analytics, string? dealershipName = null)
         => new(
             v.Id,
             v.Vin.Value,
@@ -65,5 +65,5 @@ public sealed record VehicleResponse(
             // for optimistic concurrency on subsequent updates.
             Convert.ToBase64String(v.RowVersion),
             v.DealershipId != Guid.Empty ? v.DealershipId : null,
-            v.Dealership?.Name);
+            dealershipName);
 }

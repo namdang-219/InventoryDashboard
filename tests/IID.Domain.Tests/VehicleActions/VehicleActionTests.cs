@@ -16,6 +16,12 @@ public class VehicleActionTests
         action.Notes.Should().Be("hello");
         action.LoggedAt.Should().Be(now);
         action.CreatedAt.Should().Be(now);
+
+        var ev = action.DomainEvents.OfType<IID.Domain.VehicleActions.Events.VehicleActionLogged>().Single();
+        ev.ActionId.Should().Be(action.Id);
+        ev.VehicleId.Should().Be(action.VehicleId);
+        ev.ActionType.Should().Be(action.ActionType);
+        ev.LoggedByUserId.Should().Be("user-1");
     }
 
     [Fact]

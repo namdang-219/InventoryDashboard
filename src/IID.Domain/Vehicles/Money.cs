@@ -11,9 +11,9 @@ public sealed record Money
 
     private Money() { }
 
-    public static Money Of(decimal amount, string currency = "USD")
+    public static Money Of(decimal amount, string currency = "USD", bool allowNegative = false)
     {
-        if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "Amount must be non-negative.");
+        if (!allowNegative && amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "Amount must be non-negative.");
         if (string.IsNullOrWhiteSpace(currency) || currency.Length != 3)
             throw new ArgumentException("Currency must be a 3-letter ISO 4217 code.", nameof(currency));
         return new Money { Amount = amount, Currency = currency.ToUpperInvariant() };

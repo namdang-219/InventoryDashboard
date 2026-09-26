@@ -10,7 +10,6 @@ namespace IID.Domain.Vehicles;
 public sealed class Vehicle : AggregateRoot
 {
     public Guid DealershipId { get; private set; }
-    public Dealerships.Dealership? Dealership { get; private set; }
     public Vin Vin { get; private set; }
     public string? StockNumber { get; private set; }
     public string Make { get; private set; } = string.Empty;
@@ -90,11 +89,12 @@ public sealed class Vehicle : AggregateRoot
         if (DealershipId == newDealershipId)
             throw new InvalidOperationException("Vehicle is already assigned to this dealership.");
 
+        var previousDealershipId = DealershipId;
         DealershipId = newDealershipId;
         UpdatedAt = nowUtc;
         if (!string.IsNullOrWhiteSpace(updatedByUserId))
             UpdatedByUserId = updatedByUserId;
-        RaiseDomainEvent(new VehicleUpdated(Id, Make));
+        RaiseDomainEvent(new VehicleTransferred(Id, previousDealershipId, newDealershipId, Make));
     }
 
     public void Update(
@@ -161,9 +161,9 @@ public sealed class Vehicle : AggregateRoot
 
     // ── Domain logic / computed ───────────────────────────────────────────────
 
-    /// <summary>Profit margin from purchase to sale (positive = gain).</summary>
+    /// <summary>Profit margin from purchase to sale (positive = gain, negative = loss).</summary>
     public Money? GrossProfit =>
-        SoldPrice is null ? null : Money.Of(SoldPrice.Amount - PurchasePrice.Amount, SoldPrice.Currency);
+        SoldPrice is null ? null : Money.Of(SoldPrice.Amount - PurchasePrice.Amount, SoldPrice.Currency, allowNegative: true);
 
     /// <summary>Markup on top of purchase price; null if sold price not set.</summary>
     public decimal? GrossMarginPercent =>

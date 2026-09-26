@@ -8,7 +8,6 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
 {
     public async Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken ct)
         => await db.Vehicles
-            .Include(v => v.Dealership)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
 
     public async Task<IReadOnlyList<Vehicle>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
@@ -50,7 +49,7 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
     public async Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAsync(
         VehicleListFilter filter, CancellationToken ct = default)
     {
-        IQueryable<Vehicle> q = db.Vehicles.AsNoTracking().Include(v => v.Dealership);
+        IQueryable<Vehicle> q = db.Vehicles.AsNoTracking();
         if (filter.DealershipId.HasValue && filter.DealershipId.Value != Guid.Empty)
             q = q.Where(v => v.DealershipId == filter.DealershipId.Value);
 
@@ -59,14 +58,7 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
         if (!string.IsNullOrWhiteSpace(filter.Vin))
         {
             var vinTerm = filter.Vin.Trim();
-            if (db.Database.ProviderName?.EndsWith("InMemory", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                q = q.Where(v => v.Vin.Value.Contains(vinTerm));
-            }
-            else
-            {
-                q = q.Where(v => ((string)(object)v.Vin).Contains(vinTerm));
-            }
+            q = q.Where(v => v.Vin.Value.Contains(vinTerm));
         }
         if (!string.IsNullOrWhiteSpace(filter.StockNumber))
         {
