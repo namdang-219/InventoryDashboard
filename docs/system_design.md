@@ -7,6 +7,8 @@
 **Observability Stack:** OpenTelemetry & OpenObserve  
 **Date:** September 2026  
 
+> **Note:** This document is the **system design** — it covers the *how* (architecture, components, data flow, technology choices, observability, performance). It is **not sufficient** for understanding the business domain on its own. For end-user–facing business requirements, KPIs, demand-score mechanics, vehicle lifecycle, action types, and how every Inventory Overview number is calculated, see [`docs/business-requirements.md`](./business-requirements.md).
+
 ---
 
 ## Executive Summary
@@ -80,19 +82,19 @@ The following architecture diagram illustrates the end-to-end architecture, depi
 
 ## 2. Component Descriptions
 
-| Component | Architecture Role & Responsibilities |
-|---|---|
-| **Client-Side Presentation Layer** | Provides responsive user interfaces and developer interaction channels. The primary interface is the **Angular 19 SPA (`IID.ClientApp`)** providing interactive inventory tables, aging badges, visual analytics, and action modals. For headless and partner interactions, the layer is mocked and explored via **FastEndpoints Swagger (OpenAPI v3)** and scriptable cURL commands. |
-| **Docker & Docker Compose** | Containerized runtime environment orchestrating the **`IID.Api`** service container using a multi-stage Alpine build (`src/IID.Api/Dockerfile`). Provides process isolation, reproducible environments, automatic health monitoring, resource limits (CPU/RAM reservations), and unified service networking alongside the database. |
-| **FastEndpoints Presentation Engine** | High-performance, vertical-slice REPR (Request-Endpoint-Response) presentation architecture. Replaces heavy ASP.NET Core MVC controllers with discrete endpoints such as `ListVehiclesEndpoint`, `GetDashboardBundleEndpoint`, and `LogVehicleActionEndpoint`. |
-| **MediatR CQRS Pipeline** | Coordinates application flow using Command Query Responsibility Segregation (CQRS). Enforces pre-execution validation via `ValidationBehavior` (FluentValidation) and SLA performance tracking via `PerformanceBehavior`. |
-| **SignalR Real-Time Hub** | Encapsulated in `InventoryHub` and orchestrated by `SignalRVehicleHubNotifier`. Maintains bidirectional WebSocket tunnels with connected clients, pushing real-time events (`VehicleAging`, `VehicleActionLogged`, `VehicleAdded`) without requiring browser polling. |
-| **Domain Engine & Aggregates** | Encapsulates the supply business logic and invariants within DDD boundaries. Aggregates include `Vehicle` (lot status, age, pricing) and `VehicleAction` (action log entries). Enforces business policies through value objects (`Vin`, `Money`) and domain services (`AgingStockIdentifier`). |
-| **Persistence Infrastructure (EF Core 10)** | Implemented in `IidDbContext`. Manages SQL Server mapping, optimistic concurrency checking via byte array `RowVersion`, compiled LINQ expressions, and soft-delete query filters (`WHERE DeletedAtUtc IS NULL`). |
-| **Domain Event Interceptor** | Implemented as `DomainEventDispatchInterceptor`. Intercepts EF Core database commits to collect domain events from mutated entities and publishes them through MediatR only after successful database transactions. |
-| **Aging Stock Monitor Worker** | Background hosted service (`AgingStockMonitorService`) running continuously. Periodically evaluates active inventory against `InventoryPolicy.AgingStockThresholdDays` (90 days) to flag newly aging vehicles and trigger push alerts. |
-| **Azure SQL Database** | High-availability cloud relational persistence tier. Houses normalized entity tables, filtered unique indexes (`UX_Vehicle_Vin_Active`), audit history (`VehicleInventoryHistory`), and pre-indexed views for fast dashboard aggregation. |
-| **OpenTelemetry & OpenObserve** | Observability pipeline composed of in-process OpenTelemetry instrumentation packages (`OpenTelemetry.Instrumentation.AspNetCore`, `Http`, `Runtime`, `Process`), Serilog OTLP sinks, and the **OpenObserve** platform for centralized real-time logs, APM distributed traces, and customizable metrics dashboards. |
+| Component                                   | Architecture Role & Responsibilities                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Client-Side Presentation Layer**          | Provides responsive user interfaces and developer interaction channels. The primary interface is the **Angular 19 SPA (`IID.ClientApp`)** providing interactive inventory tables, aging badges, visual analytics, and action modals. For headless and partner interactions, the layer is mocked and explored via **FastEndpoints Swagger (OpenAPI v3)** and scriptable cURL commands. |
+| **Docker & Docker Compose**                 | Containerized runtime environment orchestrating the **`IID.Api`** service container using a multi-stage Alpine build (`src/IID.Api/Dockerfile`). Provides process isolation, reproducible environments, automatic health monitoring, resource limits (CPU/RAM reservations), and unified service networking alongside the database.                                                   |
+| **FastEndpoints Presentation Engine**       | High-performance, vertical-slice REPR (Request-Endpoint-Response) presentation architecture. Replaces heavy ASP.NET Core MVC controllers with discrete endpoints such as `ListVehiclesEndpoint`, `GetDashboardBundleEndpoint`, and `LogVehicleActionEndpoint`.                                                                                                                        |
+| **MediatR CQRS Pipeline**                   | Coordinates application flow using Command Query Responsibility Segregation (CQRS). Enforces pre-execution validation via `ValidationBehavior` (FluentValidation) and SLA performance tracking via `PerformanceBehavior`.                                                                                                                                                             |
+| **SignalR Real-Time Hub**                   | Encapsulated in `InventoryHub` and orchestrated by `SignalRVehicleHubNotifier`. Maintains bidirectional WebSocket tunnels with connected clients, pushing real-time events (`VehicleAging`, `VehicleActionLogged`, `VehicleAdded`) without requiring browser polling.                                                                                                                 |
+| **Domain Engine & Aggregates**              | Encapsulates the supply business logic and invariants within DDD boundaries. Aggregates include `Vehicle` (lot status, age, pricing) and `VehicleAction` (action log entries). Enforces business policies through value objects (`Vin`, `Money`) and domain services (`AgingStockIdentifier`).                                                                                        |
+| **Persistence Infrastructure (EF Core 10)** | Implemented in `IidDbContext`. Manages SQL Server mapping, optimistic concurrency checking via byte array `RowVersion`, compiled LINQ expressions, and soft-delete query filters (`WHERE DeletedAtUtc IS NULL`).                                                                                                                                                                      |
+| **Domain Event Interceptor**                | Implemented as `DomainEventDispatchInterceptor`. Intercepts EF Core database commits to collect domain events from mutated entities and publishes them through MediatR only after successful database transactions.                                                                                                                                                                   |
+| **Aging Stock Monitor Worker**              | Background hosted service (`AgingStockMonitorService`) running continuously. Periodically evaluates active inventory against `InventoryPolicy.AgingStockThresholdDays` (90 days) to flag newly aging vehicles and trigger push alerts.                                                                                                                                                |
+| **Azure SQL Database**                      | High-availability cloud relational persistence tier. Houses normalized entity tables, filtered unique indexes (`UX_Vehicle_Vin_Active`), audit history (`VehicleInventoryHistory`), and pre-indexed views for fast dashboard aggregation.                                                                                                                                             |
+| **OpenTelemetry & OpenObserve**             | Observability pipeline composed of in-process OpenTelemetry instrumentation packages (`OpenTelemetry.Instrumentation.AspNetCore`, `Http`, `Runtime`, `Process`), Serilog OTLP sinks, and the **OpenObserve** platform for centralized real-time logs, APM distributed traces, and customizable metrics dashboards.                                                                    |
 
 
 ---
@@ -231,12 +233,12 @@ public static partial class LogMessage
 
 #### 5.1.7 Backend Justification Matrix
 
-| Dimension | C# ASP.NET Core (.NET 10 LTS) & FastEndpoints | Docker & Containerization | EF Core 10 & Azure SQL |
-|---|---|---|---|
-| **Scalability** | Non-blocking Kestrel asynchronous I/O engine handles thousands of concurrent requests per core with minimal thread context-switching. | Multi-container architecture easily scales horizontally behind reverse proxies with resource reservation boundaries. | Azure SQL elastic query pooling and auto-scaling vCores accommodate dynamic traffic spikes. |
-| **Performance** | FastEndpoints removes MVC reflection overhead. C# 14 zero-allocation record structs, compiled LINQ queries, and source-generated `[LoggerMessage]` eliminate boxing and GC pressure. | Multi-stage Alpine container image provides sub-second cold starts and minimal container overhead. | Filtered covering indexes (`IX_Vehicle_Aging_Active`) enable sub-millisecond lookups for aging inventory queries. |
-| **Reliability** | Clean Architecture, domain invariants, and typed `Result<T>` error handling eliminate unhandled runtime exceptions. | Healthcheck probes (`SELECT 1`), automatic restart policies (`restart: unless-stopped`), and isolated container networking. | ACID transaction guarantees with optimistic concurrency tokens (`RowVersion`) prevent race conditions. |
-| **Maintainability** | Vertical-slice architecture isolates features into discrete folders; modifying an endpoint has zero side-effects on others. | Infrastructure-as-code parity: identical containerized stack across development, staging, and production environments. | Code-First migrations versioned in Git enable reproducible, automated schema deployments. |
+| Dimension           | C# ASP.NET Core (.NET 10 LTS) & FastEndpoints                                                                                                                                        | Docker & Containerization                                                                                                   | EF Core 10 & Azure SQL                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Scalability**     | Non-blocking Kestrel asynchronous I/O engine handles thousands of concurrent requests per core with minimal thread context-switching.                                                | Multi-container architecture easily scales horizontally behind reverse proxies with resource reservation boundaries.        | Azure SQL elastic query pooling and auto-scaling vCores accommodate dynamic traffic spikes.                       |
+| **Performance**     | FastEndpoints removes MVC reflection overhead. C# 14 zero-allocation record structs, compiled LINQ queries, and source-generated `[LoggerMessage]` eliminate boxing and GC pressure. | Multi-stage Alpine container image provides sub-second cold starts and minimal container overhead.                          | Filtered covering indexes (`IX_Vehicle_Aging_Active`) enable sub-millisecond lookups for aging inventory queries. |
+| **Reliability**     | Clean Architecture, domain invariants, and typed `Result<T>` error handling eliminate unhandled runtime exceptions.                                                                  | Healthcheck probes (`SELECT 1`), automatic restart policies (`restart: unless-stopped`), and isolated container networking. | ACID transaction guarantees with optimistic concurrency tokens (`RowVersion`) prevent race conditions.            |
+| **Maintainability** | Vertical-slice architecture isolates features into discrete folders; modifying an endpoint has zero side-effects on others.                                                          | Infrastructure-as-code parity: identical containerized stack across development, staging, and production environments.      | Code-First migrations versioned in Git enable reproducible, automated schema deployments.                         |
 
 ---
 
@@ -280,11 +282,11 @@ The frontend tier is implemented as a single-page application (SPA) built with *
 
 #### 5.2.6 Frontend Justification Matrix
 
-| Dimension | Angular 19 SPA | SignalR Real-Time Client | Headless Alternatives (Swagger / cURL) |
-|---|---|---|---|
-| **Scalability** | Static single-page application bundle deployable to edge CDNs with zero client-side server rendering load. | Push-based WebSocket events eliminate costly periodic polling from hundreds of active dealership browser tabs. | Lightweight REST endpoints easily consumed by microservices, batch scripts, and automation runners. |
-| **Performance** | Angular Signals minimize DOM re-renders; lazy loading minimizes initial JavaScript bundle payload. | Low-overhead binary WebSocket framing delivers millisecond-latency UI updates upon database commits. | Direct HTTP invocations with minimal JSON overhead for automated testing and CI/CD validation. |
-| **Reliability** | TypeScript strict mode and reactive form validation catch input defects before requests leave the client. | Built-in automatic reconnection policy gracefully handles network hiccups and device sleep/wake cycles. | Deterministic OpenAPI v3 contracts guarantee strict schema adherence across all integration channels. |
+| Dimension           | Angular 19 SPA                                                                                              | SignalR Real-Time Client                                                                                             | Headless Alternatives (Swagger / cURL)                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Scalability**     | Static single-page application bundle deployable to edge CDNs with zero client-side server rendering load.  | Push-based WebSocket events eliminate costly periodic polling from hundreds of active dealership browser tabs.       | Lightweight REST endpoints easily consumed by microservices, batch scripts, and automation runners.               |
+| **Performance**     | Angular Signals minimize DOM re-renders; lazy loading minimizes initial JavaScript bundle payload.          | Low-overhead binary WebSocket framing delivers millisecond-latency UI updates upon database commits.                 | Direct HTTP invocations with minimal JSON overhead for automated testing and CI/CD validation.                    |
+| **Reliability**     | TypeScript strict mode and reactive form validation catch input defects before requests leave the client.   | Built-in automatic reconnection policy gracefully handles network hiccups and device sleep/wake cycles.              | Deterministic OpenAPI v3 contracts guarantee strict schema adherence across all integration channels.             |
 | **Maintainability** | Standalone component architecture eliminates NgModule boilerplate; modular structure isolates feature code. | Centralized `RealtimeService` abstracts connection management and event subscriptions behind clean RxJS observables. | Auto-generated OpenAPI specifications from backend code ensure documentation stays 100% in sync with API changes. |
 
 ---
@@ -323,14 +325,14 @@ Each architectural layer has a dedicated test project mirroring the system's str
 
 #### 5.3.2 Testing Tooling & Technology Stack Choices
 
-| Technology | Role & Responsibility | Architectural Justification |
-|---|---|---|
-| **xUnit 2.9.2** | Core Backend Test Framework | Parallel test runner with isolated test class instantiation per test, eliminating shared static state and test pollution. Supports parameterized `[Theory]` and `[InlineData]` for edge-case fuzzing. |
-| **FluentAssertions 6.12.1** | Readable Assertion Engine | Provides expressive, intention-revealing assertion syntax (`result.IsSuccess.Should().BeTrue()`, `action.Should().NotBeNull()`). Produces rich, contextual failure messages that pinpoint exact diffs. |
-| **Moq 4.20.72** | Behavioral Mocking Library | Configures deterministic stubs and verifies critical side-effects on outbound interfaces (e.g., verifying `_notifier.Verify(n => n.VehicleActionLoggedAsync(...), Times.Once)`). |
-| **EF Core In-Memory 10.0.0** | Ephemeral Persistence Provider | Allows repository query logic and LINQ filters to run in-memory within milliseconds without spinning up heavyweight SQL Server containers for unit-level verification. |
-| **FluentValidation.TestHelper** | Contract Validation Assertions | Provides dedicated `.ShouldHaveValidationErrorFor()` and `.ShouldNotHaveValidationErrorFor()` extensions for validating command rules independently of handler execution. |
-| **Jasmine & Karma** | Frontend Unit Testing Stack | Standard Angular testing toolchain integrated with Angular TestBed for headless component rendering, change detection cycle verification, and RxJS stream validation. |
+| Technology                      | Role & Responsibility          | Architectural Justification                                                                                                                                                                            |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **xUnit 2.9.2**                 | Core Backend Test Framework    | Parallel test runner with isolated test class instantiation per test, eliminating shared static state and test pollution. Supports parameterized `[Theory]` and `[InlineData]` for edge-case fuzzing.  |
+| **FluentAssertions 6.12.1**     | Readable Assertion Engine      | Provides expressive, intention-revealing assertion syntax (`result.IsSuccess.Should().BeTrue()`, `action.Should().NotBeNull()`). Produces rich, contextual failure messages that pinpoint exact diffs. |
+| **Moq 4.20.72**                 | Behavioral Mocking Library     | Configures deterministic stubs and verifies critical side-effects on outbound interfaces (e.g., verifying `_notifier.Verify(n => n.VehicleActionLoggedAsync(...), Times.Once)`).                       |
+| **EF Core In-Memory 10.0.0**    | Ephemeral Persistence Provider | Allows repository query logic and LINQ filters to run in-memory within milliseconds without spinning up heavyweight SQL Server containers for unit-level verification.                                 |
+| **FluentValidation.TestHelper** | Contract Validation Assertions | Provides dedicated `.ShouldHaveValidationErrorFor()` and `.ShouldNotHaveValidationErrorFor()` extensions for validating command rules independently of handler execution.                              |
+| **Jasmine & Karma**             | Frontend Unit Testing Stack    | Standard Angular testing toolchain integrated with Angular TestBed for headless component rendering, change detection cycle verification, and RxJS stream validation.                                  |
 
 ---
 
@@ -446,12 +448,12 @@ Frontend testing mirrors backend rigor by verifying reactive state propagation a
 └────────────────────────┴─────────────┴───────────┴──────────────┴────────────────┘
 ```
 
-| Dimension | Domain Tests | Application Tests | Infrastructure Tests | Frontend Unit Tests |
-|---|---|---|---|---|
-| **Speed & Feedback** | Instant (< 60 ms). Zero I/O overhead enables continuous test running during active coding. | Ultra-fast (< 200 ms). Moq stubs eliminate database access while testing full business flows. | Fast (< 1 sec). In-memory EF Core database avoids network roundtrips. | Fast (< 2 sec). Headless Chrome execution tests component reactivity. |
-| **Isolation** | 100% pure C#. No framework, database, or DI container coupling. | Isolated per use-case. External ports abstracted behind clean interfaces. | Validates EF Core mapping and LINQ translation in process. | Components tested independently of server uptime using TestBed. |
-| **Maintainability** | High resilience. Tests change only when underlying business rules or policies change. | SUT Factory pattern insulates tests against constructor parameter refactoring. | In-memory provider requires zero Docker environment orchestration. | Standalone components reduce test setup boilerplate. |
-| **Regression Safety** | Catches edge cases in VIN parsing, monetary math, and aging calculations. | Guarantees CQRS commands and queries handle validation, authorization, and notifications. | Prevents silent bugs in EF Core soft-delete query filters or indexes. | Prevents broken UI bindings, signal regressions, and styling glitches. |
+| Dimension             | Domain Tests                                                                               | Application Tests                                                                             | Infrastructure Tests                                                  | Frontend Unit Tests                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Speed & Feedback**  | Instant (< 60 ms). Zero I/O overhead enables continuous test running during active coding. | Ultra-fast (< 200 ms). Moq stubs eliminate database access while testing full business flows. | Fast (< 1 sec). In-memory EF Core database avoids network roundtrips. | Fast (< 2 sec). Headless Chrome execution tests component reactivity.  |
+| **Isolation**         | 100% pure C#. No framework, database, or DI container coupling.                            | Isolated per use-case. External ports abstracted behind clean interfaces.                     | Validates EF Core mapping and LINQ translation in process.            | Components tested independently of server uptime using TestBed.        |
+| **Maintainability**   | High resilience. Tests change only when underlying business rules or policies change.      | SUT Factory pattern insulates tests against constructor parameter refactoring.                | In-memory provider requires zero Docker environment orchestration.    | Standalone components reduce test setup boilerplate.                   |
+| **Regression Safety** | Catches edge cases in VIN parsing, monetary math, and aging calculations.                  | Guarantees CQRS commands and queries handle validation, authorization, and notifications.     | Prevents silent bugs in EF Core soft-delete query filters or indexes. | Prevents broken UI bindings, signal regressions, and styling glitches. |
 
 ---
 
@@ -471,15 +473,15 @@ Production readiness requires comprehensive observability across the three core 
 ### 6.2 Metrics & Service Level Objectives (SLOs)
 The system tracks metrics adhering to the **RED Method** (Rate, Errors, Duration) and emits low-overhead CLR performance counters, visualized on live OpenObserve dashboards:
 
-| Metric Category | Metric Name | Source / Provider | Target Production SLO |
-|---|---|---|---|
-| **Throughput (Rate)** | `http.server.request.rate` | OpenTelemetry.AspNetCore | Sustain 150+ req/sec during peak morning sync |
-| **Error Rate** | `http.server.failed_requests_ratio` | OpenTelemetry.AspNetCore | **< 0.1%** 5xx internal server errors |
-| **Latency (Duration)** | `http.server.request.duration` | OpenTelemetry.AspNetCore | **p95 < 500 ms** (k6 achieved: **26.94 ms**) |
-| **Runtime Health** | `process.runtime.dotnet.gc.collections` | OpenTelemetry.Runtime | Zero Gen2 thrashing; GC pause ratio < 1% |
-| **Memory / CPU** | `process.memory.working_set`, `process.cpu.utilization` | OpenTelemetry.Process | Memory consumption < 70% of 4096M limit |
-| **Business Metric** | `inventory.aging_stock.count` | Custom `Meter("IID.Domain")` | Real-time gauge of vehicles > 90 days |
-| **Business Metric** | `inventory.actions_logged.total` | Custom `Meter("IID.Domain")` | Counter segmented by action type |
+| Metric Category        | Metric Name                                             | Source / Provider            | Target Production SLO                         |
+| ---------------------- | ------------------------------------------------------- | ---------------------------- | --------------------------------------------- |
+| **Throughput (Rate)**  | `http.server.request.rate`                              | OpenTelemetry.AspNetCore     | Sustain 150+ req/sec during peak morning sync |
+| **Error Rate**         | `http.server.failed_requests_ratio`                     | OpenTelemetry.AspNetCore     | **< 0.1%** 5xx internal server errors         |
+| **Latency (Duration)** | `http.server.request.duration`                          | OpenTelemetry.AspNetCore     | **p95 < 500 ms** (k6 achieved: **26.94 ms**)  |
+| **Runtime Health**     | `process.runtime.dotnet.gc.collections`                 | OpenTelemetry.Runtime        | Zero Gen2 thrashing; GC pause ratio < 1%      |
+| **Memory / CPU**       | `process.memory.working_set`, `process.cpu.utilization` | OpenTelemetry.Process        | Memory consumption < 70% of 4096M limit       |
+| **Business Metric**    | `inventory.aging_stock.count`                           | Custom `Meter("IID.Domain")` | Real-time gauge of vehicles > 90 days         |
+| **Business Metric**    | `inventory.actions_logged.total`                        | Custom `Meter("IID.Domain")` | Counter segmented by action type              |
 
 ### 6.3 Centralized Structured Logging
 - **Framework:** Structured logging powered by Serilog (`Serilog.AspNetCore`) using compile-time source-generated logging (`LoggerMessageAttribute`) for zero-allocation performance, exported via `Serilog.Sinks.OpenTelemetry` into OpenObserve's `iid-api` stream.
@@ -611,11 +613,11 @@ During test execution, telemetry streams simultaneously into **OpenObserve** via
 
 #### Comprehensive Evaluation Matrix Across Profiles
 
-| Benchmark Profile | Target Arrival Rate | Duration | Total Requests | HTTP Failure Rate | Median (P50) | P95 Latency | P99 Latency | CPU Usage (Cores) | Memory (RAM) | Evaluation Status |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Smoke Profile** | 100 req/s | 10 min | ~60,000 | **0.00%** | **12.00 ms** | **< 50 ms** | < 150 ms | 0.68 cores | 0.26 GB | **PASSED** (Exceeded SLO) |
-| **Standard Load** | 150 req/s | 10 min | **89,960** | **0.00%** | **11.99 ms** | **26.94 ms** | **< 200 ms** | 0.96 cores | 0.26 GB | **PASSED** (Production Ready) |
-| **Stress Profile** | 250 req/s | 10 min | ~150,000 | **0.00%** | **14.00 ms** | **< 100 ms** | < 300 ms | 1.46 cores | 0.32 GB | **PASSED** (High Resilience) |
+| Benchmark Profile  | Target Arrival Rate | Duration | Total Requests | HTTP Failure Rate | Median (P50) | P95 Latency  | P99 Latency  | CPU Usage (Cores) | Memory (RAM) | Evaluation Status             |
+| ------------------ | ------------------- | -------- | -------------- | ----------------- | ------------ | ------------ | ------------ | ----------------- | ------------ | ----------------------------- |
+| **Smoke Profile**  | 100 req/s           | 10 min   | ~60,000        | **0.00%**         | **12.00 ms** | **< 50 ms**  | < 150 ms     | 0.68 cores        | 0.26 GB      | **PASSED** (Exceeded SLO)     |
+| **Standard Load**  | 150 req/s           | 10 min   | **89,960**     | **0.00%**         | **11.99 ms** | **26.94 ms** | **< 200 ms** | 0.96 cores        | 0.26 GB      | **PASSED** (Production Ready) |
+| **Stress Profile** | 250 req/s           | 10 min   | ~150,000       | **0.00%**         | **14.00 ms** | **< 100 ms** | < 300 ms     | 1.46 cores        | 0.32 GB      | **PASSED** (High Resilience)  |
 
 #### Architectural Evaluation & Key Insights:
 1. **Exceptional Latency Margins:** Under the standard enterprise load (150 req/s), the 95th percentile latency was clocked at **26.94 ms**—surpassing the 500 ms SLA threshold by a factor of **18.5x**. Even under the 250 req/s stress profile, median latency remained rock-solid at **14 ms**.

@@ -1,7 +1,7 @@
 # Intelligent Inventory Dashboard
 
 > [!NOTE]
-> **Brief Overview Only:** This document provides a high-level operational overview and quickstart guide. It is **not** the complete system design specification. For comprehensive architectural blueprints, trade-off analyses, data modeling, automated test pyramid architecture, and empirical load testing benchmarks, please refer to [`docs/SYSTEM_DESIGN.md`](./docs/SYSTEM_DESIGN.md).
+> **Brief Overview Only:** This document provides a high-level operational overview and quickstart guide. It is **not** the complete system design specification. For comprehensive architectural blueprints, trade-off analyses, data modeling, automated test pyramid architecture, and empirical load testing benchmarks, please refer to [`docs/system_design.md`](./docs/system_design.md).
 
 The **Intelligent Inventory Dashboard (IID)** is an enterprise vehicle inventory monitoring and capital-preservation platform designed for automotive dealership general managers, pricing directors, and inventory controllers. It transforms passive lot management into an active, data-driven operational workflow by surfacing critical aging stock (>90 days), calculating real-time portfolio valuations, tracking sales velocity, and enabling auditable remediation actions.
 
@@ -167,13 +167,13 @@ IID/
 
 On startup (outside `Testing` environments) the API automatically executes EF Core migrations and seeds realistic dealership inventory data:
 
-| Entity | Count | Details |
-|--------|------:|---------|
-| **Dealerships** | **10** | Deterministic metropolitan locations across LA, Seattle, Denver, Dallas, Phoenix, Miami, SF, Chicago, Austin, and Atlanta |
-| **Vehicles** | **~733** | Realistic inventory mix across 10 dealerships (75, 68, 82, 56, 92, 64, 78, 86, 60, 72 units per branch) |
-| **Silverstone Motor Cars** | **72** | Primary showcase branch: $3,146,400 portfolio valuation, 12 units >90 days aging stock, 63 days avg lot velocity |
-| **Vehicle Actions** | **Sample Set** | Proposed mitigation actions (Price Reduction Planned, Wholesale Transfer, Ad Campaign Boost, GM Review) |
-| **Identity Users** | **2** | Default administrative accounts (`admin@iid.local` / `saler@iid.local`) |
+| Entity                     |          Count | Details                                                                                                                   |
+| -------------------------- | -------------: | ------------------------------------------------------------------------------------------------------------------------- |
+| **Dealerships**            |         **10** | Deterministic metropolitan locations across LA, Seattle, Denver, Dallas, Phoenix, Miami, SF, Chicago, Austin, and Atlanta |
+| **Vehicles**               |       **~733** | Realistic inventory mix across 10 dealerships (75, 68, 82, 56, 92, 64, 78, 86, 60, 72 units per branch)                   |
+| **Silverstone Motor Cars** |         **72** | Primary showcase branch: $3,146,400 portfolio valuation, 12 units >90 days aging stock, 63 days avg lot velocity          |
+| **Vehicle Actions**        | **Sample Set** | Proposed mitigation actions (Price Reduction Planned, Wholesale Transfer, Ad Campaign Boost, GM Review)                   |
+| **Identity Users**         |          **2** | Default administrative accounts (`admin@iid.local` / `saler@iid.local`)                                                   |
 
 ### Reset demo database
 
@@ -210,24 +210,24 @@ Against the ~733-vehicle seed, the aggregate dashboard endpoint (`GET /api/v1/da
 
 ### `Vehicle` (core aggregate)
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `Id` | uniqueidentifier | PK |
-| `Vin` | nvarchar(17) | Filtered unique index (`UX_Vehicle_Vin_Active`, ISO 3779 compliant) |
-| `StockNumber` | nvarchar(32) | Filtered unique index (`UX_Vehicle_StockNumber_Active`) |
-| `Make` / `Model` | nvarchar(50) | Indexed vehicle make and model |
-| `Year` / `Mileage` | int | Manufacturing year and odometer reading |
-| `Color` | nvarchar(30) | Exterior finish |
-| `FuelType` | nvarchar(32) | Petrol, Diesel, Hybrid, Electric (indexed) |
-| `PurchasePriceAmount` | decimal(18,4) | Owned `Money` value object |
-| `AskingPriceAmount` | decimal(18,4) | Owned `Money` value object |
-| `SoldPriceAmount` | decimal(18,4) | Owned `Money` value object (null until sold) |
-| `Status` | int | Available (0), Reserved (1), Sold (2), Maintenance (3) |
-| `DealershipId` | uniqueidentifier | FK to `Dealerships` (indexed, Restrict delete) |
-| `DateAddedToInventory` | datetimeoffset | Filtered composite index `[Status, DateAddedToInventory]` |
-| `CreatedAt` / `UpdatedAt` | datetimeoffset | Audit timestamps |
-| `DeletedAt` | datetimeoffset null | Soft-delete query filter (`WHERE DeletedAt IS NULL`) |
-| `RowVersion` | timestamp / rowversion | Optimistic concurrency token |
+| Column                    | Type                   | Notes                                                               |
+| ------------------------- | ---------------------- | ------------------------------------------------------------------- |
+| `Id`                      | uniqueidentifier       | PK                                                                  |
+| `Vin`                     | nvarchar(17)           | Filtered unique index (`UX_Vehicle_Vin_Active`, ISO 3779 compliant) |
+| `StockNumber`             | nvarchar(32)           | Filtered unique index (`UX_Vehicle_StockNumber_Active`)             |
+| `Make` / `Model`          | nvarchar(50)           | Indexed vehicle make and model                                      |
+| `Year` / `Mileage`        | int                    | Manufacturing year and odometer reading                             |
+| `Color`                   | nvarchar(30)           | Exterior finish                                                     |
+| `FuelType`                | nvarchar(32)           | Petrol, Diesel, Hybrid, Electric (indexed)                          |
+| `PurchasePriceAmount`     | decimal(18,4)          | Owned `Money` value object                                          |
+| `AskingPriceAmount`       | decimal(18,4)          | Owned `Money` value object                                          |
+| `SoldPriceAmount`         | decimal(18,4)          | Owned `Money` value object (null until sold)                        |
+| `Status`                  | int                    | Available (0), Reserved (1), Sold (2), Maintenance (3)              |
+| `DealershipId`            | uniqueidentifier       | FK to `Dealerships` (indexed, Restrict delete)                      |
+| `DateAddedToInventory`    | datetimeoffset         | Filtered composite index `[Status, DateAddedToInventory]`           |
+| `CreatedAt` / `UpdatedAt` | datetimeoffset         | Audit timestamps                                                    |
+| `DeletedAt`               | datetimeoffset null    | Soft-delete query filter (`WHERE DeletedAt IS NULL`)                |
+| `RowVersion`              | timestamp / rowversion | Optimistic concurrency token                                        |
 
 ### Ops & history
 
@@ -249,29 +249,29 @@ Against the ~733-vehicle seed, the aggregate dashboard endpoint (`GET /api/v1/da
 
 ## API endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| **GET** | **`/api/v1/dashboard`** | **Aggregate dashboard bundle (financial valuations, aging counts, sales velocity, powertrain mix, paginated inventory)** |
-| GET | `/api/v1/dashboard/aging` | Aging inventory breakdown and lot tenure distribution |
-| GET | `/api/v1/dashboard/alerts` | Low inventory and critical aging alert triggers |
-| GET | `/api/v1/vehicles` | Paged inventory list (search, filter, sort) |
-| GET | `/api/v1/vehicles/{id}` | Get vehicle details by ID |
-| POST | `/api/v1/vehicles` | Ingest new vehicle into inventory |
-| PUT | `/api/v1/vehicles/{id}` | Update vehicle specifications or pricing |
-| POST | `/api/v1/vehicles/{id}/actions` | Log proposed mitigation action (Price Reduction, Transfer, Boost, Review) |
-| GET | `/api/v1/vehicles/{id}/actions` | Retrieve audit action history for a vehicle |
-| POST | `/api/v1/vehicles/{id}/sold` | Mark vehicle as sold with final sale price and date |
-| POST | `/api/v1/vehicles/{id}/transfer` | Transfer vehicle to another dealership branch |
-| GET | `/api/v1/vehicles/aging` | Filtered list of aging stock (>90 days on lot) |
-| GET | `/api/v1/dealerships` | List all active dealership locations |
-| POST | `/api/v1/dealerships` | Register a new dealership location |
-| PUT | `/api/v1/dealerships/{id}` | Update dealership branch details |
-| GET | `/api/v1/activities` | Notification activity feed |
-| POST | `/api/v1/activities/{id}/read` | Mark notification activity as read |
-| POST | `/api/v1/auth/login` | Authenticate user and issue JWT Bearer token |
-| POST | `/api/v1/auth/refresh` | Refresh expired access token using refresh token |
-| **WS** | **`/hubs/inventory`** | **SignalR real-time WebSocket hub** |
-| GET | `/health` | Liveness and readiness health check |
+| Method  | Path                             | Description                                                                                                              |
+| ------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **GET** | **`/api/v1/dashboard`**          | **Aggregate dashboard bundle (financial valuations, aging counts, sales velocity, powertrain mix, paginated inventory)** |
+| GET     | `/api/v1/dashboard/aging`        | Aging inventory breakdown and lot tenure distribution                                                                    |
+| GET     | `/api/v1/dashboard/alerts`       | Low inventory and critical aging alert triggers                                                                          |
+| GET     | `/api/v1/vehicles`               | Paged inventory list (search, filter, sort)                                                                              |
+| GET     | `/api/v1/vehicles/{id}`          | Get vehicle details by ID                                                                                                |
+| POST    | `/api/v1/vehicles`               | Ingest new vehicle into inventory                                                                                        |
+| PUT     | `/api/v1/vehicles/{id}`          | Update vehicle specifications or pricing                                                                                 |
+| POST    | `/api/v1/vehicles/{id}/actions`  | Log proposed mitigation action (Price Reduction, Transfer, Boost, Review)                                                |
+| GET     | `/api/v1/vehicles/{id}/actions`  | Retrieve audit action history for a vehicle                                                                              |
+| POST    | `/api/v1/vehicles/{id}/sold`     | Mark vehicle as sold with final sale price and date                                                                      |
+| POST    | `/api/v1/vehicles/{id}/transfer` | Transfer vehicle to another dealership branch                                                                            |
+| GET     | `/api/v1/vehicles/aging`         | Filtered list of aging stock (>90 days on lot)                                                                           |
+| GET     | `/api/v1/dealerships`            | List all active dealership locations                                                                                     |
+| POST    | `/api/v1/dealerships`            | Register a new dealership location                                                                                       |
+| PUT     | `/api/v1/dealerships/{id}`       | Update dealership branch details                                                                                         |
+| GET     | `/api/v1/activities`             | Notification activity feed                                                                                               |
+| POST    | `/api/v1/activities/{id}/read`   | Mark notification activity as read                                                                                       |
+| POST    | `/api/v1/auth/login`             | Authenticate user and issue JWT Bearer token                                                                             |
+| POST    | `/api/v1/auth/refresh`           | Refresh expired access token using refresh token                                                                         |
+| **WS**  | **`/hubs/inventory`**            | **SignalR real-time WebSocket hub**                                                                                      |
+| GET     | `/health`                        | Liveness and readiness health check                                                                                      |
 
 ### Query parameters
 
@@ -338,10 +338,10 @@ This project was engineered through a disciplined partnership between human arch
 
 ### Default Credentials (Development)
 
-| Role | Email | Password |
-|------|-------|----------|
-| **Dealership Manager** | `admin@iid.local` | `P@ssw0rd!Admin` |
-| **Sales Representative** | `saler@iid.local` | `P@ssw0rd!Saler` |
+| Role                      | Email             | Password               |
+| ------------------------- | ----------------- | ---------------------- |
+| **Dealership Manager**    | `admin@iid.local` | `P@ssw0rd!Admin`       |
+| **Sales Representative**  | `saler@iid.local` | `P@ssw0rd!Saler`       |
 | **OpenObserve Dashboard** | `admin@iid.local` | `P@ssw0rd!OpenObserve` |
 
 ### Environment Variables & Connection Strings
