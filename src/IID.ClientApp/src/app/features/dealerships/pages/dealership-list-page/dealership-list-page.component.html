@@ -7,6 +7,24 @@
     </div>
 
     <div class="topbar-actions">
+      <div
+        class="realtime-status-pill"
+        [class.connected]="realtime.connectionStatus() === 'connected'"
+        [class.connecting]="realtime.connectionStatus() === 'connecting' || realtime.connectionStatus() === 'reconnecting'"
+        [title]="'SignalR Real-Time Network: ' + realtime.connectionStatus()"
+      >
+        <span class="status-pulse-dot"></span>
+        <span class="status-label">
+          @if (realtime.connectionStatus() === 'connected') {
+            Live Network
+          } @else if (realtime.connectionStatus() === 'connecting' || realtime.connectionStatus() === 'reconnecting') {
+            Connecting...
+          } @else {
+            Offline
+          }
+        </span>
+      </div>
+
       <button
         type="button"
         class="iid-btn iid-btn-secondary"
@@ -131,14 +149,21 @@
         <div
           class="dealer-card iid-card"
           [class.is-active-dealer]="d.id === dealershipService.selectedDealershipId()"
+          [class.is-recently-updated]="d.id === dealershipService.recentlyUpdatedDealershipId()"
         >
           <div class="dealer-topbar">
             <div class="dealer-code-badge">{{ d.code }}</div>
             <div class="dealer-top-actions">
+              @if (d.id === dealershipService.recentlyUpdatedDealershipId()) {
+                <div class="realtime-badge">
+                  <span class="material-symbols-outlined">bolt</span>
+                  <span>Live Update</span>
+                </div>
+              }
               @if (d.id === dealershipService.selectedDealershipId()) {
                 <div class="active-badge">
                   <span class="material-symbols-outlined">check_circle</span>
-                  <span>Selecting</span>
+                  <span>Selected</span>
                 </div>
               }
               @if (isManager()) {

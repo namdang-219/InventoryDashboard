@@ -7,6 +7,7 @@ import {
   LiveActivityFeedItem,
   RealtimeDashboardAlertResponse,
   RealtimeDashboardSummaryResponse,
+  RealtimeDealershipResponse,
   RealtimeVehicleActionResponse,
   RealtimeVehicleResponse
 } from '../models/realtime.model';
@@ -50,6 +51,8 @@ export class RealtimeService {
   readonly summaryUpdated$ = new Subject<RealtimeDashboardSummaryResponse>();
   readonly alertsUpdated$ = new Subject<readonly RealtimeDashboardAlertResponse[]>();
   readonly inventoryChanged$ = new Subject<void>();
+  readonly dealershipAdded$ = new Subject<RealtimeDealershipResponse>();
+  readonly dealershipUpdated$ = new Subject<RealtimeDealershipResponse>();
 
   startConnection(): void {
     if (
@@ -183,6 +186,18 @@ export class RealtimeService {
 
     this.hubConnection.on('InventoryChanged', () => {
       this.inventoryChanged$.next();
+    });
+
+    this.hubConnection.on('DealershipAdded', (d: RealtimeDealershipResponse) => {
+      this.dealershipAdded$.next(d);
+      // Dealership addition updates the dealership dropdown reactively.
+      // Intentionally not pushed into the Live Activity Feed or notification bell.
+    });
+
+    this.hubConnection.on('DealershipUpdated', (d: RealtimeDealershipResponse) => {
+      this.dealershipUpdated$.next(d);
+      // Dealership update updates the dealership dropdown reactively.
+      // Intentionally not pushed into the Live Activity Feed or notification bell.
     });
   }
 

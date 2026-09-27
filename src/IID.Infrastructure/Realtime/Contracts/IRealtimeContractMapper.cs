@@ -1,4 +1,5 @@
 using IID.Application.Dashboard.Dtos;
+using IID.Domain.Dealerships;
 using IID.Domain.Vehicles;
 using IID.Domain.VehicleActions;
 
@@ -14,6 +15,7 @@ public interface IRealtimeContractMapper
     VehicleActionRealtimeDto MapVehicleAction(VehicleAction a, Vehicle? v);
     DashboardSummaryRealtimeDto MapSummary(DashboardSummaryDto dto);
     DashboardAlertRealtimeDto MapAlert(DashboardAlertDto dto);
+    DealershipRealtimeDto MapDealership(Dealership d);
 }
 
 public sealed class RealtimeContractMapper : IRealtimeContractMapper
@@ -39,4 +41,7 @@ public sealed class RealtimeContractMapper : IRealtimeContractMapper
 
     public DashboardAlertRealtimeDto MapAlert(DashboardAlertDto dto) =>
         new(dto.VehicleId, dto.Message, dto.Severity, dto.CreatedAtUtc);
+
+    public DealershipRealtimeDto MapDealership(Dealership d) =>
+        new(d.Id, d.Name, d.Code, d.City, d.State, d.Phone);
 }

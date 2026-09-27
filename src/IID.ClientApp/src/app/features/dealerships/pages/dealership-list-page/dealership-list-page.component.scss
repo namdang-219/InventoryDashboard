@@ -36,7 +36,70 @@
     display: flex;
     align-items: center;
     gap: 12px;
+
+    .realtime-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--iid-bg-surface-elevated);
+      border: 1px solid var(--iid-border);
+      border-radius: var(--iid-radius-pill);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--iid-text-muted);
+      transition: all var(--iid-transition-fast);
+
+      .status-pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--iid-text-muted);
+        position: relative;
+      }
+
+      &.connected {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: rgba(16, 185, 129, 0.25);
+        color: var(--iid-success);
+
+        .status-pulse-dot {
+          background: var(--iid-success);
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+
+          &::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 1.5px solid var(--iid-success);
+            animation: statusDotPulse 2s ease-out infinite;
+          }
+        }
+      }
+
+      &.connecting {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: rgba(245, 158, 11, 0.25);
+        color: #f59e0b;
+
+        .status-pulse-dot {
+          background: #f59e0b;
+          animation: blinkDot 1s ease-in-out infinite;
+        }
+      }
+    }
   }
+}
+
+@keyframes statusDotPulse {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes blinkDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 .spin-icon {
@@ -260,6 +323,12 @@
     box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
   }
 
+  &.is-recently-updated {
+    border-color: rgba(245, 158, 11, 0.7);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.25), inset 0 0 12px rgba(245, 158, 11, 0.08);
+    animation: realtimeCardGlow 2s ease-in-out infinite alternate;
+  }
+
   .dealer-topbar {
     display: flex;
     align-items: center;
@@ -286,6 +355,28 @@
       align-items: center;
       gap: 8px;
       margin-left: auto;
+    }
+
+    .realtime-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+      border-radius: var(--iid-radius-pill);
+      white-space: nowrap;
+      animation: realtimeBadgeBounce 0.5s ease-out;
+
+      .material-symbols-outlined {
+        font-size: 14px;
+        color: #f59e0b;
+      }
     }
 
     .active-badge {
@@ -415,4 +506,21 @@
       justify-content: center;
     }
   }
+}
+
+@keyframes realtimeCardGlow {
+  0% {
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+  }
+  100% {
+    border-color: rgba(245, 158, 11, 0.9);
+    box-shadow: 0 0 24px rgba(245, 158, 11, 0.35), inset 0 0 14px rgba(245, 158, 11, 0.1);
+  }
+}
+
+@keyframes realtimeBadgeBounce {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
 }

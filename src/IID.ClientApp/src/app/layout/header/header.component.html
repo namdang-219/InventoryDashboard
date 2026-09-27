@@ -104,7 +104,7 @@
                     class="activity-item"
                     [class]="'sev-' + (act.severity || 'info')"
                     [class.unread]="!act.isRead"
-                    [class.clickable]="!!act.vehicleId && act.type !== 'removed'"
+                    [class.clickable]="(!!act.vehicleId && act.type !== 'removed') || (!!act.dealershipId && isManager())"
                     (click)="onActivityClick(act)"
                   >
                     <div class="activity-icon">
@@ -137,11 +137,23 @@
                           <span class="activity-car-name">{{ act.vehicleName }}</span>
                         </div>
                       }
+                      @if (act.dealershipName) {
+                        <div class="activity-vehicle">
+                          <span class="material-symbols-outlined activity-car-icon">storefront</span>
+                          <span class="activity-car-name">{{ act.dealershipName }}</span>
+                        </div>
+                      }
                       <p class="activity-detail">{{ act.detail }}</p>
                       @if (act.vehicleId && act.type !== 'removed') {
                         <div class="activity-action-hint">
                           <span class="material-symbols-outlined">visibility</span>
                           <span>Click to view vehicle details</span>
+                        </div>
+                      }
+                      @if (act.dealershipId && isManager()) {
+                        <div class="activity-action-hint">
+                          <span class="material-symbols-outlined">storefront</span>
+                          <span>Click to view in Dealership Network</span>
                         </div>
                       }
                     </div>

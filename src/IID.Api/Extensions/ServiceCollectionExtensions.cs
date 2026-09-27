@@ -182,6 +182,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSignalR();
         services.AddScoped<IVehicleHubNotifier, SignalRVehicleHubNotifier>();
+        services.AddScoped<IDealershipHubNotifier, SignalRDealershipHubNotifier>();
         return services;
     }
 

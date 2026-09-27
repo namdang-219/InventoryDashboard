@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, OnInit, Output, computed, effect, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { RealtimeService } from '../../core/services/realtime.service';
 import { InventoryService } from '../../core/services/inventory.service';
@@ -33,6 +34,7 @@ export class HeaderComponent implements OnInit {
   readonly theme = inject(ThemeService);
   readonly dealershipService = inject(DealershipService);
   private readonly inventoryService = inject(InventoryService);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -141,6 +143,15 @@ export class HeaderComponent implements OnInit {
     // Mark as read immediately on click
     if (!act.isRead) {
       this.realtime.markAsRead(act.id);
+    }
+
+    if (act.dealershipId) {
+      this.showNotifications.set(false);
+      this.dealershipService.selectDealership(act.dealershipId);
+      if (this.isManager()) {
+        this.router.navigate(['/dealerships']);
+      }
+      return;
     }
 
     if (act.vehicleId && act.type !== 'removed') {

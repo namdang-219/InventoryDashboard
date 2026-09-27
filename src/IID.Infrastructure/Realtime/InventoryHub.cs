@@ -20,6 +20,8 @@ public interface IInventoryClient
     Task DashboardSummaryUpdated(DashboardSummaryRealtimeDto summary);
     Task DashboardAlertsUpdated(IReadOnlyList<DashboardAlertRealtimeDto> alerts);
     Task InventoryChanged();
+    Task DealershipAdded(DealershipRealtimeDto dealership);
+    Task DealershipUpdated(DealershipRealtimeDto dealership);
 }
 
 [Authorize]

@@ -6,6 +6,7 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { Dealership } from '../../../../core/models/dealership.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { DealershipService } from '../../../../core/services/dealership.service';
+import { RealtimeService } from '../../../../core/services/realtime.service';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
 import { DealershipFormModalComponent } from '../../components/dealership-form-modal/dealership-form-modal.component';
@@ -25,6 +26,7 @@ import { DealershipFormModalComponent } from '../../components/dealership-form-m
 })
 export class DealershipListPageComponent implements OnInit {
   readonly dealershipService = inject(DealershipService);
+  readonly realtime = inject(RealtimeService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -46,6 +48,23 @@ export class DealershipListPageComponent implements OnInit {
       )
       .subscribe(query => {
         this.debouncedQuery.set(query);
+      });
+
+    // If an update arrives for the dealership currently opened in the edit modal, keep it synced
+    this.realtime.dealershipUpdated$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(updated => {
+        const curEdit = this.selectedForEdit();
+        if (curEdit && curEdit.id === updated.id) {
+          this.selectedForEdit.set({
+            ...curEdit,
+            name: updated.name,
+            code: updated.code,
+            city: updated.city,
+            state: updated.state,
+            phone: updated.phone
+          });
+        }
       });
   }
 
@@ -121,6 +140,6 @@ export class DealershipListPageComponent implements OnInit {
   }
 
   onModalSaved(): void {
-    this.dealershipService.loadDealerships();
+    this.dealershipService.loadDealerships(false);
   }
 }

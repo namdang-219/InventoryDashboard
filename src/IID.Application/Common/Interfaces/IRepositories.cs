@@ -82,6 +82,17 @@ public interface IVehicleHubNotifier
     Task InventoryChangedAsync(CancellationToken ct);
 }
 
+/// <summary>
+/// Realtime broadcaster for dealership lifecycle events (create / update).
+/// Kept separate from <see cref="IVehicleHubNotifier"/> so the vehicle and
+/// dealership concerns can evolve independently.
+/// </summary>
+public interface IDealershipHubNotifier
+{
+    Task DealershipAddedAsync(Dealership dealership, CancellationToken ct);
+    Task DealershipUpdatedAsync(Dealership dealership, CancellationToken ct);
+}
+
 public interface IUserActivityReadRepository
 {
     Task<IReadOnlySet<string>> GetReadActivityIdsAsync(string userId, CancellationToken ct);

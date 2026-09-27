@@ -1,4 +1,5 @@
 using IID.Domain.Common;
+using IID.Domain.Dealerships.Events;
 
 namespace IID.Domain.Dealerships;
 
@@ -26,7 +27,7 @@ public sealed class Dealership : AggregateRoot
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
         ArgumentException.ThrowIfNullOrWhiteSpace(code, nameof(code));
 
-        return new Dealership
+        var dealership = new Dealership
         {
             Id = id ?? Guid.NewGuid(),
             Name = name.Trim(),
@@ -37,6 +38,8 @@ public sealed class Dealership : AggregateRoot
             CreatedAt = nowUtc,
             UpdatedAt = nowUtc
         };
+        dealership.RaiseDomainEvent(new DealershipAdded(dealership));
+        return dealership;
     }
 
     public void Update(string name, string code, string city, string state, string phone, DateTimeOffset nowUtc)
@@ -50,5 +53,6 @@ public sealed class Dealership : AggregateRoot
         State = state.Trim().ToUpperInvariant();
         Phone = phone.Trim();
         UpdatedAt = nowUtc;
+        RaiseDomainEvent(new DealershipUpdated(this));
     }
 }

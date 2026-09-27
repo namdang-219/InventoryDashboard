@@ -38,6 +38,15 @@ export interface RealtimeDashboardAlertResponse {
   createdAtUtc: string;
 }
 
+export interface RealtimeDealershipResponse {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  state: string;
+  phone: string;
+}
+
 export interface LiveActivityFeedItem {
   id: string;
   type: 'added' | 'updated' | 'removed' | 'aging' | 'action' | 'alert';
@@ -47,5 +56,7 @@ export interface LiveActivityFeedItem {
   severity?: 'info' | 'success' | 'warning' | 'danger';
   vehicleId?: string;
   vehicleName?: string;
+  dealershipId?: string;
+  dealershipName?: string;
   isRead?: boolean;
 }
