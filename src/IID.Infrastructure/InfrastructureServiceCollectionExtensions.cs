@@ -17,6 +17,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAuthService, Services.AuthService>();
         services.AddScoped<IUserDisplayNameProvider, Identity.UserDisplayNameProvider>();
 
+        // Bounded in-memory cache for non-critical lookups (e.g., display-name lookup).
+        services.AddMemoryCache(opt => opt.SizeLimit = 10_000);
+
         // Persistence Repositories & Unit of Work
         services.AddScoped<IUnitOfWork, Persistence.Repositories.UnitOfWork>();
         services.AddScoped<IDealershipRepository, Persistence.Repositories.DealershipRepository>();
@@ -28,6 +31,10 @@ public static class InfrastructureServiceCollectionExtensions
 
         // Domain events interceptor
         services.AddScoped<DomainEventDispatchInterceptor>();
+
+        // Realtime contract mapper (Application DTO → Realtime wire DTO)
+        services.AddScoped<IID.Infrastructure.Realtime.Contracts.IRealtimeContractMapper,
+            IID.Infrastructure.Realtime.Contracts.RealtimeContractMapper>();
 
         return services;
     }

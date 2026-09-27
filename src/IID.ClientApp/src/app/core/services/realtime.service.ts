@@ -36,6 +36,11 @@ export class RealtimeService {
   readonly totalActivities = signal<number>(0);
   readonly unreadCount = signal<number>(0);
 
+  // Monotonically increasing tick that increments whenever a new realtime
+  // activity arrives (e.g. VehicleActionLogged, VehicleAging). Header bell
+  // observes this signal to play its 5s ring animation.
+  readonly latestActivityTick = signal<number>(0);
+
   // Event Streams
   readonly vehicleAdded$ = new Subject<RealtimeVehicleResponse>();
   readonly vehicleUpdated$ = new Subject<RealtimeVehicleResponse>();
@@ -149,6 +154,7 @@ export class RealtimeService {
     this.hubConnection.on('VehicleAging', (v: RealtimeVehicleResponse) => {
       this.vehicleAging$.next(v);
       this.toast.warning('Aging Stock Warning', `${v.make} ${v.model} has been on lot for ${v.daysInInventory} days.`);
+      this.latestActivityTick.update(t => t + 1);
     });
 
     this.hubConnection.on('VehicleActionLogged', (a: RealtimeVehicleActionResponse) => {
@@ -164,6 +170,7 @@ export class RealtimeService {
         vehicleName: a.vehicleName ?? undefined,
         isRead: false
       });
+      this.latestActivityTick.update(t => t + 1);
     });
 
     this.hubConnection.on('DashboardSummaryUpdated', (s: RealtimeDashboardSummaryResponse) => {

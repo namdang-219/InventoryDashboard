@@ -4,6 +4,15 @@ using MediatR;
 
 namespace IID.Application.Features.Dashboard.EventHandlers;
 
+/// <summary>
+/// Broadcasts dashboard-level refresh on aggregate-level domain events.
+///
+/// Note: <see cref="VehicleTransferred"/> is intentionally NOT handled here.
+/// It is an entity-level event broadcast once by
+/// <c>TransferDealershipHandler</c> via <see cref="IVehicleHubNotifier.VehicleTransferredAsync"/>,
+/// to the source + target dealership groups only. Adding it here would
+/// trigger a redundant global dashboard refresh on every transfer.
+/// </summary>
 public sealed class DashboardRealtimeEventHandler(
     IDashboardService dashboardService,
     IVehicleHubNotifier hubNotifier) :
@@ -11,8 +20,7 @@ public sealed class DashboardRealtimeEventHandler(
     IDomainEventHandler<VehicleStatusChanged>,
     IDomainEventHandler<VehicleSold>,
     IDomainEventHandler<VehicleRemoved>,
-    IDomainEventHandler<VehicleUpdated>,
-    IDomainEventHandler<VehicleTransferred>
+    IDomainEventHandler<VehicleUpdated>
 {
     public Task Handle(VehicleAdded notification, CancellationToken cancellationToken)
         => BroadcastUpdateAsync(cancellationToken);
@@ -27,9 +35,6 @@ public sealed class DashboardRealtimeEventHandler(
         => BroadcastUpdateAsync(cancellationToken);
 
     public Task Handle(VehicleUpdated notification, CancellationToken cancellationToken)
-        => BroadcastUpdateAsync(cancellationToken);
-
-    public Task Handle(VehicleTransferred notification, CancellationToken cancellationToken)
         => BroadcastUpdateAsync(cancellationToken);
 
     private async Task BroadcastUpdateAsync(CancellationToken cancellationToken)

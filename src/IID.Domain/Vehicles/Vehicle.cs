@@ -52,15 +52,70 @@ public sealed class Vehicle : AggregateRoot
         string? stockNumber = null,
         Guid? dealershipId = null)
     {
+        var v = BuildAndValidate(
+            vin, make, model, year, color, mileage, fuelType,
+            purchasePrice, askingPrice, status,
+            dateAddedToInventory, nowUtc, createdByUserId, stockNumber, dealershipId);
+
+        v.RaiseDomainEvent(new VehicleAdded(v.Id, v.Make, v.Model, v.Status));
+        return v;
+    }
+
+    /// <summary>
+    /// Factory used by infrastructure seeders to bulk-construct <see cref="Vehicle"/>
+    /// aggregates while preserving domain invariants. Does NOT raise
+    /// <see cref="DomainEvents.VehicleAdded"/> (or any other event) so that
+    /// the domain-event dispatcher / SignalR broadcaster stays silent during seeding.
+    /// </summary>
+    public static Vehicle CreateForSeed(
+        Vin vin,
+        string make,
+        string model,
+        int year,
+        string color,
+        int mileage,
+        FuelType fuelType,
+        Money purchasePrice,
+        Money askingPrice,
+        VehicleStatus status,
+        DateTimeOffset dateAddedToInventory,
+        DateTimeOffset nowUtc,
+        string? createdByUserId = null,
+        string? stockNumber = null,
+        Guid? dealershipId = null)
+        => BuildAndValidate(
+            vin, make, model, year, color, mileage, fuelType,
+            purchasePrice, askingPrice, status,
+            dateAddedToInventory, nowUtc, createdByUserId, stockNumber, dealershipId);
+
+    private static Vehicle BuildAndValidate(
+        Vin vin,
+        string make,
+        string model,
+        int year,
+        string color,
+        int mileage,
+        FuelType fuelType,
+        Money purchasePrice,
+        Money askingPrice,
+        VehicleStatus status,
+        DateTimeOffset dateAddedToInventory,
+        DateTimeOffset nowUtc,
+        string? createdByUserId,
+        string? stockNumber,
+        Guid? dealershipId)
+    {
         Validate(make, model, year, color, mileage, dateAddedToInventory, nowUtc);
 
         var normalizedVin = vin.Value;
-        var v = new Vehicle
+        return new Vehicle
         {
             Id = Guid.NewGuid(),
             DealershipId = dealershipId ?? Guid.Empty,
             Vin = vin,
-            StockNumber = string.IsNullOrWhiteSpace(stockNumber) ? GenerateStockNumber(normalizedVin) : stockNumber.Trim().ToUpperInvariant(),
+            StockNumber = string.IsNullOrWhiteSpace(stockNumber)
+                ? GenerateStockNumber(normalizedVin)
+                : stockNumber.Trim().ToUpperInvariant(),
             Make = make.Trim(),
             Model = model.Trim(),
             Year = year,
@@ -76,9 +131,6 @@ public sealed class Vehicle : AggregateRoot
             CreatedByUserId = createdByUserId,
             UpdatedByUserId = createdByUserId
         };
-
-        v.RaiseDomainEvent(new VehicleAdded(v.Id, v.Make, v.Model, v.Status));
-        return v;
     }
 
     public void TransferDealership(Guid newDealershipId, DateTimeOffset nowUtc, string? updatedByUserId = null)

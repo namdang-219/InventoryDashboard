@@ -1,3 +1,4 @@
+using IID.Infrastructure.Realtime.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -11,13 +12,13 @@ public static class InventoryHubConstants
 
 public interface IInventoryClient
 {
-    Task VehicleAdded(VehicleResponse vehicle);
-    Task VehicleUpdated(VehicleResponse vehicle);
+    Task VehicleAdded(VehicleRealtimeDto vehicle);
+    Task VehicleUpdated(VehicleRealtimeDto vehicle);
     Task VehicleRemoved(Guid vehicleId);
-    Task VehicleAging(VehicleResponse vehicle);
-    Task VehicleActionLogged(VehicleActionResponse action);
-    Task DashboardSummaryUpdated(DashboardSummaryResponse summary);
-    Task DashboardAlertsUpdated(IReadOnlyList<DashboardAlertResponse> alerts);
+    Task VehicleAging(VehicleRealtimeDto vehicle);
+    Task VehicleActionLogged(VehicleActionRealtimeDto action);
+    Task DashboardSummaryUpdated(DashboardSummaryRealtimeDto summary);
+    Task DashboardAlertsUpdated(IReadOnlyList<DashboardAlertRealtimeDto> alerts);
     Task InventoryChanged();
 }
 
@@ -46,25 +47,3 @@ public sealed class InventoryHub : Hub<IInventoryClient>
         }
     }
 }
-
-public sealed record VehicleResponse(
-    Guid Id, string Vin, string Make, string Model, int Year,
-    int DaysInInventory, bool IsAging, string Status, Guid DealershipId = default);
-
-public sealed record VehicleActionResponse(Guid Id, Guid VehicleId, string ActionType, string? Notes, DateTimeOffset LoggedAtUtc, string? VehicleName = null);
-
-public sealed record DashboardSummaryResponse(
-    DateTimeOffset GeneratedAtUtc,
-    int TotalInventory,
-    int AvailableCount,
-    int PendingCount,
-    int SoldCount,
-    int WholesaleCount,
-    int AgingCount,
-    decimal TotalInventoryValue);
-
-public sealed record DashboardAlertResponse(
-    Guid? VehicleId,
-    string Message,
-    string Severity,
-    DateTimeOffset CreatedAtUtc);

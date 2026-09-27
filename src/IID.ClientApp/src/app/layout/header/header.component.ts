@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, OnInit, Output, computed, effect, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
 import { RealtimeService } from '../../core/services/realtime.service';
 import { InventoryService } from '../../core/services/inventory.service';
@@ -34,6 +34,41 @@ export class HeaderComponent implements OnInit {
   readonly dealershipService = inject(DealershipService);
   private readonly inventoryService = inject(InventoryService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  // True while the bell is ringing (5s window after each new realtime activity).
+  readonly bellRinging = signal<boolean>(false);
+  private ringTimeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    // Watch for new realtime activities (actions / aging warnings) and ring the bell.
+    let lastTick = this.realtime.latestActivityTick();
+    effect(() => {
+      const tick = this.realtime.latestActivityTick();
+      if (tick === lastTick) return;
+      lastTick = tick;
+      this.startBellRing();
+    });
+
+    this.destroyRef.onDestroy(() => {
+      if (this.ringTimeoutHandle !== null) {
+        clearTimeout(this.ringTimeoutHandle);
+      }
+    });
+  }
+
+  private startBellRing(): void {
+    // Restart the 5s window on each new activity so a burst of notifications
+    // rings the bell continuously rather than clipping short.
+    if (this.ringTimeoutHandle !== null) {
+      clearTimeout(this.ringTimeoutHandle);
+    }
+    this.bellRinging.set(true);
+    this.ringTimeoutHandle = setTimeout(() => {
+      this.bellRinging.set(false);
+      this.ringTimeoutHandle = null;
+    }, 5000);
+  }
 
   ngOnInit(): void {
     if (this.auth.token()) {

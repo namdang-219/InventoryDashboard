@@ -1,11 +1,15 @@
 using IID.Application.Common.Interfaces;
 using IID.Infrastructure.Persistence;
+using Microsoft.Extensions.Caching.Memory;
+
 namespace IID.Infrastructure.Identity;
 
-public sealed class UserDisplayNameProvider(IidDbContext db) : IUserDisplayNameProvider
+public sealed class UserDisplayNameProvider(
+    IidDbContext db,
+    IMemoryCache cache) : IUserDisplayNameProvider
 {
-    private static readonly Dictionary<string, string> Cache = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly object Lock = new();
+    private const string CacheKeyPrefix = "uid:display-name:";
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
     public async Task<string> GetDisplayNameAsync(string userId, CancellationToken ct = default)
     {
@@ -15,30 +19,21 @@ public sealed class UserDisplayNameProvider(IidDbContext db) : IUserDisplayNameP
         // If it's already an email or username
         if (userId.Contains('@')) return userId;
 
-        lock (Lock)
-        {
-            if (Cache.TryGetValue(userId, out var cached))
-                return cached;
-        }
+        var cacheKey = CacheKeyPrefix + userId;
+        if (cache.TryGetValue(cacheKey, out string? cached) && cached is not null)
+            return cached;
 
-        try
-        {
-            var user = await db.Users.AsNoTracking()
-                .Where(u => u.Id == userId)
-                .Select(u => u.Email ?? u.UserName)
-                .FirstOrDefaultAsync(ct);
+        var user = await db.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Email ?? u.UserName)
+            .FirstOrDefaultAsync(ct);
 
-            if (!string.IsNullOrWhiteSpace(user))
-            {
-                lock (Lock) { Cache[userId] = user; }
-                return user;
-            }
-        }
-        catch
+        var resolved = string.IsNullOrWhiteSpace(user) ? "Admin" : user;
+        cache.Set(cacheKey, resolved, new MemoryCacheEntryOptions
         {
-            // fallback if db error
-        }
-
-        return "Admin";
+            AbsoluteExpirationRelativeToNow = CacheTtl,
+            Size = 1
+        });
+        return resolved;
     }
 }

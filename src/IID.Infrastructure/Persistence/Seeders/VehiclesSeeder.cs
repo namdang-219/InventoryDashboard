@@ -207,7 +207,7 @@ public sealed class VehiclesSeeder(IidDbContext db, TimeProvider clock, ILogger<
                 var vinStr = GenerateUniqueVin(vinCounter++, template.Make, existingVins);
                 var stockNumber = $"STK-{dealer.Code.Replace("DLR-", "")}-{j + 101:D3}";
 
-                var vehicle = Vehicle.Create(
+                var vehicle = Vehicle.CreateForSeed(
                     vin: Vin.Parse(vinStr),
                     make: template.Make,
                     model: template.Model,
@@ -224,7 +224,6 @@ public sealed class VehiclesSeeder(IidDbContext db, TimeProvider clock, ILogger<
                     stockNumber: stockNumber,
                     dealershipId: dealer.Id);
 
-                vehicle.ClearDomainEvents();
                 vehiclesToAdd.Add(vehicle);
             }
         }

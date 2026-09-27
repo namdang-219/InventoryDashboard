@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using IID.Application.Common.Interfaces;
 using IID.Domain.Notifications;
-using Microsoft.EntityFrameworkCore;
 
 namespace IID.Infrastructure.Persistence.Repositories;
 
@@ -83,35 +77,25 @@ public sealed class UserActivityReadRepository(IidDbContext db) : IUserActivityR
 
     public async Task MarkAllAsReadAsync(string userId, CancellationToken ct)
     {
-        var existing = await db.UserActivityReadStatuses
-            .Where(x => x.UserId == userId)
-            .ToListAsync(ct);
+        if (string.IsNullOrWhiteSpace(userId)) return;
 
-        var existingSet = existing.Select(x => x.ActivityId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
 
-        foreach (var ex in existing)
-        {
-            if (!ex.IsRead)
-            {
-                ex.MarkAsRead(DateTimeOffset.UtcNow);
-            }
-        }
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $@"UPDATE dbo.UserActivityReadStatuses
+                   SET    IsRead = 1, ReadAtUtc = SYSUTCDATETIMEOFFSET()
+                   WHERE  UserId = {userId} AND IsRead = 0", ct);
 
-        var allActionGuids = await db.VehicleActions
-            .AsNoTracking()
-            .Select(a => a.Id)
-            .ToListAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $@"INSERT INTO dbo.UserActivityReadStatuses (Id, UserId, ActivityId, IsRead, ReadAtUtc)
+                   SELECT NEWID(), {userId}, CAST(a.Id AS NVARCHAR(200)), 1, SYSUTCDATETIMEOFFSET()
+                   FROM   dbo.VehicleActions a
+                   WHERE  NOT EXISTS (
+                       SELECT 1 FROM dbo.UserActivityReadStatuses r
+                       WHERE  r.UserId = {userId}
+                         AND  r.ActivityId = CAST(a.Id AS NVARCHAR(200))
+                   )", ct);
 
-        var toAdd = allActionGuids
-            .Where(g => !existingSet.Contains(g.ToString()))
-            .Select(g => UserActivityReadStatus.Create(userId, g.ToString()))
-            .ToList();
-
-        if (toAdd.Count > 0)
-        {
-            await db.UserActivityReadStatuses.AddRangeAsync(toAdd, ct);
-        }
-
-        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
     }
 }

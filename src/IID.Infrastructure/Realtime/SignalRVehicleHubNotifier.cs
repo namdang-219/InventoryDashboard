@@ -1,26 +1,13 @@
 using IID.Application.Common.Interfaces;
-using IID.Application.Dashboard.Dtos;
+using IID.Infrastructure.Realtime.Contracts;
 using Microsoft.AspNetCore.SignalR;
 
 namespace IID.Infrastructure.Realtime;
 
-public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInventoryClient> hub) : IVehicleHubNotifier
+public sealed class SignalRVehicleHubNotifier(
+    IHubContext<InventoryHub, IInventoryClient> hub,
+    IRealtimeContractMapper mapper) : IVehicleHubNotifier
 {
-    private static VehicleResponse MapVehicle(Vehicle v)
-    {
-        var analytics = new VehicleAnalyticsService(DateTimeOffset.UtcNow);
-        return new VehicleResponse(
-            v.Id, v.Vin.Value, v.Make, v.Model, v.Year,
-            analytics.DaysInInventory(v), analytics.IsAging(v), v.Status.ToString(), v.DealershipId);
-    }
-
-    private static DashboardSummaryResponse MapSummary(DashboardSummaryDto dto)
-        => new(dto.GeneratedAtUtc, dto.TotalInventory, dto.AvailableCount,
-            dto.PendingCount, dto.SoldCount, dto.WholesaleCount, dto.AgingCount, dto.TotalInventoryValue);
-
-    private static DashboardAlertResponse MapAlert(DashboardAlertDto dto)
-        => new(dto.VehicleId, dto.Message, dto.Severity, dto.CreatedAtUtc);
-
     private static string? DealershipGroup(Guid dealershipId)
         => dealershipId != Guid.Empty ? InventoryHubConstants.DealershipGroup(dealershipId) : null;
 
@@ -28,14 +15,14 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
     {
         var group = DealershipGroup(v.DealershipId);
         if (group is null) return Task.CompletedTask;
-        return hub.Clients.Group(group).VehicleAdded(MapVehicle(v));
+        return hub.Clients.Group(group).VehicleAdded(mapper.MapVehicle(v));
     }
 
     public Task VehicleUpdatedAsync(Vehicle v, CancellationToken ct)
     {
         var group = DealershipGroup(v.DealershipId);
         if (group is null) return Task.CompletedTask;
-        return hub.Clients.Group(group).VehicleUpdated(MapVehicle(v));
+        return hub.Clients.Group(group).VehicleUpdated(mapper.MapVehicle(v));
     }
 
     public Task VehicleRemovedAsync(Guid vehicleId, CancellationToken ct)
@@ -45,12 +32,12 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
     {
         var group = DealershipGroup(v.DealershipId);
         if (group is null) return Task.CompletedTask;
-        return hub.Clients.Group(group).VehicleAging(MapVehicle(v));
+        return hub.Clients.Group(group).VehicleAging(mapper.MapVehicle(v));
     }
 
     public Task VehicleTransferredAsync(Vehicle v, Guid sourceDealershipId, CancellationToken ct)
     {
-        var resp = MapVehicle(v);
+        var resp = mapper.MapVehicle(v);
         var targetGroup = DealershipGroup(v.DealershipId);          // new dealership (B)
         var sourceGroup = DealershipGroup(sourceDealershipId);      // old dealership (A)
 
@@ -68,8 +55,7 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
 
     public Task VehicleActionLoggedAsync(VehicleAction a, Vehicle? v, CancellationToken ct)
     {
-        var vehicleName = v is not null ? $"{v.Year} {v.Make} {v.Model}" : null;
-        var resp = new VehicleActionResponse(a.Id, a.VehicleId, a.ActionType.ToString(), a.Notes, a.LoggedAt, vehicleName);
+        var resp = mapper.MapVehicleAction(a, v);
         var group = v is not null ? DealershipGroup(v.DealershipId) : null;
         if (group is null) return Task.CompletedTask;
         return hub.Clients.Group(group).VehicleActionLogged(resp);
@@ -78,11 +64,11 @@ public sealed class SignalRVehicleHubNotifier(IHubContext<InventoryHub, IInvento
     public Task VehicleActionLoggedAsync(VehicleAction a, CancellationToken ct)
         => VehicleActionLoggedAsync(a, null, ct);
 
-    public Task DashboardSummaryUpdatedAsync(DashboardSummaryDto summary, CancellationToken ct)
-        => hub.Clients.All.DashboardSummaryUpdated(MapSummary(summary));
+    public Task DashboardSummaryUpdatedAsync(IID.Application.Dashboard.Dtos.DashboardSummaryDto summary, CancellationToken ct)
+        => hub.Clients.All.DashboardSummaryUpdated(mapper.MapSummary(summary));
 
-    public Task DashboardAlertsUpdatedAsync(IReadOnlyList<DashboardAlertDto> alerts, CancellationToken ct)
-        => hub.Clients.All.DashboardAlertsUpdated(alerts.Select(MapAlert).ToList());
+    public Task DashboardAlertsUpdatedAsync(IReadOnlyList<IID.Application.Dashboard.Dtos.DashboardAlertDto> alerts, CancellationToken ct)
+        => hub.Clients.All.DashboardAlertsUpdated(alerts.Select(mapper.MapAlert).ToList());
 
     public Task InventoryChangedAsync(CancellationToken ct)
         => hub.Clients.All.InventoryChanged();

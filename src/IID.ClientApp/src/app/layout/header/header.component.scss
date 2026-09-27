@@ -228,6 +228,61 @@
   position: relative;
 }
 
+.bell-icon {
+  display: inline-block;
+  transform-origin: 50% 4px; /* hinge near the top of the bell */
+}
+
+.bell-btn.ringing .bell-icon {
+  animation: bellRingShake 5s ease-in-out;
+}
+
+.bell-btn.ringing::after {
+  /* expanding ring pulse behind the bell */
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--iid-danger);
+  pointer-events: none;
+  animation: bellRingPulse 5s ease-out;
+}
+
+@keyframes bellRingShake {
+  0%        { transform: rotate(0deg); }
+  2%        { transform: rotate(18deg); }
+  4%        { transform: rotate(-16deg); }
+  6%        { transform: rotate(14deg); }
+  8%        { transform: rotate(-12deg); }
+  10%       { transform: rotate(10deg); }
+  12%       { transform: rotate(-8deg); }
+  14%       { transform: rotate(6deg); }
+  16%       { transform: rotate(-4deg); }
+  18%       { transform: rotate(2deg); }
+  20%       { transform: rotate(0deg); }
+  /* settle, then shake again roughly every second for the full 5s window */
+  40%       { transform: rotate(14deg); }
+  42%       { transform: rotate(-12deg); }
+  44%       { transform: rotate(10deg); }
+  46%       { transform: rotate(-8deg); }
+  48%       { transform: rotate(6deg); }
+  50%       { transform: rotate(-4deg); }
+  52%       { transform: rotate(0deg); }
+  72%       { transform: rotate(12deg); }
+  74%       { transform: rotate(-10deg); }
+  76%       { transform: rotate(8deg); }
+  78%       { transform: rotate(-6deg); }
+  80%       { transform: rotate(4deg); }
+  82%       { transform: rotate(0deg); }
+  100%      { transform: rotate(0deg); }
+}
+
+@keyframes bellRingPulse {
+  0%   { opacity: 0.9; transform: scale(0.85); }
+  60%  { opacity: 0;   transform: scale(1.6); }
+  100% { opacity: 0;   transform: scale(1.6); }
+}
+
 .badge-count {
   position: absolute;
   top: -4px;
