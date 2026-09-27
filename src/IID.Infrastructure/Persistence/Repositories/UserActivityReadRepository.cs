@@ -86,21 +86,21 @@ public sealed class UserActivityReadRepository(IidDbContext db, IClock clock)
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         await db.Database.ExecuteSqlInterpolatedAsync(
-            $@"UPDATE dbo.UserActivityReadStatuses
+            $@"UPDATE UserActivityReadStatus
                SET    IsRead    = 1,
                       ReadAtUtc = {readAt}
                WHERE  UserId    = {userId} AND IsRead = 0", ct);
 
         await db.Database.ExecuteSqlInterpolatedAsync(
-            $@"INSERT INTO dbo.UserActivityReadStatuses (Id, UserId, ActivityId, IsRead, ReadAtUtc)
+            $@"INSERT INTO UserActivityReadStatus (Id, UserId, ActivityId, IsRead, ReadAtUtc)
                SELECT NEWID(),
                       {userId},
                       CAST(a.Id AS NVARCHAR(200)),
                       1,
                       {readAt}
-               FROM   dbo.VehicleActions a
+               FROM   VehicleAction a
                WHERE  NOT EXISTS (
-                   SELECT 1 FROM dbo.UserActivityReadStatuses r
+                   SELECT 1 FROM UserActivityReadStatus r
                    WHERE  r.UserId      = {userId}
                      AND  r.ActivityId  = CAST(a.Id AS NVARCHAR(200))
                )", ct);
