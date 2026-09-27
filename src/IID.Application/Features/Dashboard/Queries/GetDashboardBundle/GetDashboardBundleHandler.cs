@@ -2,8 +2,10 @@ using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
 using IID.Application.Dashboard.Queries.Dtos;
+using IID.Application.Logging;
 using IID.Application.Vehicles.Queries.Dtos;
 using MediatR;
+
 namespace IID.Application.Dashboard.Queries.GetDashboardBundle;
 
 public sealed class GetDashboardBundleHandler(
@@ -214,8 +216,7 @@ public sealed class GetDashboardBundleHandler(
 
         var bundle = new DashboardBundleDto(summary, quickStats, charts, actionCenter, aiInsights, inventory);
 
-        if (logger.IsEnabled(LogLevel.Debug))
-            logger.LogDebug("Dashboard bundle: total={Total}, page={Page}", all.Count, page);
+        logger.DashboardBundleGenerated(all.Count, actionCenter.Count, page);
 
         return Result<DashboardBundleDto>.Success(bundle);
     }

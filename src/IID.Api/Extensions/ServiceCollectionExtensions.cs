@@ -250,11 +250,26 @@ public static class ServiceCollectionExtensions
             .WithTracing(tracing =>
             {
                 tracing
+                    .AddSource("IID.Application")
                     .AddAspNetCoreInstrumentation(o =>
                     {
-                        o.Filter = ctx => !ctx.Request.Path.StartsWithSegments("/hubs/inventory");
+                        // Filter only suppresses the top-level request activity for SignalR,
+                        // not child spans created inside hub invocations.
+                        o.Filter = ctx =>
+                        {
+                            var path = ctx.Request.Path;
+                            var isSignalR = path.StartsWithSegments("/hubs/inventory")
+                                          || path.StartsWithSegments("/hubs/inventory/negotiate");
+                            return !isSignalR;
+                        };
                     })
                     .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation(o =>
+                    {
+                        // Capture the parameterized SQL on each EF Core span so it shows in OpenObserve.
+                        o.SetDbStatementForText = true;
+                        o.SetDbStatementForStoredProcedure = true;
+                    })
                     .AddOtlpExporter(o =>
                     {
                         o.Endpoint = new Uri($"{endpoint}/v1/traces");

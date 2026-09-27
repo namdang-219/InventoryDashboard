@@ -19,7 +19,7 @@
 | Validation | FluentValidation 12 | Declarative per-command rules; runs in MediatR pipeline. FluentValidation 12 requires ≥ .NET 8 and supports `net10.0`. |
 | Auth | ASP.NET Identity + JWT | Roles `Manager`, `Viewer` |
 | Logging | Serilog.AspNetCore 10 + `LoggerMessageAttribute` | High-perf, allocation-free logs. Package major version matches target framework (10.x for net10.0). |
-| Errors | `Result<T>` + `ErrorKind` enum | No exceptions for domain failures; HTTP status mapped via `ResultExtensions.ToStatusCode()` |
+| Errors | `Result<T>` + `ErrorKind` enum | No exceptions for domain failures; HTTP status mapped via `ResultMapper.ToStatus()` |
 
 ### TFM Pinning
 
@@ -481,7 +481,7 @@ Manager logs action on aging vehicle
 - Placeholders PascalCase: `{VehicleId}`, `{Vin}`.
 - `ILogger<T>.IsEnabled(level)` guards checked before structured log calls.
 - Levels: `Debug` (dev), `Information` (ops), `Warning` (recoverable), `Error`/`Critical` (failures).
-- `Result<T>` carries `ErrorKind`; endpoints call `ResultExtensions.ToStatusCode()` — **no** inline `switch` on error code in endpoints.
+- `Result<T>` carries `ErrorKind`; endpoints call `ResultMapper.ToStatus()` — **no** inline `switch` on error code in endpoints.
 - Unhandled exceptions caught by `UseExceptionHandler` → 500 with sanitized payload.
 
 ---

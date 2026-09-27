@@ -4,7 +4,6 @@ using IID.Application.Common.Models;
 using IID.Application.Vehicles.Queries.ListVehicles;
 using IID.Domain.Common;
 using IID.Domain.Vehicles;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.Vehicles.Queries.ListVehicles;
@@ -17,7 +16,7 @@ public class ListVehiclesHandlerTests
     private ListVehiclesHandler CreateSut()
     {
         _clock.SetupGet(c => c.UtcNow).Returns(DateTimeOffset.UtcNow);
-        return new ListVehiclesHandler(_repo.Object, _clock.Object, NullLogger<ListVehiclesHandler>.Instance);
+        return new ListVehiclesHandler(_repo.Object, _clock.Object);
     }
 
     private static Vehicle MakeVehicle()

@@ -3,6 +3,7 @@ using IID.Application.Common.Interfaces;
 using IID.Application.VehicleActions.Commands.SoftDeleteVehicleAction;
 using IID.Domain.Common;
 using IID.Domain.VehicleActions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.VehicleActions.Commands.SoftDeleteVehicleAction;
@@ -21,7 +22,7 @@ public class SoftDeleteVehicleActionHandlerTests
         _user.SetupGet(u => u.Email).Returns("saler@iid.local");
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(IID.Domain.Common.Result<int>.Success(1));
-        return new SoftDeleteVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object);
+        return new SoftDeleteVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object, NullLogger<SoftDeleteVehicleActionHandler>.Instance);
     }
 
     [Fact]
@@ -56,7 +57,7 @@ public class SoftDeleteVehicleActionHandlerTests
     public async Task Handle_Should_ReturnUnauthorized_WhenNoUser()
     {
         _user.SetupGet(u => u.Id).Returns((string?)null);
-        var sut = new SoftDeleteVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object);
+        var sut = new SoftDeleteVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object, NullLogger<SoftDeleteVehicleActionHandler>.Instance);
 
         var cmd = new SoftDeleteVehicleActionCommand(Guid.NewGuid());
         var result = await sut.Handle(cmd, CancellationToken.None);

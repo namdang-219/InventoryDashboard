@@ -28,11 +28,14 @@ public class DashboardRealtimeEventHandlerTests
         return new DashboardRealtimeEventHandler(_dashboard.Object, _hub.Object);
     }
 
+    private static Vehicle MakeVehicle() =>
+        Vehicle.ForTesting(Guid.NewGuid(), make: "Honda", model: "Civic", year: 2023);
+
     [Fact]
     public async Task Handle_VehicleAdded_Should_BroadcastDashboardUpdate()
     {
         var sut = CreateSut();
-        var ev = new VehicleAdded(Guid.NewGuid(), "Honda", "Civic", VehicleStatus.Available);
+        var ev = new VehicleAdded(MakeVehicle(), "Honda", "Civic", VehicleStatus.Available);
 
         await sut.Handle(ev, CancellationToken.None);
 
@@ -47,7 +50,7 @@ public class DashboardRealtimeEventHandlerTests
     public async Task Handle_VehicleSold_Should_BroadcastDashboardUpdate()
     {
         var sut = CreateSut();
-        var ev = new VehicleSold(Guid.NewGuid(), "Honda", DateTimeOffset.UtcNow, 10);
+        var ev = new VehicleSold(MakeVehicle(), "Honda", DateTimeOffset.UtcNow, 10);
 
         await sut.Handle(ev, CancellationToken.None);
 
@@ -59,7 +62,7 @@ public class DashboardRealtimeEventHandlerTests
     public async Task Handle_VehicleRemoved_Should_BroadcastDashboardUpdate()
     {
         var sut = CreateSut();
-        var ev = new VehicleRemoved(Guid.NewGuid(), "Honda");
+        var ev = new VehicleRemoved(MakeVehicle(), "Honda");
 
         await sut.Handle(ev, CancellationToken.None);
 
@@ -71,7 +74,7 @@ public class DashboardRealtimeEventHandlerTests
     public async Task Handle_VehicleStatusChanged_Should_BroadcastDashboardUpdate()
     {
         var sut = CreateSut();
-        var ev = new VehicleStatusChanged(Guid.NewGuid(), VehicleStatus.Available, VehicleStatus.Pending, "Honda");
+        var ev = new VehicleStatusChanged(MakeVehicle(), VehicleStatus.Available, VehicleStatus.Pending, "Honda");
 
         await sut.Handle(ev, CancellationToken.None);
 
@@ -83,7 +86,7 @@ public class DashboardRealtimeEventHandlerTests
     public async Task Handle_VehicleUpdated_Should_BroadcastDashboardUpdate()
     {
         var sut = CreateSut();
-        var ev = new VehicleUpdated(Guid.NewGuid(), "Honda");
+        var ev = new VehicleUpdated(MakeVehicle(), "Honda");
 
         await sut.Handle(ev, CancellationToken.None);
 

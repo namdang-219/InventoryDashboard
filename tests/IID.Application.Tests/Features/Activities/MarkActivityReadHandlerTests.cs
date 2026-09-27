@@ -1,6 +1,7 @@
 using FluentAssertions;
 using IID.Application.Common.Interfaces;
 using IID.Application.Features.Activities.Commands.MarkActivityRead;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.Activities;
@@ -15,7 +16,7 @@ public class MarkActivityReadHandlerTests
     {
         _currentUserMock.Setup(u => u.Id).Returns((string?)null);
 
-        var handler = new MarkActivityReadHandler(_userActivityReadRepositoryMock.Object, _currentUserMock.Object);
+        var handler = new MarkActivityReadHandler(_userActivityReadRepositoryMock.Object, _currentUserMock.Object, NullLogger<MarkActivityReadHandler>.Instance);
         var result = await handler.Handle(new MarkActivityReadCommand(null, true), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
@@ -28,7 +29,7 @@ public class MarkActivityReadHandlerTests
         var userId = "user-123";
         _currentUserMock.Setup(u => u.Id).Returns(userId);
 
-        var handler = new MarkActivityReadHandler(_userActivityReadRepositoryMock.Object, _currentUserMock.Object);
+        var handler = new MarkActivityReadHandler(_userActivityReadRepositoryMock.Object, _currentUserMock.Object, NullLogger<MarkActivityReadHandler>.Instance);
         var result = await handler.Handle(new MarkActivityReadCommand(null, true), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -42,7 +43,7 @@ public class MarkActivityReadHandlerTests
         var ids = new List<string> { "act-1", "act-2" };
         _currentUserMock.Setup(u => u.Id).Returns(userId);
 
-        var handler = new MarkActivityReadHandler(_userActivityReadRepositoryMock.Object, _currentUserMock.Object);
+        var handler = new MarkActivityReadHandler(_userActivityReadRepositoryMock.Object, _currentUserMock.Object, NullLogger<MarkActivityReadHandler>.Instance);
         var result = await handler.Handle(new MarkActivityReadCommand(ids, false), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();

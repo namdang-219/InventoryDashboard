@@ -1,9 +1,11 @@
 using IID.Application.Common.Interfaces;
 using IID.Domain.Notifications;
+using Microsoft.EntityFrameworkCore;
 
 namespace IID.Infrastructure.Persistence.Repositories;
 
-public sealed class UserActivityReadRepository(IidDbContext db) : IUserActivityReadRepository
+public sealed class UserActivityReadRepository(IidDbContext db, IClock clock)
+    : IUserActivityReadRepository
 {
     public async Task<IReadOnlySet<string>> GetReadActivityIdsAsync(string userId, CancellationToken ct)
     {
@@ -79,22 +81,29 @@ public sealed class UserActivityReadRepository(IidDbContext db) : IUserActivityR
     {
         if (string.IsNullOrWhiteSpace(userId)) return;
 
+        var readAt = clock.UtcNow;
+
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         await db.Database.ExecuteSqlInterpolatedAsync(
             $@"UPDATE dbo.UserActivityReadStatuses
-                   SET    IsRead = 1, ReadAtUtc = SYSUTCDATETIMEOFFSET()
-                   WHERE  UserId = {userId} AND IsRead = 0", ct);
+               SET    IsRead    = 1,
+                      ReadAtUtc = {readAt}
+               WHERE  UserId    = {userId} AND IsRead = 0", ct);
 
         await db.Database.ExecuteSqlInterpolatedAsync(
             $@"INSERT INTO dbo.UserActivityReadStatuses (Id, UserId, ActivityId, IsRead, ReadAtUtc)
-                   SELECT NEWID(), {userId}, CAST(a.Id AS NVARCHAR(200)), 1, SYSUTCDATETIMEOFFSET()
-                   FROM   dbo.VehicleActions a
-                   WHERE  NOT EXISTS (
-                       SELECT 1 FROM dbo.UserActivityReadStatuses r
-                       WHERE  r.UserId = {userId}
-                         AND  r.ActivityId = CAST(a.Id AS NVARCHAR(200))
-                   )", ct);
+               SELECT NEWID(),
+                      {userId},
+                      CAST(a.Id AS NVARCHAR(200)),
+                      1,
+                      {readAt}
+               FROM   dbo.VehicleActions a
+               WHERE  NOT EXISTS (
+                   SELECT 1 FROM dbo.UserActivityReadStatuses r
+                   WHERE  r.UserId      = {userId}
+                     AND  r.ActivityId  = CAST(a.Id AS NVARCHAR(200))
+               )", ct);
 
         await tx.CommitAsync(ct);
     }

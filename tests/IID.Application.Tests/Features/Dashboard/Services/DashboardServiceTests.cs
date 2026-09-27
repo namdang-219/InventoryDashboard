@@ -3,6 +3,7 @@ using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Features.Dashboard.Services;
 using IID.Domain.Vehicles;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.Dashboard.Services;
@@ -15,7 +16,7 @@ public class DashboardServiceTests
     private DashboardService CreateSut()
     {
         _clock.SetupGet(c => c.UtcNow).Returns(DateTimeOffset.UtcNow);
-        return new DashboardService(_repo.Object, _clock.Object);
+        return new DashboardService(_repo.Object, _clock.Object, NullLogger<DashboardService>.Instance);
     }
 
     private static Vehicle MakeVehicle(VehicleStatus status, int daysOld, DateTimeOffset now)

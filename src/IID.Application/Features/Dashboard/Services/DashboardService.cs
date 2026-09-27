@@ -1,24 +1,19 @@
 using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
+using IID.Application.Logging;
 
 namespace IID.Application.Features.Dashboard.Services;
 
-public sealed class DashboardService : IDashboardService
+public sealed class DashboardService(
+    IVehicleRepository vehicles,
+    IClock clock,
+    ILogger<DashboardService> logger) : IDashboardService
 {
-    private readonly IVehicleRepository _vehicles;
-    private readonly IClock _clock;
-
-    public DashboardService(IVehicleRepository vehicles, IClock clock)
-    {
-        _vehicles = vehicles;
-        _clock = clock;
-    }
-
     public async Task<DashboardSummaryDto> GetSummaryAsync(CancellationToken cancellationToken)
     {
-        var now = _clock.UtcNow;
-        var (items, _) = await _vehicles.ListAsync(
+        var now = clock.UtcNow;
+        var (items, _) = await vehicles.ListAsync(
             new VehicleListFilter(Limit: 1000, Sort: "dateAdded", Order: "desc"), cancellationToken);
 
         var analytics = new VehicleAnalyticsService(now);
@@ -54,6 +49,8 @@ public sealed class DashboardService : IDashboardService
             .Select(g => new DemandLevelDto(g.Key, g.Count()))
             .ToList();
 
+        logger.DashboardServiceSummaryGenerated(items.Count, available, agingCount);
+
         return new DashboardSummaryDto(
             now,
             items.Count,
@@ -73,11 +70,11 @@ public sealed class DashboardService : IDashboardService
 
     public async Task<IReadOnlyList<DashboardAlertDto>> GetAlertsAsync(CancellationToken cancellationToken)
     {
-        var (items, _) = await _vehicles.ListAsync(
+        var (items, _) = await vehicles.ListAsync(
             new VehicleListFilter(Limit: 1000, Sort: "dateAdded", Order: "desc"), cancellationToken);
 
         var alerts = new List<DashboardAlertDto>();
-        var now = _clock.UtcNow;
+        var now = clock.UtcNow;
 
         foreach (var v in items.Where(v => v.Status == VehicleStatus.Available))
         {
@@ -95,6 +92,8 @@ public sealed class DashboardService : IDashboardService
             }
         }
 
-        return alerts.OrderByDescending(a => a.CreatedAtUtc).Take(10).ToList();
+        var result = alerts.OrderByDescending(a => a.CreatedAtUtc).Take(10).ToList();
+        logger.DashboardServiceAlertsGenerated(result.Count);
+        return result;
     }
 }

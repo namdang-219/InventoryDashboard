@@ -13,7 +13,6 @@ public class LogVehicleActionHandlerTests
     private readonly Mock<IVehicleRepository> _vehicles = new();
     private readonly Mock<IVehicleActionRepository> _actions = new();
     private readonly Mock<IUnitOfWork> _uow = new();
-    private readonly Mock<IVehicleHubNotifier> _notifier = new();
     private readonly Mock<IClock> _clock = new();
     private readonly Mock<ICurrentUser> _user = new();
 
@@ -25,7 +24,7 @@ public class LogVehicleActionHandlerTests
             .ReturnsAsync(IID.Domain.Common.Result<int>.Success(1));
         return new LogVehicleActionHandler(
             _vehicles.Object, _actions.Object, _uow.Object,
-            _notifier.Object, _clock.Object, _user.Object,
+            _clock.Object, _user.Object,
             NullLogger<LogVehicleActionHandler>.Instance);
     }
 
@@ -59,7 +58,7 @@ public class LogVehicleActionHandlerTests
 
         var sut = new LogVehicleActionHandler(
             _vehicles.Object, _actions.Object, _uow.Object,
-            _notifier.Object, _clock.Object, _user.Object,
+            _clock.Object, _user.Object,
             NullLogger<LogVehicleActionHandler>.Instance);
 
         var cmd = new LogVehicleActionCommand(vehicle.Id, Domain.VehicleActions.VehicleActionType.Other, null);
@@ -80,13 +79,19 @@ public class LogVehicleActionHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotifyHub_OnSuccess()
+    public async Task Handle_Should_RaiseVehicleActionLoggedDomainEvent_OnSuccess()
     {
         var vehicle = CreateVehicle();
         _vehicles.Setup(v => v.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(vehicle);
 
+        Domain.VehicleActions.VehicleAction? capturedAction = null;
+        _actions.Setup(a => a.AddAsync(It.IsAny<Domain.VehicleActions.VehicleAction>(), It.IsAny<CancellationToken>()))
+            .Callback<Domain.VehicleActions.VehicleAction, CancellationToken>((a, _) => capturedAction = a)
+            .Returns(Task.CompletedTask);
+
         await CreateSut().Handle(new LogVehicleActionCommand(vehicle.Id, Domain.VehicleActions.VehicleActionType.Other, null), CancellationToken.None);
 
-        _notifier.Verify(n => n.VehicleActionLoggedAsync(It.IsAny<Domain.VehicleActions.VehicleAction>(), It.IsAny<Vehicle>(), It.IsAny<CancellationToken>()), Times.Once);
+        capturedAction.Should().NotBeNull();
+        capturedAction!.DomainEvents.Should().ContainSingle(e => e is Domain.VehicleActions.Events.VehicleActionLogged);
     }
 }

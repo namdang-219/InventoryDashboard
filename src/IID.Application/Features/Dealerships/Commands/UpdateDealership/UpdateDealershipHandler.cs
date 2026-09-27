@@ -1,7 +1,7 @@
 using IID.Application.Common.Interfaces;
+using IID.Application.Logging;
 using IID.Domain.Common;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace IID.Application.Features.Dealerships.Commands.UpdateDealership;
 
@@ -16,6 +16,7 @@ public sealed class UpdateDealershipHandler(
         var dealership = await repository.GetByIdAsync(req.Id, ct);
         if (dealership is null)
         {
+            logger.UpdateDealershipNotFound(req.Id);
             return Result<Guid>.Failure(ErrorKind.NotFound, $"Dealership {req.Id} was not found.");
         }
 
@@ -31,11 +32,11 @@ public sealed class UpdateDealershipHandler(
         var saveResult = await uow.SaveChangesAsync(ct);
         if (!saveResult.IsSuccess)
         {
-            logger.LogError("Failed to update dealership {Id}: {Message}", req.Id, saveResult.Message);
+            logger.UpdateDealershipFailed(req.Id, saveResult.Message ?? "Failed to update dealership.", null);
             return Result<Guid>.Failure(saveResult.ErrorKind, saveResult.Message ?? "Failed to update dealership.");
         }
 
-        logger.LogInformation("Updated dealership {Id} ({Code} - {Name})", dealership.Id, dealership.Code, dealership.Name);
+        logger.DealershipUpdated(dealership.Id, dealership.Code, dealership.Name);
         return Result<Guid>.Success(dealership.Id);
     }
 }

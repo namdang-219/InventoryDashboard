@@ -2,6 +2,7 @@ using FluentAssertions;
 using IID.Application.Auth.Commands.Login;
 using IID.Application.Common.Interfaces;
 using IID.Domain.Common;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.Auth.Commands.Login;
@@ -17,7 +18,7 @@ public class LoginHandlerTests
         authService.Setup(s => s.LoginAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<LoginResponse>.Success(response));
 
-        var handler = new LoginHandler(authService.Object);
+        var handler = new LoginHandler(authService.Object, NullLogger<LoginHandler>.Instance);
         var result = await handler.Handle(new LoginCommand("a@b.com", "pass"), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -31,7 +32,7 @@ public class LoginHandlerTests
         authService.Setup(s => s.LoginAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<LoginResponse>.Failure(ErrorKind.Unauthorized, "Invalid"));
 
-        var handler = new LoginHandler(authService.Object);
+        var handler = new LoginHandler(authService.Object, NullLogger<LoginHandler>.Instance);
         var result = await handler.Handle(new LoginCommand("a@b.com", "bad"), CancellationToken.None);
 
         result.ErrorKind.Should().Be(ErrorKind.Unauthorized);

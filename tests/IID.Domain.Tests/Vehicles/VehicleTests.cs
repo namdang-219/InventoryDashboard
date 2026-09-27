@@ -507,7 +507,7 @@ public class VehicleTests
 
         v.DealershipId.Should().Be(targetId);
         var transferEvent = v.DomainEvents.OfType<IID.Domain.Vehicles.Events.VehicleTransferred>().Single();
-        transferEvent.VehicleId.Should().Be(v.Id);
+        transferEvent.Vehicle.Id.Should().Be(v.Id);
         transferEvent.PreviousDealershipId.Should().Be(originId);
         transferEvent.NewDealershipId.Should().Be(targetId);
         transferEvent.Make.Should().Be(v.Make);

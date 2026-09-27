@@ -3,7 +3,6 @@ using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Vehicles.Queries.GetAgingStock;
 using IID.Domain.Vehicles;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.Vehicles.Queries.GetAgingStock;
@@ -16,7 +15,7 @@ public class GetAgingStockHandlerTests
     private GetAgingStockHandler CreateSut(DateTimeOffset now)
     {
         _clock.SetupGet(c => c.UtcNow).Returns(now);
-        return new GetAgingStockHandler(_repo.Object, _clock.Object, NullLogger<GetAgingStockHandler>.Instance);
+        return new GetAgingStockHandler(_repo.Object, _clock.Object);
     }
 
     private static Vehicle MakeVehicle(int daysOld, DateTimeOffset asOf)

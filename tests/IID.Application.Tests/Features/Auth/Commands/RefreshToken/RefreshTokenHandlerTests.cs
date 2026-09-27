@@ -3,6 +3,7 @@ using IID.Application.Auth.Commands.Login;
 using IID.Application.Auth.Commands.RefreshToken;
 using IID.Application.Common.Interfaces;
 using IID.Domain.Common;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.Auth.Commands.RefreshToken;
@@ -21,7 +22,7 @@ public class RefreshTokenHandlerTests
         authService.Setup(s => s.RefreshTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<LoginResponse>.Success(response));
 
-        var handler = new RefreshTokenHandler(authService.Object);
+        var handler = new RefreshTokenHandler(authService.Object, NullLogger<RefreshTokenHandler>.Instance);
         var result = await handler.Handle(new RefreshTokenCommand("refresh-xyz"), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -36,7 +37,7 @@ public class RefreshTokenHandlerTests
         authService.Setup(s => s.RefreshTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<LoginResponse>.Failure(ErrorKind.Unauthorized, "expired"));
 
-        var handler = new RefreshTokenHandler(authService.Object);
+        var handler = new RefreshTokenHandler(authService.Object, NullLogger<RefreshTokenHandler>.Instance);
         var result = await handler.Handle(new RefreshTokenCommand("stale"), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();

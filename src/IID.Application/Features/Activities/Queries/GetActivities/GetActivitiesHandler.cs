@@ -12,10 +12,11 @@ public sealed class GetActivitiesHandler(
     public async Task<Result<GetActivitiesResult>> Handle(GetActivitiesQuery q, CancellationToken ct)
     {
         var userId = currentUser.Id ?? string.Empty;
+        var limit = q.Limit <= 0 ? 10 : q.Limit;
+
         var readIds = await userActivityReadRepository.GetReadActivityIdsAsync(userId, ct);
 
         // Fetch actions using cursor-based pagination
-        var limit = q.Limit <= 0 ? 10 : q.Limit;
         var (actionList, nextCursor, hasMore, total) = await vehicleActionRepository.ListByCursorAsync(q.Cursor, limit, ct);
 
         var vehicleIds = actionList.Select(a => a.VehicleId).Distinct().ToList();

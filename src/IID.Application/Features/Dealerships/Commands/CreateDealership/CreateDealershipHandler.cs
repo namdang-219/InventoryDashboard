@@ -1,8 +1,8 @@
 using IID.Application.Common.Interfaces;
+using IID.Application.Logging;
 using IID.Domain.Common;
 using IID.Domain.Dealerships;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace IID.Application.Features.Dealerships.Commands.CreateDealership;
 
@@ -26,11 +26,11 @@ public sealed class CreateDealershipHandler(
         var saveResult = await uow.SaveChangesAsync(ct);
         if (!saveResult.IsSuccess)
         {
-            logger.LogError("Failed to persist dealership {Code}: {Message}", req.Code, saveResult.Message);
+            logger.CreateDealershipFailed(req.Code, saveResult.Message ?? "Failed to save dealership.", null);
             return Result<Guid>.Failure(saveResult.ErrorKind, saveResult.Message ?? "Failed to save dealership.");
         }
 
-        logger.LogInformation("Created dealership {Id} ({Code} - {Name})", dealership.Id, dealership.Code, dealership.Name);
+        logger.DealershipCreated(dealership.Id, dealership.Code, dealership.Name);
         return Result<Guid>.Success(dealership.Id);
     }
 }

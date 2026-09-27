@@ -2,12 +2,12 @@ using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Dashboard.Queries.Dtos;
 using MediatR;
+
 namespace IID.Application.Dashboard.Queries.GetDashboardAging;
 
 public sealed class GetDashboardAgingHandler(
     IVehicleRepository vehicles,
-    IClock clock,
-    ILogger<GetDashboardAgingHandler> logger) : IRequestHandler<GetDashboardAgingQuery, Result<PagedResult<AgingStockItemDto>>>
+    IClock clock) : IRequestHandler<GetDashboardAgingQuery, Result<PagedResult<AgingStockItemDto>>>
 {
     public async Task<Result<PagedResult<AgingStockItemDto>>> Handle(GetDashboardAgingQuery q, CancellationToken ct)
     {
@@ -43,10 +43,6 @@ public sealed class GetDashboardAgingHandler(
 
         var total = aging.Count;
         var paged = aging.Skip((page - 1) * limit).Take(limit).ToList();
-
-        if (logger.IsEnabled(LogLevel.Debug))
-            logger.LogDebug("Aging stock: minDays={MinDays}, total={Total}, returned={Returned}",
-                q.MinAgeDays, total, paged.Count);
 
         return Result<PagedResult<AgingStockItemDto>>.Success(new PagedResult<AgingStockItemDto>(paged, page, limit, total));
     }

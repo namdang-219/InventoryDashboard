@@ -1,7 +1,9 @@
 using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
+using IID.Application.Logging;
 using MediatR;
+
 namespace IID.Application.Dashboard.Queries.GetDashboardSummary;
 
 public sealed class GetDashboardSummaryHandler(
@@ -69,7 +71,7 @@ public sealed class GetDashboardSummaryHandler(
             fuelMix,
             demandGroups);
 
-        logger.LogDebug("Dashboard summary generated: total={Total}", items.Count);
+        logger.DashboardSummaryGenerated(items.Count, available, pending, sold, agingCount);
 
         return Result<DashboardSummaryDto>.Success(summary);
     }

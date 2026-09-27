@@ -1,9 +1,15 @@
 using IID.Domain.Common;
+using IID.Domain.Vehicles;
 
 namespace IID.Domain.Vehicles.Events;
 
+/// <summary>
+/// Lifecycle domain events raised by <see cref="Vehicle"/>.
+/// Each event carries the full aggregate so downstream event handlers
+/// (SignalR broadcasters, etc.) can forward it without an extra DB read.
+/// </summary>
 public sealed record VehicleAdded(
-    Guid VehicleId,
+    Vehicle Vehicle,
     string Make,
     string Model,
     VehicleStatus Status) : IDomainEvent
@@ -12,14 +18,14 @@ public sealed record VehicleAdded(
 }
 
 public sealed record VehicleUpdated(
-    Guid VehicleId,
+    Vehicle Vehicle,
     string Make) : IDomainEvent
 {
     public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;
 }
 
 public sealed record VehicleTransferred(
-    Guid VehicleId,
+    Vehicle Vehicle,
     Guid PreviousDealershipId,
     Guid NewDealershipId,
     string Make) : IDomainEvent
@@ -28,7 +34,7 @@ public sealed record VehicleTransferred(
 }
 
 public sealed record VehicleStatusChanged(
-    Guid VehicleId,
+    Vehicle Vehicle,
     VehicleStatus PreviousStatus,
     VehicleStatus NewStatus,
     string Make) : IDomainEvent
@@ -37,7 +43,7 @@ public sealed record VehicleStatusChanged(
 }
 
 public sealed record VehicleSold(
-    Guid VehicleId,
+    Vehicle Vehicle,
     string Make,
     DateTimeOffset SoldAtUtc,
     int DaysToSell) : IDomainEvent
@@ -46,7 +52,7 @@ public sealed record VehicleSold(
 }
 
 public sealed record VehicleRemoved(
-    Guid VehicleId,
+    Vehicle Vehicle,
     string Make) : IDomainEvent
 {
     public DateTimeOffset OccurredOnUtc { get; } = DateTimeOffset.UtcNow;

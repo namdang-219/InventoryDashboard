@@ -3,7 +3,6 @@ using IID.Application.Common.Interfaces;
 using IID.Application.Vehicles.Commands.CreateVehicle;
 using IID.Domain.Common;
 using IID.Domain.Vehicles;
-using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -13,7 +12,6 @@ public class CreateVehicleHandlerTests
 {
     private readonly Mock<IVehicleRepository> _repo = new();
     private readonly Mock<IUnitOfWork> _uow = new();
-    private readonly Mock<IVehicleHubNotifier> _notifier = new();
     private readonly Mock<IClock> _clock = new();
     private readonly Mock<ICurrentUser> _user = new();
 
@@ -24,7 +22,7 @@ public class CreateVehicleHandlerTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<int>.Success(1));
         return new CreateVehicleHandler(
-            _repo.Object, _uow.Object, _notifier.Object,
+            _repo.Object, _uow.Object,
             _clock.Object, _user.Object,
             NullLogger<CreateVehicleHandler>.Instance);
     }
@@ -82,7 +80,7 @@ public class CreateVehicleHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotifyHub_OnSuccess()
+    public async Task Handle_Should_RaiseVehicleAddedDomainEvent_OnSuccess()
     {
         _repo.Setup(r => r.VinExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
@@ -90,9 +88,17 @@ public class CreateVehicleHandlerTests
             "1HGBH41JXMN109186", "Honda", "Civic", 2023, "Red", 1000,
             FuelType.Petrol, 15000m, 18000m, VehicleStatus.Available,
             DateTimeOffset.UtcNow.AddDays(-1));
+        var sut = CreateSut();
 
-        await CreateSut().Handle(cmd, CancellationToken.None);
+        Vehicle? capturedVehicle = null;
+        _repo.Setup(r => r.AddAsync(It.IsAny<Vehicle>(), It.IsAny<CancellationToken>()))
+            .Callback<Vehicle, CancellationToken>((v, _) => capturedVehicle = v)
+            .Returns(Task.CompletedTask);
 
-        _notifier.Verify(n => n.VehicleAddedAsync(It.IsAny<Vehicle>(), It.IsAny<CancellationToken>()), Times.Once);
+        var result = await sut.Handle(cmd, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        capturedVehicle.Should().NotBeNull();
+        capturedVehicle!.DomainEvents.Should().ContainSingle(e => e is Domain.Vehicles.Events.VehicleAdded);
     }
 }

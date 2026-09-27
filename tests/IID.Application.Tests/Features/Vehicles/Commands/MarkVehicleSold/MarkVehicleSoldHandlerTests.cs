@@ -12,7 +12,6 @@ public class MarkVehicleSoldHandlerTests
 {
     private readonly Mock<IVehicleRepository> _repo = new();
     private readonly Mock<IUnitOfWork> _uow = new();
-    private readonly Mock<IVehicleHubNotifier> _notifier = new();
     private readonly Mock<IClock> _clock = new();
     private readonly Mock<ICurrentUser> _user = new();
 
@@ -29,11 +28,10 @@ public class MarkVehicleSoldHandlerTests
     {
         _clock.SetupGet(c => c.UtcNow).Returns(DateTimeOffset.UtcNow);
         _user.SetupGet(u => u.Id).Returns("user-1");
-        // Default: SaveChangesAsync succeeds with 1 row affected.
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<int>.Success(1));
         return new MarkVehicleSoldHandler(
-            repo ?? _repo.Object, _uow.Object, _notifier.Object,
+            repo ?? _repo.Object, _uow.Object,
             _clock.Object, _user.Object,
             NullLogger<MarkVehicleSoldHandler>.Instance);
     }
@@ -78,14 +76,16 @@ public class MarkVehicleSoldHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotifyHub_OnSuccess()
+    public async Task Handle_Should_RaiseVehicleSoldDomainEvent_OnSuccess()
     {
         var vehicle = CreateAvailable();
         _repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(vehicle);
 
-        await CreateSut().Handle(new MarkVehicleSoldCommand(vehicle.Id, 26000m), CancellationToken.None);
+        var result = await CreateSut().Handle(new MarkVehicleSoldCommand(vehicle.Id, 26000m), CancellationToken.None);
 
-        _notifier.Verify(n => n.VehicleUpdatedAsync(It.IsAny<Vehicle>(), It.IsAny<CancellationToken>()), Times.Once);
+        result.IsSuccess.Should().BeTrue();
+        vehicle.DomainEvents.Should().Contain(e => e is Domain.Vehicles.Events.VehicleSold);
+        vehicle.DomainEvents.Should().Contain(e => e is Domain.Vehicles.Events.VehicleStatusChanged);
     }
 
     [Fact]
@@ -143,7 +143,6 @@ public class MarkVehicleSoldHandlerTests
         _repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(vehicle);
 
         var sut = CreateSut();
-        // Override the default Success setup *after* CreateSut so this one wins.
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<int>.Failure(ErrorKind.Conflict, "row modified"));
 
@@ -152,6 +151,5 @@ public class MarkVehicleSoldHandlerTests
 
         result.IsSuccess.Should().BeFalse();
         result.ErrorKind.Should().Be(ErrorKind.Conflict);
-        _notifier.Verify(n => n.VehicleUpdatedAsync(It.IsAny<Vehicle>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

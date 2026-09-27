@@ -57,7 +57,7 @@ public sealed class Vehicle : AggregateRoot
             purchasePrice, askingPrice, status,
             dateAddedToInventory, nowUtc, createdByUserId, stockNumber, dealershipId);
 
-        v.RaiseDomainEvent(new VehicleAdded(v.Id, v.Make, v.Model, v.Status));
+        v.RaiseDomainEvent(new VehicleAdded(v, v.Make, v.Model, v.Status));
         return v;
     }
 
@@ -87,6 +87,37 @@ public sealed class Vehicle : AggregateRoot
             vin, make, model, year, color, mileage, fuelType,
             purchasePrice, askingPrice, status,
             dateAddedToInventory, nowUtc, createdByUserId, stockNumber, dealershipId);
+
+    /// <summary>
+    /// Lightweight factory for tests and event-payload assembly. Skips
+    /// <see cref="BuildAndValidate"/> so callers can build a <see cref="Vehicle"/>
+    /// that satisfies the property shape required by mappers / DTO serializers
+    /// without needing a real VIN or pricing. Does NOT raise any domain event.
+    /// </summary>
+    public static Vehicle ForTesting(
+        Guid id,
+        string make = "Test",
+        string model = "Model",
+        int year = 2024,
+        Guid? dealershipId = null)
+        => new()
+        {
+            Id = id,
+            Vin = Vin.Parse("1HGBH41JXMN109186"),
+            Make = make,
+            Model = model,
+            Year = year,
+            Color = "Black",
+            Mileage = 0,
+            FuelType = FuelType.Petrol,
+            PurchasePrice = Money.Of(0m),
+            AskingPrice = Money.Of(0m),
+            Status = VehicleStatus.Available,
+            DateAddedToInventory = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+            DealershipId = dealershipId ?? Guid.Empty,
+        };
 
     private static Vehicle BuildAndValidate(
         Vin vin,
@@ -146,7 +177,7 @@ public sealed class Vehicle : AggregateRoot
         UpdatedAt = nowUtc;
         if (!string.IsNullOrWhiteSpace(updatedByUserId))
             UpdatedByUserId = updatedByUserId;
-        RaiseDomainEvent(new VehicleTransferred(Id, previousDealershipId, newDealershipId, Make));
+        RaiseDomainEvent(new VehicleTransferred(this, previousDealershipId, newDealershipId, Make));
     }
 
     public void Update(
@@ -178,9 +209,9 @@ public sealed class Vehicle : AggregateRoot
         UpdatedAt = nowUtc;
         UpdatedByUserId = updatedByUserId;
 
-        RaiseDomainEvent(new VehicleUpdated(Id, Make));
+        RaiseDomainEvent(new VehicleUpdated(this, Make));
         if (previous != status)
-            RaiseDomainEvent(new VehicleStatusChanged(Id, previous, status, Make));
+            RaiseDomainEvent(new VehicleStatusChanged(this, previous, status, Make));
     }
 
     /// <summary>
@@ -198,8 +229,8 @@ public sealed class Vehicle : AggregateRoot
         UpdatedAt = soldAtUtc;
         UpdatedByUserId = updatedByUserId;
 
-        RaiseDomainEvent(new VehicleStatusChanged(Id, previous, Status, Make));
-        RaiseDomainEvent(new VehicleSold(Id, Make, soldAtUtc, DaysInInventory(soldAtUtc)));
+        RaiseDomainEvent(new VehicleStatusChanged(this, previous, Status, Make));
+        RaiseDomainEvent(new VehicleSold(this, Make, soldAtUtc, DaysInInventory(soldAtUtc)));
     }
 
     public void SoftDelete(DateTimeOffset nowUtc, string deletedByUserId)
@@ -208,7 +239,7 @@ public sealed class Vehicle : AggregateRoot
         DeletedAt = nowUtc;
         UpdatedAt = nowUtc;
         UpdatedByUserId = deletedByUserId;
-        RaiseDomainEvent(new VehicleRemoved(Id, Make));
+        RaiseDomainEvent(new VehicleRemoved(this, Make));
     }
 
     // ── Domain logic / computed ───────────────────────────────────────────────

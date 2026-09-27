@@ -2,11 +2,11 @@ using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Dashboard.Queries.Dtos;
 using MediatR;
+
 namespace IID.Application.Dashboard.Queries.GetLowInventoryAlerts;
 
 public sealed class GetLowInventoryAlertsHandler(
-    IVehicleRepository vehicles,
-    ILogger<GetLowInventoryAlertsHandler> logger) : IRequestHandler<GetLowInventoryAlertsQuery, Result<IReadOnlyList<LowInventoryAlertDto>>>
+    IVehicleRepository vehicles) : IRequestHandler<GetLowInventoryAlertsQuery, Result<IReadOnlyList<LowInventoryAlertDto>>>
 {
     // Threshold below which a make/model combo is considered "low inventory"
     private const int LowInventoryThreshold = 3;
@@ -39,9 +39,6 @@ public sealed class GetLowInventoryAlertsHandler(
             .OrderByDescending(a => LowInventoryThreshold - a.Available) // most critical first
             .Take(10)
             .ToList();
-
-        if (logger.IsEnabled(LogLevel.Debug))
-            logger.LogDebug("Low-inventory alerts: {Count}", alerts.Count);
 
         return Result<IReadOnlyList<LowInventoryAlertDto>>.Success(alerts);
     }

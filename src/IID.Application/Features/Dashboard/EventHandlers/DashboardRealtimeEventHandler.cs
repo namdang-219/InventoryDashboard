@@ -6,12 +6,13 @@ namespace IID.Application.Features.Dashboard.EventHandlers;
 
 /// <summary>
 /// Broadcasts dashboard-level refresh on aggregate-level domain events.
-///
-/// Note: <see cref="VehicleTransferred"/> is intentionally NOT handled here.
-/// It is an entity-level event broadcast once by
-/// <c>TransferDealershipHandler</c> via <see cref="IVehicleHubNotifier.VehicleTransferredAsync"/>,
-/// to the source + target dealership groups only. Adding it here would
-/// trigger a redundant global dashboard refresh on every transfer.
+/// This handler does NOT route per-vehicle SignalR notifications to dealer
+/// groups — that responsibility is the
+/// <see cref="Features.Vehicles.EventHandlers.VehicleRealtimeEventHandler"/>
+/// and <see cref="Features.Vehicles.EventHandlers.VehicleTransferRealtimeEventHandler"/>.
+/// <see cref="Domain.Vehicles.Events.VehicleTransferred"/> is intentionally not
+/// handled here because the dashboard does not need to recompute on every dealer
+/// transfer (per-row notifications already went out via the transfer broadcaster).
 /// </summary>
 public sealed class DashboardRealtimeEventHandler(
     IDashboardService dashboardService,

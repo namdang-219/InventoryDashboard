@@ -3,6 +3,7 @@ using IID.Application.Common.Interfaces;
 using IID.Application.VehicleActions.Commands.UpdateVehicleAction;
 using IID.Domain.Common;
 using IID.Domain.VehicleActions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace IID.Application.Tests.Features.VehicleActions.Commands.UpdateVehicleAction;
@@ -21,7 +22,7 @@ public class UpdateVehicleActionHandlerTests
         _user.SetupGet(u => u.Email).Returns("saler@iid.local");
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(IID.Domain.Common.Result<int>.Success(1));
-        return new UpdateVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object);
+        return new UpdateVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object, NullLogger<UpdateVehicleActionHandler>.Instance);
     }
 
     [Fact]
@@ -57,7 +58,7 @@ public class UpdateVehicleActionHandlerTests
     public async Task Handle_Should_ReturnUnauthorized_WhenNoUser()
     {
         _user.SetupGet(u => u.Id).Returns((string?)null);
-        var sut = new UpdateVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object);
+        var sut = new UpdateVehicleActionHandler(_actions.Object, _uow.Object, _clock.Object, _user.Object, NullLogger<UpdateVehicleActionHandler>.Instance);
 
         var cmd = new UpdateVehicleActionCommand(Guid.NewGuid(), VehicleActionType.Relist, "notes");
         var result = await sut.Handle(cmd, CancellationToken.None);
