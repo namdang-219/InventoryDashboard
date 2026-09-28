@@ -510,7 +510,7 @@ dotnet build -c Debug
 
 # 2. Configure connection string (User Secrets, dev)
 dotnet user-secrets set "ConnectionStrings:IID" \
-  "Server=localhost;Database=IID;User Id=sa;Password=<pwd>;TrustServerCertificate=True;" \
+  "Server=localhost,1434;Database=IID;User Id=sa;Password=<pwd>;TrustServerCertificate=True;" \
   --project src/IID.Api
 
 # 3. Apply EF Core 10 migrations

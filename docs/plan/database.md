@@ -220,8 +220,8 @@ WHERE v.DeletedAtUtc IS NULL;
 ### Local Dev
 
 ```bash
-docker run -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=YourStrong!Passw0rd \
-  -p 1433:1433 --name iid-sql -d mcr.microsoft.com/mssql/server:2022-latest
+docker run -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=YourStrong!Passw0rd -e MSSQL_TCP_PORT=1434 \
+  -p 1434:1434 --name iid-sql -d mcr.microsoft.com/mssql/server:2022-latest
 
 dotnet ef database update \
   --project src/IID.Infrastructure \

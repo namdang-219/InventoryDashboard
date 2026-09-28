@@ -108,7 +108,7 @@ To establish concrete architectural boundaries and resolve ambiguities in the su
 2. **Deterministic Calendar-Day Aging Policy (Business Assumption):**  
    The aging threshold is calculated strictly as **90 calendar days** ($T_{\text{now}} - T_{\text{added}} > 90 \text{ days}$), based on the UTC timestamp when the vehicle was formally registered in the system (`DateAddedToInventory`). Business operating days, holiday schedules, and transit/reconditioning delays are not deducted from the lot aging calculation.
 3. **Isolated Container Network Security (Technical Assumption):**  
-   The backend API container and database communicate over an isolated internal Docker bridge network (`iid` network). The database port (1433) is restricted to the internal network or secured via TLS encrypted connections, with credentials injected via secure environment variables.
+   The backend API container and database communicate over an isolated internal Docker bridge network (`iid` network). The database port (1434) is restricted to the internal network or secured via TLS encrypted connections, with credentials injected via secure environment variables.
 4. **Contract-First Client Decoupling (Technical Assumption):**  
    While a high-fidelity Angular 19 SPA (`IID.ClientApp`) is provided, the backend API is strictly decoupled through OpenAPI specifications. Downstream and external dealership systems (e.g., Dealer Management Systems / DMS) interact with the platform purely via standard RESTful endpoints and WebSockets, validated independently via Swagger UI and cURL scripts.
 

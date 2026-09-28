@@ -59,7 +59,7 @@ docker compose up -d --build
 
 - **API & Swagger UI:** [http://localhost:8080/swagger](http://localhost:8080/swagger)
 - **API Base URL:** `http://localhost:8080`
-- **SQL Server 2022:** `localhost:1433` (sa / `YourStrong!Passw0rd` from `.env.example`)
+- **SQL Server 2022:** `localhost:1434` (sa / `YourStrong!Passw0rd` from `.env.example`)
 - **OpenObserve Observability:** [http://localhost:5080](http://localhost:5080) (`admin@iid.local` / `P@ssw0rd!OpenObserve`)
 - **Automatic Initialization:** EF Core migrations and sample data seeder (~733 vehicles across 10 dealerships) execute automatically on API startup.
 
@@ -351,7 +351,7 @@ Connection strings and secrets are configured via `.env` (for Docker Compose) an
 ```json
 {
   "ConnectionStrings": {
-    "IID": "Server=localhost;Database=IID;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;"
+    "IID": "Server=localhost,1434;Database=IID;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;"
   },
   "Jwt": {
     "Issuer": "iid.local",
