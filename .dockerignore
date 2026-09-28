@@ -1,9 +1,21 @@
-# Build artifacts
+# Client app (Angular frontend has its own build and should not bloat the backend build)
+src/IID.ClientApp/
+**/node_modules/
+**/.angular/
+**/dist/
+
+# Version control & IDE
+.git/
+.cursor/
+.vscode/
+**/.vs/
+*.user
+
+# .NET Build artifacts
 **/bin/
 **/obj/
-**/.vs/
 
-# Local secrets / IDE
+# Docs, tests, environment
 .env
-.cursor/
-*.user
+docs/
+tests/

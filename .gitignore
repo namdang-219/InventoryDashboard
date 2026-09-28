@@ -67,7 +67,6 @@ Desktop.ini
 .vscode/launch.json
 .vscode/tasks.json
 !.vscode/extensions.json
-.cursor/
 *.swp
 *.swo
 *~

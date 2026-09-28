@@ -1,537 +1,185 @@
 # Backend Plan — Intelligent Inventory Dashboard
 
-> **Bounded Context:** Dealership Inventory
-> **Stack:** **.NET 10 (LTS, supported until 2028-11-10)** · C# 14 · FastEndpoints 8.x · EF Core 10 · SignalR · MediatR 14 · FluentValidation 12 · Serilog.AspNetCore 10 · ASP.NET Identity · xUnit
-> **Style:** Clean Architecture + DDD, vertical slices, source-gen logging, `Result<T>` with typed `ErrorKind`
+> **Stack:** **.NET 10 (LTS)** · C# 14 · FastEndpoints 8.x (REPR) · EF Core 10 · SignalR · MediatR 14.2 · FluentValidation 12 · Serilog.AspNetCore 10 · OpenTelemetry · OpenObserve
+> **Architecture:** Clean Architecture + DDD + CQRS, in-process post-commit domain event dispatching, typed `Result<T>` pattern.
 
 ---
 
 ## 1. Architecture Decisions
 
-| Decision | Choice | Rationale |
+| Area | Implementation Choice | Rationale |
 |---|---|---|
-| Runtime | **.NET 10 (LTS)** | Three-year support window (2025-11-11 → 2028-11-14), C# 14, latest performance improvements; aligns with EF Core 10 GA requirement |
-| Paradigm | Clean Architecture + DDD | Enforces invariants in `Domain`, business logic in `Application`; Infrastructure is replaceable |
-| Endpoints | FastEndpoints 8.x | Vertical-slice endpoints, lightweight, first-class Swagger, PATCH/Idempotency-Key friendly. FastEndpoints targets `net8.0` and is binary-compatible with `net10.0`. |
-| ORM | EF Core 10 | Migrations, change tracking, owned-entity/value-object mapping, easy SQL Server targeting. EF Core 10 requires the .NET 10 runtime. |
-| Real-time | SignalR (`/hubs/inventory`) | Server-push inventory updates to all dashboards |
-| CQRS | MediatR 14.2 | Decouples endpoints from handlers; enables pipeline behaviors. MediatR 14 adds first-class `net10.0` targeting. |
-| Validation | FluentValidation 12 | Declarative per-command rules; runs in MediatR pipeline. FluentValidation 12 requires ≥ .NET 8 and supports `net10.0`. |
-| Auth | ASP.NET Identity + JWT | Roles `Manager`, `Viewer` |
-| Logging | Serilog.AspNetCore 10 + `LoggerMessageAttribute` | High-perf, allocation-free logs. Package major version matches target framework (10.x for net10.0). |
-| Errors | `Result<T>` + `ErrorKind` enum | No exceptions for domain failures; HTTP status mapped via `ResultMapper.ToStatus()` |
-
-### TFM Pinning
-
-All projects set `<TargetFramework>net10.0</TargetFramework>`. Test projects use `net10.0` with xUnit v3. Solution targets `Microsoft.NET.Sdk` 10.x.
-
-### Package Pinning (minimum)
-
-```xml
-<PackageReference Include="Microsoft.EntityFrameworkCore"            Version="10.0.0" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Tools"     Version="10.0.0" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design"    Version="10.0.0" />
-<PackageReference Include="FastEndpoints"                            Version="8.*" />
-<PackageReference Include="FastEndpoints.Swagger"                    Version="8.*" />
-<PackageReference Include="MediatR"                                  Version="14.2.0" />
-<PackageReference Include="FluentValidation"                         Version="12.*" />
-<PackageReference Include="Serilog.AspNetCore"                       Version="10.0.0" />
-<PackageReference Include="Microsoft.AspNetCore.SignalR"             Version="2.3.0" />
-<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
-```
-
-`global.json` pins the SDK:
-
-```json
-{
-  "sdk": {
-    "version": "10.0.0",
-    "rollForward": "latestFeature"
-  }
-}
-```
-
-### Layer Rules (per workspace standards)
-
-```
-Presentation → Application → Infrastructure
-                  ↓
-                Domain
-```
-
-- Application has **zero** infrastructure references.
-- Repository interfaces live in **Application**; implementations in **Infrastructure**.
-- Business logic lives in **Application** handlers and **Domain** entities/services.
-- Endpoints contain **no** business logic; they only translate HTTP ↔ MediatR.
+| **Runtime** | .NET 10 (LTS) & C# 14 | Target framework `net10.0`; primary constructors, pattern matching, performance gains. |
+| **API Endpoints** | FastEndpoints 8.x (REPR pattern) | Vertical slice endpoints (`Endpoint<TRequest, TResponse>`), auto OpenAPI / Swagger schemas, no bloated controllers. |
+| **CQRS & Pipeline** | MediatR 14.2 | Strict separation of commands and queries. Global pipeline behaviors: `ValidationBehavior` and `PerformanceBehavior`. |
+| **Domain Events** | `DomainEventDispatchInterceptor` | Intercepts EF Core `SaveChangesAsync` and publishes domain events via MediatR **only after** successful transaction commit. |
+| **ORM & Persistence** | EF Core 10 | Code-first configurations, owned entity value objects (`Vin`, `Money`), query filters (`DeletedAt == null`), concurrency tokens (`RowVersion`). |
+| **Realtime** | ASP.NET Core SignalR (`/hubs/inventory`) | Typed WebSocket push (`IInventoryClient`) with `inventory-dashboard` and `dealership:{id}` groups. |
+| **Auth** | ASP.NET Core Identity + JWT | Roles `Manager`, `Saler`, `Sales`. Bearer token auth + refresh token endpoint. |
+| **Observability** | OpenTelemetry + OpenObserve | Full-stack distributed traces, EF Core SQL telemetry, and Serilog structured logs exported via OTLP to OpenObserve. |
 
 ---
 
-## 2. Solution & Folder Structure
+## 2. Solution Structure
 
 ```
 src/
-├── IID.Domain/                  # Entities, VOs, Domain Events, Domain Services, Exceptions
-├── IID.Application/             # Features/, Common/ (Interfaces, Behaviors, Models, Results)
-├── IID.Infrastructure/          # Persistence (EF Core), Identity, SignalR, Background services
-└── IID.Api/                     # FastEndpoints, Composition root, Middleware, Swagger
+├── IID.Domain/             # Pure business models: Vehicle, VehicleAction, Dealership, VOs, Events
+├── IID.Application/        # CQRS vertical slices: Features (Auth, Dashboard, Vehicles, Actions, Dealerships)
+├── IID.Infrastructure/     # EF Core persistence, Identity, Repositories, SignalR Notifiers, Seeders
+└── IID.Api/                # FastEndpoints, Configuration, Middleware (GlobalExceptionHandler), Program.cs
 
 tests/
-├── IID.Domain.Tests/
-├── IID.Application.Tests/
-├── IID.Infrastructure.Tests/    # Testcontainers SQL Server
-└── IID.IntegrationTests/        # WebApplicationFactory + SignalR smoke
-
-database/                        # sibling of /src, holds migrations, seeds, backups
-├── migrations/
-├── seeds/
-└── scripts/
-
-IID.sln
-```
-
-### Application Layer Detail
-
-```
-IID.Application/
-├── Common/
-│   ├── Behaviors/               # LoggingBehavior, ValidationBehavior, PerformanceBehavior, UoWBehavior
-│   ├── Interfaces/              # IVehicleRepository, IUnitOfWork, IVehicleHubNotifier, ICurrentUser
-│   ├── Models/                  # PagedResult<T>, Result<T>, ErrorKind
-│   └── Mappers/                 # VehicleMappingProfile, VehicleActionMappingProfile
-└── Features/
-    ├── Vehicles/
-    │   ├── Commands/            # CreateVehicle, UpdateVehicle, PatchVehicle, DeleteVehicle
-    │   ├── Queries/             # GetVehicleById, ListVehicles, GetAgingStock
-    │   ├── DTOs/                # VehicleResponse, VehicleListItem
-    │   └── Validators/
-    └── VehicleActions/
-        ├── Commands/            # LogVehicleAction, UpdateVehicleAction, DeleteVehicleAction
-        ├── Queries/             # GetVehicleAction, ListVehicleActions
-        ├── DTOs/
-        └── Validators/
+├── IID.Domain.Tests/        # Invariant unit tests (Vin, Vehicle, Aging, DemandScore)
+├── IID.Application.Tests/   # CQRS command/query handlers and validators
+├── IID.Infrastructure.Tests/# Repository query logic and seed options tests
+└── IID.Api.Tests/           # Middleware exception handling and endpoint testing
 ```
 
 ---
 
-## 3. Domain Layer (`IID.Domain`)
+## 3. Domain Model (`IID.Domain`)
 
-### 3.1 Aggregates & Entities
+### 3.1 Aggregate Roots & Entities
 
-| Aggregate Root | Purpose | Key Members |
-|---|---|---|
-| `Vehicle` | A vehicle in dealership inventory | `Id`, `Vin`, `Make`, `Model`, `Year`, `Color`, `Mileage`, `PurchasePrice`, `AskingPrice`, `Status`, `DateAddedToInventory` |
-| `VehicleAction` | A logged proposal/status for a vehicle | `Id`, `VehicleId`, `ActionType`, `Notes`, `LoggedBy`>, `LoggedAt` |
+- **`Vehicle` (Aggregate Root):**
+  - Identifiers: `Id`, `DealershipId`, `Vin`, `StockNumber`.
+  - Specs: `Make`, `Model`, `Year` (1980..current+1), `Color`, `Mileage`, `FuelType` (`Petrol`, `Diesel`, `Hybrid`, `PluginHybrid`, `Electric`).
+  - Pricing: `PurchasePrice` (`Money`), `AskingPrice` (`Money`), `SoldPrice` (`Money?`), `SoldAt`.
+  - State & Audit: `Status` (`Available`, `Pending`, `Sold`, `Wholesale`), `DateAddedToInventory`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, `RowVersion`.
+  - Methods: `Create`, `Update`, `TransferDealership`, `MarkSold`, `SoftDelete`.
+  - Analytics & Computed: `DaysInInventory()`, `IsAging(threshold=90)`, `GetAgingSeverity()`, `GetDemandScore()` (0–100), `GetDemandLevel()`.
+- **`VehicleAction` (Aggregate Root):**
+  - Members: `Id`, `VehicleId`, `ActionType`, `Notes`, `LoggedByUserId`, `LoggedAt`, audit fields.
+  - Action Types (10): `PriceReductionPlanned`, `PriceReductionExecuted`, `TransferToWholesale`, `TradeInCustomer`, `MarketingCampaign`, `DealerAuction`, `ManagerReview`, `Relist`, `Other`, `TransferDealership`.
+- **`Dealership` (Aggregate Root):**
+  - Members: `Id`, `Name`, `Code`, `City`, `State`, `Phone`, `CreatedAt`, `UpdatedAt`.
+- **Supporting Entities:** `InventoryActivity` (audit activity feed), `UserActivityReadStatus`, `Notification`.
 
-- `Vehicle` is the consistency boundary for stock facts.
-- `VehicleAction` is a **separate aggregate** referencing `VehicleId`. Cross-aggregate consistency is **eventual**, propagated via domain events + SignalR.
+### 3.2 Domain Services & Analytics
 
-### 3.2 Value Objects (private setters, factory methods, no public constructors)
-
-| VO | Invariants |
-|---|---|
-| `Vin` | 17 chars, `[A-HJ-NPR-Z0-9]` (ISO 3779), unique within active vehicles |
-| `Year` | `1900 ≤ y ≤ currentYear + 1` |
-| `Money` (record struct) | non-negative `Amount` + ISO `Currency` |
-| `Mileage` | ≥ 0; warns if > 1,000,000 |
-| `DateAddedToInventory` | ≤ `DateTimeOffset.UtcNow` |
-
-### 3.3 Enums & Constants
-
-```csharp
-public enum VehicleStatus { Available, Sold, Pending, Wholesale }
-
-public enum VehicleActionType {
-    PriceReductionPlanned,
-    TradeInEvaluation,
-    WholesaleListed,
-    ManagerReview,
-    Relist,
-    Other
-}
-
-public static class InventoryPolicy {
-    public const int AgingStockThresholdDays = 90;
-    public const int MaxListPageSize = 100;
-}
-```
-
-### 3.4 Domain Events
-
-| Event | Raised when | Side effect |
-|---|---|---|
-| `VehicleAddedToInventoryEvent` | New `Vehicle` persisted | SignalR `VehicleAdded` |
-| `VehicleUpdatedEvent` | `Vehicle` modified | SignalR `VehicleUpdated` |
-| `VehicleRemovedEvent` | `Vehicle` soft-deleted | SignalR `VehicleRemoved` |
-| `VehicleAgingThresholdReachedEvent` | Vehicle crosses 90-day mark | SignalR `VehicleAging` |
-| `VehicleActionLoggedEvent` | `VehicleAction` persisted | SignalR `VehicleActionLogged` |
-
-Dispatched **after commit** by `IDomainEventDispatcher` (wraps MediatR `INotification`).
-
-> **EF Core 10 note:** entities exposing domain events use the **named query filter** capability (`HasQueryFilter("active", e => e.DeletedAtUtc == null)`) so we can attach additional, selectively-disabled filters (e.g., per-tenant) without colliding with the soft-delete filter.
-
-### 3.5 Domain Service
-
-```csharp
-public sealed class AgingStockIdentifier(DateTimeOffset now)
-{
-    public bool IsAging(Vehicle v) =>
-        (now - v.DateAddedToInventory).TotalDays
-            > InventoryPolicy.AgingStockThresholdDays;
-}
-```
-
-### 3.6 Repository Interfaces (Application-owned, implemented in Infrastructure)
-
-```csharp
-public interface IVehicleRepository
-{
-    Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken ct);
-    Task<Vehicle?> GetByVinAsync(string vin, CancellationToken ct);
-    Task<bool> VinExistsAsync(string vin, CancellationToken ct);
-    Task AddAsync(Vehicle vehicle, CancellationToken ct);
-    Task UpdateAsync(Vehicle vehicle, CancellationToken ct);
-    Task DeleteAsync(Vehicle vehicle, CancellationToken ct);
-}
-
-public interface IVehicleActionRepository
-{
-    Task<VehicleAction?> GetByIdAsync(Guid id, CancellationToken ct);
-    Task AddAsync(VehicleAction action, CancellationToken ct);
-    Task UpdateAsync(VehicleAction action, CancellationToken ct);
-    Task DeleteAsync(VehicleAction action, CancellationToken ct);
-}
-
-public interface IUnitOfWork
-{
-    Task<int> SaveChangesAsync(CancellationToken ct);
-}
-```
+- **`VehicleAnalyticsService`:** Computes aging severity (`None`, `Warning` $\ge 30$, `High` $\ge 60$, `Critical` $\ge 90$), demand heuristics (0–100), and aging bucket distributions.
+- **`AgingStockIdentifier`:** Fast evaluation against `InventoryPolicy.AgingStockThresholdDays = 90`.
 
 ---
 
-## 4. Application Layer — Features (Vertical Slices)
+## 4. Application Layer (`IID.Application`)
 
-### 4.1 Commands & Queries (records)
+### 4.1 Feature Slices & CQRS
 
-```csharp
-public sealed record CreateVehicleCommand(
-    string Vin, string Make, string Model, int Year, string Color,
-    int Mileage, decimal PurchasePrice, decimal AskingPrice,
-    VehicleStatus Status, DateTimeOffset DateAddedToInventory
-) : IRequest<Result<Guid>>;
+- **Dashboard:**
+  - `GetDashboardBundleQuery`: Single roundtrip query loading summary cards, quick stats, 12-month sales trend, powertrain breakdown, aging breakdown, action center list, and paginated inventory.
+  - `GetDashboardAgingQuery`, `GetLowInventoryAlertsQuery`.
+- **Vehicles:**
+  - Commands: `CreateVehicleCommand`, `UpdateVehicleCommand`, `TransferDealershipCommand`, `MarkVehicleSoldCommand`, `DeleteVehicleCommand`.
+  - Queries: `ListVehiclesQuery` (paginated, sorted, filterable by dealership, make, model, VIN, stockNumber, age, status), `GetVehicleByIdQuery`, `GetAgingStockQuery`.
+- **Vehicle Actions:**
+  - Commands: `LogVehicleActionCommand`, `UpdateVehicleActionCommand`, `SoftDeleteVehicleActionCommand`.
+  - Queries: `GetVehicleActionsQuery`.
+- **Dealerships:**
+  - Commands: `CreateDealershipCommand`, `UpdateDealershipCommand`.
+  - Queries: `GetDealershipsQuery`.
+- **Activities & Auth:**
+  - `GetActivitiesQuery`, `MarkActivityReadCommand`.
+  - `LoginCommand`, `RefreshTokenCommand`.
 
-public sealed record UpdateVehicleCommand(
-    Guid Id, string Make, string Model, int Year, string Color,
-    int Mileage, decimal PurchasePrice, decimal AskingPrice, VehicleStatus Status
-) : IRequest<Result<Guid>>;
+### 4.2 In-Process Domain Event Handlers
 
-public sealed record DeleteVehicleCommand(Guid Id) : IRequest<Result>;
+Instead of calling notifiers directly inside handlers, mutations stage domain events on aggregates:
 
-public sealed record ListVehiclesQuery(
-    string? Make, string? Model, int? MinAgeDays, int? MaxAgeDays,
-    VehicleStatus? Status, int Page = 1, int Limit = 20,
-    string Sort = "createdAt", string Order = "desc"
-) : IRequest<Result<PagedResult<VehicleListItem>>>;
-
-public sealed record GetAgingStockQuery(int Page = 1, int Limit = 20)
-    : IRequest<Result<PagedResult<VehicleListItem>>>;
-
-public sealed record LogVehicleActionCommand(
-    Guid VehicleId, VehicleActionType ActionType, string? Notes, Guid LoggedByUserId
-) : IRequest<Result<Guid>>;
-
-public sealed record UpdateVehicleActionCommand(
-    Guid Id, VehicleActionType ActionType, string? Notes
-) : IRequest<Result>;
-
-public sealed record ListVehicleActionsQuery(
-    Guid? VehicleId, int Page = 1, int Limit = 20
-) : IRequest<Result<PagedResult<VehicleActionResponse>>>;
+```
+Command Handler ──► DbContext.SaveChangesAsync()
+                         │
+                         ▼
+        DomainEventDispatchInterceptor (Post-Commit)
+                         │
+         ┌───────────────┴───────────────┐
+         ▼                               ▼
+VehicleRealtimeEventHandler    DashboardRealtimeEventHandler
+(notifies vehicle/dealership)  (recalculates KPIs & broadcasts)
 ```
 
-### 4.2 Validators (FluentValidation)
-
-`CreateVehicleCommandValidator`:
-- `Vin`: matches VIN regex (ISO 3779), not empty
-- `Year`: between 1900 and `currentYear + 1`
-- `Make`/`Model`: 1–50 chars
-- `Mileage`, `PurchasePrice`, `AskingPrice`: `>= 0`
-- `DateAddedToInventory`: `<= now`
-
-`LogVehicleActionCommandValidator`:
-- `VehicleId`: not `Guid.Empty`
-- `Notes`: ≤ 2000 chars
-
-### 4.3 Handlers (primary constructors, ≤ 30 lines)
-
-```csharp
-public sealed class CreateVehicleHandler(
-    IVehicleRepository vehicles,
-    IUnitOfWork uow,
-    IVehicleHubNotifier notifier,
-    ILogger<CreateVehicleHandler> logger
-) : IRequestHandler<CreateVehicleCommand, Result<Guid>>
-{
-    public async Task<Result<Guid>> Handle(CreateVehicleCommand c, CancellationToken ct)
-    {
-        if (await vehicles.VinExistsAsync(c.Vin, ct))
-            return Result.Failure<Guid>(ErrorKind.Conflict, "VIN already exists.");
-
-        var vehicle = Vehicle.Create(c.Vin, c.Make, c.Model, c.Year, c.Color,
-            c.Mileage, Money.Of(c.PurchasePrice), Money.Of(c.AskingPrice),
-            c.Status, c.DateAddedToInventory);
-
-        await vehicles.AddAsync(vehicle, ct);
-        await uow.SaveChangesAsync(ct);
-        await notifier.VehicleAddedAsync(vehicle, ct);
-        return Result.Success(vehicle.Id);
-    }
-}
-```
-
-Other handlers follow the same shape:
-- `GetAgingStockHandler` — uses `AgingStockIdentifier` + filtered query.
-- `LogVehicleActionHandler` — verifies vehicle exists, raises `VehicleActionLoggedEvent`, pushes SignalR.
-
-### 4.4 Application Interfaces (implemented in Infrastructure)
-
-```csharp
-public interface IVehicleHubNotifier
-{
-    Task VehicleAddedAsync(Vehicle v, CancellationToken ct);
-    Task VehicleUpdatedAsync(Vehicle v, CancellationToken ct);
-    Task VehicleRemovedAsync(Guid vehicleId, CancellationToken ct);
-    Task VehicleAgingAsync(Vehicle v, CancellationToken ct);
-    Task VehicleActionLoggedAsync(VehicleAction a, CancellationToken ct);
-}
-
-public interface ICurrentUser
-{
-    Guid? Id { get; }
-    bool IsInRole(string role);
-}
-```
+- **`VehicleRealtimeEventHandler`:** Dispatches `VehicleAdded`, `VehicleUpdated`, `VehicleSold`, `VehicleRemoved` to `IVehicleHubNotifier`.
+- **`VehicleTransferRealtimeEventHandler`:** Dispatches `VehicleTransferred` events.
+- **`DashboardRealtimeEventHandler`:** Recomputes summary metrics and alert lists upon state changes, pushing `DashboardSummaryUpdated`, `DashboardAlertsUpdated`, and `InventoryChanged`.
+- **`DealershipRealtimeEventHandler`:** Dispatches `DealershipAdded` and `DealershipUpdated` to `IDealershipHubNotifier`.
+- **`VehicleActionRealtimeEventHandler`:** Dispatches `VehicleActionLogged` to `IVehicleHubNotifier`.
 
 ---
 
 ## 5. Infrastructure Layer (`IID.Infrastructure`)
 
-### 5.1 Persistence
+### 5.1 Persistence & EF Core 10
 
-- `IidDbContext : DbContext` — `DbSet<Vehicle>`, `DbSet<VehicleAction>`, identity `DbSet`s.
-- `IEntityTypeConfiguration<Vehicle>` / `IEntityTypeConfiguration<VehicleAction>` — Fluent API only (no data annotations on domain types).
-- Soft delete: **named query filter** `HasQueryFilter("active", e => e.DeletedAtUtc == null)` — EF Core 10 feature that allows additional filters (e.g., per-tenant) to be added later without collision.
-- Concurrency: `RowVersion` (`rowversion`) token on `Vehicle`.
-- Repositories: thin wrappers over `DbContext`; expose async APIs with `CancellationToken`.
-- `UnitOfWork` wraps `DbContext.SaveChangesAsync`.
-- Value objects (`Money`, `Vin`) mapped as **owned complex types**; `Money` stored as `decimal(18,4)` + `char(3)` (see database plan).
-- JSON columns: any free-form snapshot (`VehicleInventoryHistory.OldValuesJson`) stored as native `json` column type (EF Core 10 has first-class JSON column support).
+- **`IidDbContext`:** Configures `DbSet<Vehicle>`, `DbSet<VehicleAction>`, `DbSet<Dealership>`, `DbSet<UserActivityReadStatus>`, and Identity tables.
+- **Interceptors:** `DomainEventDispatchInterceptor` captures domain events before save and publishes them after successful commit.
+- **Entity Configurations:**
+  - Global query filter `[DeletedAt] IS NULL` on soft-deletable entities.
+  - Filtered unique indexes on `UX_Vehicle_Vin_Active` and `UX_Vehicle_StockNumber_Active`.
+  - Composite indexes on `Status` + `DateAddedToInventory`, `FuelType`, `DealershipId`.
+- **Repositories & UnitOfWork:** Repositories encapsulate database access; `UnitOfWork` handles transactions.
 
-### 5.2 Identity
+### 5.2 Real-time SignalR Hub (`InventoryHub`)
 
-- `ApplicationUser : IdentityUser<Guid>`.
-- Roles seeded: `Manager`, `Viewer`.
-- JWT bearer auth + refresh tokens (optional).
-- `CurrentUserService` reads from `IHttpContextAccessor`.
+- **Hub URL:** `/hubs/inventory` (requires JWT authentication).
+- **Client Contract (`IInventoryClient`):**
+  - `VehicleAdded(VehicleRealtimeDto)`
+  - `VehicleUpdated(VehicleRealtimeDto)`
+  - `VehicleRemoved(Guid vehicleId)`
+  - `VehicleAging(VehicleRealtimeDto)`
+  - `VehicleActionLogged(VehicleActionRealtimeDto)`
+  - `DashboardSummaryUpdated(DashboardSummaryRealtimeDto)`
+  - `DashboardAlertsUpdated(IReadOnlyList<DashboardAlertRealtimeDto>)`
+  - `InventoryChanged()`
+  - `DealershipAdded(DealershipRealtimeDto)`
+  - `DealershipUpdated(DealershipRealtimeDto)`
+- **Groups:** Automatically adds connections to `inventory-dashboard`; allows clients to invoke `JoinDealership(dealershipId)` and `LeaveDealership(dealershipId)`.
 
-### 5.3 Real-time — SignalR
+### 5.3 Automated Seeders (`IidDbInitializer`)
 
-```csharp
-public interface IInventoryClient
-{
-    Task VehicleAdded(VehicleResponse vehicle);
-    Task VehicleUpdated(VehicleResponse vehicle);
-    Task VehicleRemoved(Guid vehicleId);
-    Task VehicleAging(VehicleResponse vehicle);
-    Task VehicleActionLogged(VehicleActionResponse action);
-}
-
-public sealed class InventoryHub : Hub<IInventoryClient>
-{
-    public override async Task OnConnectedAsync()
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, "inventory-dashboard");
-        await base.OnConnectedAsync();
-    }
-}
-
-public sealed class SignalRVehicleHubNotifier(
-    IHubContext<InventoryHub, IInventoryClient> hub
-) : IVehicleHubNotifier
-{
-    public Task VehicleAddedAsync(Vehicle v, CancellationToken ct) =>
-        hub.Clients.Group("inventory-dashboard")
-            .VehicleAdded(VehicleMappingProfile.ToResponse(v));
-    // ... similar for others
-}
-```
-
-### 5.4 Background Aging Job
-
-```csharp
-public sealed class AgingStockMonitorService(
-    IServiceScopeFactory scopes,
-    ILogger<AgingStockMonitorService> logger
-) : BackgroundService
-{
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        // every 15 min scan vehicles aged 80–91 days, raise VehicleAgingThresholdReachedEvent
-    }
-}
-```
+Runs on application startup when database is initialized:
+1. `IdentitySeeder` (Order 10): Roles `Manager`, `Saler`, `Sales`. Users `admin@iid.local` and `saler@iid.local`.
+2. `DealershipsSeeder` (Order 15): 10 metropolitan dealerships across the US.
+3. `VehiclesSeeder` (Order 20): Seeds 733 vehicles distributed across all 10 dealerships with varied age, status, and fuel types.
+4. `VehicleActionsSeeder` (Order 30): Attaches initial action history to demo vehicles.
 
 ---
 
-## 6. Presentation Layer (`IID.Api`)
+## 6. API Endpoints (`IID.Api`)
 
-### 6.1 API Endpoints
-
-| Method | Route | Auth | Success | Failure |
-|---|---|---|---|---|
-| POST | `/api/v1/auth/login` | public | 200 + token | 401 |
-| POST | `/api/v1/auth/refresh` | public | 200 + token | 401 |
-| POST | `/api/v1/vehicles` | Manager | 201 + `{ data: { id } }` | 400, 409, 422 |
-| GET | `/api/v1/vehicles` | Manager/Viewer | 200 paged | 400, 401 |
-| GET | `/api/v1/vehicles/aging-stock` | Manager/Viewer | 200 paged | 400, 401 |
-| GET | `/api/v1/vehicles/{id}` | Manager/Viewer | 200 | 404 |
-| PUT | `/api/v1/vehicles/{id}` | Manager | 200 | 404, 422 |
-| PATCH | `/api/v1/vehicles/{id}` | Manager | 200 | 404, 422 |
-| DELETE | `/api/v1/vehicles/{id}` | Manager | 204 | 404 |
-| POST | `/api/v1/vehicles/{id}/actions` | Manager | 201 | 404, 422 |
-| GET | `/api/v1/vehicles/{id}/actions` | Manager/Viewer | 200 paged | 404 |
-| GET | `/api/v1/vehicle-actions` | Manager | 200 paged | 401 |
-| GET | `/api/v1/vehicle-actions/{id}` | Manager/Viewer | 200 | 404 |
-| PATCH | `/api/v1/vehicle-actions/{id}` | Manager | 200 | 404, 422 |
-| DELETE | `/api/v1/vehicle-actions/{id}` | Manager | 204 | 404 |
-
-### 6.2 Response Shape
-
-```jsonc
-// Success
-{ "data": { ... }, "meta": { "page": 1, "limit": 20, "total": 137 } }
-
-// Failure
-{ "error": { "code": 404, "message": "Vehicle not found.", "details": [] } }
-```
-
-### 6.3 Endpoint Example
-
-```csharp
-public sealed class CreateVehicleEndpoint(ISender sender) : Endpoint<CreateVehicleRequest, CreateVehicleResponse>
-{
-    public override void Configure()
-    {
-        Post("/api/v1/vehicles");
-        Roles("Manager");
-        Validator<CreateVehicleRequestValidator>();
-    }
-
-    public override async Task HandleAsync(CreateVehicleRequest req, CancellationToken ct)
-    {
-        var cmd = new CreateVehicleCommand(req.Vin, req.Make, ...);
-        var result = await sender.Send(cmd, ct);
-        await result.Match(
-            onSuccess: id => SendCreatedAtAsync($"/api/v1/vehicles/{id}",
-                new CreateVehicleResponse(id), cancellation: ct),
-            onFailure: async err => await SendResultAsync(
-                ResultExtensions.ToIResult(err, HttpContext)));
-    }
-}
-```
+| HTTP Method | Route | Authorization | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/login` | Public | Authenticates credentials; returns JWT and refresh token |
+| `POST` | `/api/v1/auth/refresh-token` | Public | Exchanges refresh token for new access token |
+| `GET` | `/api/v1/dashboard` | `Manager`, `Sales`, `Saler` | Complete single-roundtrip dashboard bundle with filters |
+| `GET` | `/api/v1/dashboard/aging` | `Manager`, `Sales`, `Saler` | Aging breakdown metrics |
+| `GET` | `/api/v1/dashboard/alerts` | `Manager`, `Sales`, `Saler` | Low inventory and aging alerts |
+| `GET` | `/api/v1/vehicles` | `Manager`, `Sales`, `Saler` | Paginated, sorted, filtered vehicle roster |
+| `GET` | `/api/v1/vehicles/{id}` | `Manager`, `Sales`, `Saler` | Single vehicle detail |
+| `POST` | `/api/v1/vehicles` | `Manager` | Create vehicle |
+| `PUT` | `/api/v1/vehicles/{id}` | `Manager` | Update vehicle |
+| `POST` | `/api/v1/vehicles/{id}/sold` | `Manager` | Mark vehicle sold |
+| `POST` | `/api/v1/vehicles/{id}/transfer` | `Manager` | Transfer vehicle to another dealership |
+| `GET` | `/api/v1/vehicles/aging-stock` | `Manager`, `Sales`, `Saler` | Filtered query for aging stock units |
+| `GET` | `/api/v1/vehicles/{id}/actions` | `Manager`, `Sales`, `Saler` | Action history for specific vehicle |
+| `POST` | `/api/v1/vehicles/{id}/actions` | `Manager` | Log action on vehicle |
+| `GET` | `/api/v1/vehicle-actions` | `Manager`, `Sales`, `Saler` | List logged actions |
+| `PUT` | `/api/v1/vehicle-actions/{id}` | `Manager` | Edit action note or type |
+| `DELETE` | `/api/v1/vehicle-actions/{id}` | `Manager` | Soft-delete action |
+| `GET` | `/api/v1/dealerships` | `Manager`, `Sales`, `Saler` | List all dealerships |
+| `POST` | `/api/v1/dealerships` | `Manager` | Create dealership branch |
+| `PUT` | `/api/v1/dealerships/{id}` | `Manager` | Update dealership branch |
+| `GET` | `/api/v1/activities` | `Manager`, `Sales`, `Saler` | Live activity feed |
+| `POST` | `/api/v1/activities/read` | `Manager`, `Sales`, `Saler` | Mark activity notifications read |
 
 ---
 
-## 7. Real-time Event Flow
+## 7. Testing & Verification
 
-```
-Manager A creates vehicle
-   └─► POST /api/v1/vehicles
-         └─► CreateVehicleHandler
-               ├─► VehicleRepository.AddAsync
-               ├─► UnitOfWork.SaveChangesAsync (commits)
-               ├─► VehicleAddedToInventoryEvent dispatched
-               └─► IVehicleHubNotifier.VehicleAddedAsync
-                     └─► SignalR broadcasts to "inventory-dashboard" group
-                           └─► All dashboards patch MobX store via applyVehicleAdded(v)
-
-Background (every 15 min)
-   └─► AgingStockMonitorService
-         └─► For each vehicle crossing 90 days:
-               └─► VehicleAgingThresholdReachedEvent
-                     └─► Hub.VehicleAging
-                           └─► "Aging Stock" tile lights up + AgingStockStore.applyVehicleAging(v)
-
-Manager logs action on aging vehicle
-   └─► POST /api/v1/vehicles/{id}/actions
-         └─► LogVehicleActionHandler
-               ├─► VehicleActionRepository.AddAsync
-               ├─► SaveChanges
-               └─► VehicleActionLoggedEvent
-                     └─► Hub.VehicleActionLogged
-                           └─► VehicleActionsStore.applyActionLogged(a)
-```
+- **251 Automated Tests:** Verified across Domain, Application, Infrastructure, and Api layers using `xUnit v3` on `net10.0`.
+- **Command:** `dotnet test` executes all unit and integration test suites.
+- **Coverage:** Comprehensive coverage of domain invariants (VIN format, plausible year, status transitions), CQRS validation rules, EF Core query filtering, and FastEndpoints exception mappings.
 
 ---
 
-## 8. Logging & Error Handling
-
-- **Source-gen logs only** via `LoggerMessageAttribute`; no `LogInformation`/`LogDebug`.
-- Placeholders PascalCase: `{VehicleId}`, `{Vin}`.
-- `ILogger<T>.IsEnabled(level)` guards checked before structured log calls.
-- Levels: `Debug` (dev), `Information` (ops), `Warning` (recoverable), `Error`/`Critical` (failures).
-- `Result<T>` carries `ErrorKind`; endpoints call `ResultMapper.ToStatus()` — **no** inline `switch` on error code in endpoints.
-- Unhandled exceptions caught by `UseExceptionHandler` → 500 with sanitized payload.
-
----
-
-## 9. Testing
-
-| Layer | Tests |
-|---|---|
-| Domain | VO invariants, factory methods, event raising, `AgingStockIdentifier` |
-| Application | Handler unit tests with Moq; validator negative cases; pipeline behaviors |
-| Infrastructure | Testcontainers SQL Server + FluentAssertions against migrations |
-| Integration | `WebApplicationFactory` for endpoints; `HubConnection` smoke tests for SignalR |
-| Coverage target | ≥ 80% line on `Domain` and `Application` |
-
----
-
-## 10. Setup
-
-```bash
-# 0. Prereqs — .NET 10 SDK pinned via global.json (already committed)
-dotnet --version   # 10.0.x
-
-# 1. Restore + build
-dotnet restore
-dotnet build -c Debug
-
-# 2. Configure connection string (User Secrets, dev)
-dotnet user-secrets set "ConnectionStrings:IID" \
-  "Server=localhost,1434;Database=IID;User Id=sa;Password=<pwd>;TrustServerCertificate=True;" \
-  --project src/IID.Api
-
-# 3. Apply EF Core 10 migrations
-dotnet tool install --global dotnet-ef --version 10.0.0
-dotnet ef database update \
-  --project src/IID.Infrastructure \
-  --startup-project src/IID.Api
-
-# 4. Run
-dotnet run --project src/IID.Api
-# Swagger:  http://localhost:5000/swagger
-# SignalR:  ws://localhost:5000/hubs/inventory
-```
-
-### C# 14 / .NET 10 Notes
-
-- All classes use **primary constructors** for dependency injection (no field-and-constructor boilerplate).
-- Value objects and aggregate entities prefer the **C# 14 `field` contextual keyword** for encapsulated properties: `public Money Price { get; private set => field = Money.Of(value); }` — eliminates explicit backing fields and centralizes invariant checks.
-- `[LoggerMessage]` partial classes are unaffected by .NET 10; same source-gen pipeline.
-- Tests target xUnit **v3** (`xunit v3` ships with .NET 10 native AOT-friendly test runner).
-
----
-
-**Related plans:** [`frontend.md`](./frontend.md) · [`database.md`](./database.md)
+**Related plans:** [`business.md`](./business.md) · [`database.md`](./database.md) · [`frontend.md`](./frontend.md)

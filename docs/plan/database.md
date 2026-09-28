@@ -1,315 +1,194 @@
 # Database Plan — Intelligent Inventory Dashboard
 
-> **Engine:** Microsoft SQL Server 2019+ (Express ok for dev, Standard/Enterprise for prod)
-> **Schema name:** `iid`
-> **Migrations:** **EF Core 10** (managed in `database/migrations/` and applied via `dotnet ef`)
-> **Scripting style:** Migration scripts **also** mirrored as `.sql` files in `database/migrations/` for ops/DBA review
-> **Backend target:** .NET 10 LTS — see [`backend.md`](./backend.md)
+> **Database Engine:** Microsoft SQL Server 2022 (Dockerized via `mcr.microsoft.com/mssql/server:2022-latest`, Developer edition, port 1434)
+> **ORM & Schema Management:** **EF Core 10** Code-First Migrations (`src/IID.Infrastructure/Migrations`)
+> **Initialization:** Automated startup migration & idempotent seeder pipeline (`IidDbInitializer`)
 
 ---
 
 ## 1. Design Principles
 
-| Principle | Choice |
+| Principle | Implementation Details |
 |---|---|
-| Engine | SQL Server 2019+ (TDE-ready, rowversion, indexed views, JSON) |
-| Integrity | FK + `CHECK` constraints + unique indexes enforced at the DB |
-| Soft delete | `DeletedAtUtc` columns + filtered indexes for fast active-set reads |
-| Audit | `CreatedAtUtc`, `UpdatedAtUtc`, `CreatedByUserId`, `UpdatedByUserId` on every table |
-| Concurrency | `RowVersion` (`rowversion`) on aggregates mutated by users |
-| Identity | ASP.NET Core Identity tables (`AspNet*`) |
-| Indexing | Filtered indexes on `IsActive=1`, covering indexes for hot list queries |
-| History | `VehicleInventoryHistory` append-only log of stock movements |
-| Money | `decimal(18,4)`; currency code stored alongside |
-| Time | All timestamps `datetimeoffset(7)` UTC; `datetime2(0)` where date-only |
-| Unicode | `nvarchar` everywhere; collate `SQL_Latin1_General_CP1_CI_AS` |
+| **Engine** | SQL Server 2022 Developer edition in Docker Compose (`localhost:1434`), connection string with SSL encryption options. |
+| **Soft Delete** | `DeletedAt` timestamp columns on `Vehicle` and `VehicleAction`, enforced via EF Core global query filters (`[DeletedAt] IS NULL`). |
+| **Optimistic Concurrency** | `RowVersion` (`rowversion`) column on `Vehicle` aggregate to prevent concurrent write collisions. |
+| **Integrity & Relations** | Foreign keys with `Restrict` behavior (`Vehicle.DealershipId` $\to$ `Dealerships.Id`, `VehicleAction.VehicleId` $\to$ `Vehicle.Id`). |
+| **Filtered Indexes** | Unique active indexes on `Vin` and `StockNumber` scoped to `WHERE [DeletedAt] IS NULL`. |
+| **Precision & Money** | Monies stored as `decimal(18,4)` for amount alongside ISO `nvarchar(3)` currency columns. |
+| **Audit Trails** | `CreatedAt`, `UpdatedAt`, `CreatedByUserId`, `UpdatedByUserId`, and immutable `VehicleAction` logs. |
 
 ---
 
-## 2. ERD
+## 2. Entity Relationship Diagram (ERD)
 
 ```
-+------------------+        +-----------------------------+
-| AspNetUsers      |        | Vehicle                     |
-+------------------+        +-----------------------------+
-| Id (PK, uniqueid)|1     0..*| Id (PK, uniqueidentifier)   |
-| ...Identity cols |◄──────┤ CreatedByUserId (FK NULL)   |
-+------------------+ 1    * | UpdatedByUserId (FK NULL)   |
-                          | DeletedAtUtc                |
-                          | RowVersion (rowversion)     |
-                          +-----------------------------+
-                                   ▲ 1
-                                   │
-                                   │ *
-                          +-----------------------------+
-                          | VehicleAction                |
-                          +-----------------------------+
-                          | Id (PK, uniqueidentifier)   |
-                          | VehicleId (FK)              |
-                          | ActionType (int)            |
-                          | Notes (nvarchar 2000 NULL)  |
-                          | LoggedByUserId (FK)         |
-                          | LoggedAtUtc                 |
-                          | Created/Updated audit       |
-                          +-----------------------------+
-
-Vehicle 1 ── * VehicleInventoryHistory
+┌─────────────────────────┐
+│     dbo.AspNetUsers     │
+├─────────────────────────┤
+│ Id (PK, nvarchar 450)   │
+│ Email, UserName, ...    │
+└────────────┬────────────┘
+             │ 1
+             │
+             │ 0..*
+┌────────────▼────────────┐        1..* ┌─────────────────────────┐
+│     dbo.Dealerships     │ ◄────────── │       dbo.Vehicle       │
+├─────────────────────────┤             ├─────────────────────────┤
+│ Id (PK, uniqueidentifier│             │ Id (PK, uniqueidentifier│
+│ Name (nvarchar 150)     │             │ DealershipId (FK)       │
+│ Code (UX, nvarchar 32)  │             │ Vin (UX filtered)       │
+│ City, State, Phone      │             │ StockNumber (UX filter) │
+│ CreatedAt, UpdatedAt    │             │ Make, Model, Year, Color│
+└─────────────────────────┘             │ Mileage, FuelType       │
+                                        │ Purchase / Asking Price │
+                                        │ SoldPrice, SoldAt       │
+                                        │ Status, DateAdded       │
+                                        │ CreatedAt, UpdatedAt    │
+                                        │ DeletedAt (soft delete) │
+                                        │ RowVersion (rowversion) │
+                                        └────────────┬────────────┘
+                                                     │ 1
+                                                     │
+                                                     │ 0..*
+                                        ┌────────────▼────────────┐
+                                        │    dbo.VehicleAction    │
+                                        ├─────────────────────────┤
+                                        │ Id (PK, uniqueidentifier│
+                                        │ VehicleId (FK)          │
+                                        │ ActionType (int 0..9)   │
+                                        │ Notes (nvarchar 2000)   │
+                                        │ LoggedByUserId (FK)     │
+                                        │ LoggedAt (datetimeoffset│
+                                        │ CreatedAt, UpdatedAt    │
+                                        │ DeletedAt (soft delete) │
+                                        └─────────────────────────┘
 ```
 
 ---
 
-## 3. Tables
+## 3. Physical Schema & Table Specifications
 
-### 3.1 `dbo.AspNetUsers` (ASP.NET Identity)
-Standard ASP.NET Core Identity schema; PK `nvarchar(450)`. Roles seed `Manager`, `Viewer`.
+### 3.1 `dbo.Dealerships`
 
-### 3.2 `dbo.AspNetRoles`, `dbo.AspNetUserRoles`, `dbo.AspNetRoleClaims`, `dbo.AspNetUserClaims`, `dbo.AspNetUserLogins`, `dbo.AspNetUserTokens`
-Standard Identity tables; PKs `nvarchar(450)`.
+Stores dealership branches across metropolitan regions.
 
-### 3.3 `dbo.Vehicle`
-
-| Column | Type | Null | Notes |
+| Column | Type | Nullable | Notes & Constraints |
 |---|---|---|---|
-| `Id` | `uniqueidentifier` | NO | PK, default `NEWSEQUENTIALID()` |
-| `Vin` | `nvarchar(17)` | NO | ISO 3779, **unique active** |
-| `Make` | `nvarchar(50)` | NO | |
-| `Model` | `nvarchar(50)` | NO | |
-| `Year` | `int` | NO | CHECK 1900..(year+1) |
-| `Color` | `nvarchar(30)` | NO | |
-| `Mileage` | `int` | NO | CHECK ≥ 0 |
-| `PurchasePriceAmount` | `decimal(18,4)` | NO | CHECK ≥ 0 |
-| `PurchasePriceCurrency` | `char(3)` | NO | default `USD` |
-| `AskingPriceAmount` | `decimal(18,4)` | NO | CHECK ≥ 0 |
-| `AskingPriceCurrency` | `char(3)` | NO | default `USD` |
-| `Status` | `tinyint` | NO | enum VehicleStatus |
-| `DateAddedToInventoryUtc` | `datetimeoffset(7)` | NO | CHECK ≤ SYSUTCDATETIME() |
-| `CreatedAtUtc` | `datetimeoffset(7)` | NO | default SYSUTCDATETIME() |
-| `UpdatedAtUtc` | `datetimeoffset(7)` | NO | |
-| `CreatedByUserId` | `nvarchar(450)` | YES | FK → AspNetUsers |
-| `UpdatedByUserId` | `nvarchar(450)` | YES | FK → AspNetUsers |
-| `DeletedAtUtc` | `datetimeoffset(7)` | YES | soft delete |
-| `RowVersion` | `rowversion` | NO | optimistic concurrency |
+| `Id` | `uniqueidentifier` | NO | Primary Key |
+| `Name` | `nvarchar(150)` | NO | Dealership trade name |
+| `Code` | `nvarchar(32)` | NO | Branch identifier (e.g. `DLR-LA-01`), **Unique Index (`UX_Dealership_Code`)** |
+| `City` | `nvarchar(100)` | NO | City location |
+| `State` | `nvarchar(32)` | NO | State code (e.g. `CA`, `WA`) |
+| `Phone` | `nvarchar(50)` | NO | Contact telephone number |
+| `CreatedAt` | `datetimeoffset(7)` | NO | UTC creation timestamp |
+| `UpdatedAt` | `datetimeoffset(7)` | NO | UTC last update timestamp |
 
-**Indexes**
+### 3.2 `dbo.Vehicle`
 
-| Name | Columns | Type |
-|---|---|---|
-| `UX_Vehicle_Vin_Active` | `Vin` | **Filtered unique** `WHERE DeletedAtUtc IS NULL` |
-| `IX_Vehicle_Make_Model_Year` | `Make, Model, Year` | non-clustered |
-| `IX_Vehicle_Status_DateAdded` | `Status, DateAddedToInventoryUtc` | non-clustered |
-| `IX_Vehicle_Aging_Active` | `DateAddedToInventoryUtc` | **Filtered** `WHERE DeletedAtUtc IS NULL INCLUDE (Status, Make, Model)` |
+Core vehicle inventory aggregate root.
 
-### 3.4 `dbo.VehicleAction`
-
-| Column | Type | Null | Notes |
+| Column | Type | Nullable | Notes & Constraints |
 |---|---|---|---|
-| `Id` | `uniqueidentifier` | NO | PK, default `NEWSEQUENTIALID()` |
-| `VehicleId` | `uniqueidentifier` | NO | FK → Vehicle |
-| `ActionType` | `tinyint` | NO | enum VehicleActionType |
-| `Notes` | `nvarchar(2000)` | YES | |
-| `LoggedByUserId` | `nvarchar(450)` | NO | FK → AspNetUsers |
-| `LoggedAtUtc` | `datetimeoffset(7)` | NO | default SYSUTCDATETIME() |
-| `CreatedAtUtc` | `datetimeoffset(7)` | NO | |
-| `UpdatedAtUtc` | `datetimeoffset(7)` | NO | |
-| `CreatedByUserId` | `nvarchar(450)` | YES | |
-| `UpdatedByUserId` | `nvarchar(450)` | YES | |
-| `DeletedAtUtc` | `datetimeoffset(7)` | YES | soft delete |
+| `Id` | `uniqueidentifier` | NO | Primary Key |
+| `DealershipId` | `uniqueidentifier` | NO | FK $\to$ `Dealerships.Id` (`ON DELETE RESTRICT`), Indexed |
+| `Vin` | `nvarchar(17)` | NO | ISO 3779 standard, **Filtered Unique Index (`UX_Vehicle_Vin_Active`)** |
+| `StockNumber` | `nvarchar(32)` | NO | Lot identifier, **Filtered Unique Index (`UX_Vehicle_StockNumber_Active`)** |
+| `Make` | `nvarchar(50)` | NO | Manufacturer |
+| `Model` | `nvarchar(50)` | NO | Vehicle model name |
+| `Year` | `int` | NO | Model year ($1980 \le \text{Year} \le \text{Now} + 1$) |
+| `Color` | `nvarchar(30)` | NO | Exterior color |
+| `Mileage` | `int` | NO | Vehicle odometer reading |
+| `FuelType` | `nvarchar(32)` | NO | `Petrol`, `Diesel`, `Hybrid`, `PluginHybrid`, `Electric`, Indexed |
+| `PurchasePriceAmount` | `decimal(18,4)` | NO | Cost basis |
+| `PurchasePriceCurrency` | `nvarchar(3)` | NO | ISO currency (default `USD`) |
+| `AskingPriceAmount` | `decimal(18,4)` | NO | Listed retail price |
+| `AskingPriceCurrency` | `nvarchar(3)` | NO | ISO currency (default `USD`) |
+| `SoldPriceAmount` | `decimal(18,4)` | YES | Final sale price if sold |
+| `SoldPriceCurrency` | `nvarchar(3)` | YES | ISO currency if sold |
+| `SoldAt` | `datetimeoffset(7)` | YES | Sale completion timestamp |
+| `Status` | `int` | NO | 0=Available, 1=Pending, 2=Sold, 3=Wholesale |
+| `DateAddedToInventory` | `datetimeoffset(7)` | NO | Tenure clock reference date |
+| `CreatedAt`, `UpdatedAt` | `datetimeoffset(7)` | NO | Audit timestamps |
+| `CreatedByUserId`, `UpdatedByUserId` | `nvarchar(450)` | YES | User attribution |
+| `DeletedAt` | `datetimeoffset(7)` | YES | Soft-delete timestamp (NULL = active) |
+| `RowVersion` | `rowversion` | NO | Optimistic concurrency token |
 
-**Indexes**
+**Indexes on `Vehicle`:**
+- `UX_Vehicle_Vin_Active` (`Vin`) WHERE `[DeletedAt] IS NULL` (Unique)
+- `UX_Vehicle_StockNumber_Active` (`StockNumber`) WHERE `[DeletedAt] IS NULL` (Unique)
+- `IX_Vehicle_Status_DateAdded` (`Status`, `DateAddedToInventory`)
+- `IX_Vehicle_FuelType` (`FuelType`)
+- `IX_Vehicle_DealershipId` (`DealershipId`)
 
-| Name | Columns |
-|---|---|
-| `IX_VehicleAction_VehicleId_LoggedAt` | `VehicleId, LoggedAtUtc DESC` (filtered `DeletedAtUtc IS NULL`) |
-| `IX_VehicleAction_LoggedBy` | `LoggedByUserId, LoggedAtUtc DESC` |
+### 3.3 `dbo.VehicleAction`
 
-### 3.5 `dbo.VehicleInventoryHistory` (append-only audit)
+Closed-loop remediation and status decision log for vehicles.
 
-| Column | Type | Notes |
-|---|---|---|
-| `Id` | `bigint` PK, IDENTITY(1,1) | |
-| `VehicleId` | `uniqueidentifier` FK | |
-| `EventType` | `tinyint` | Added/Updated/Removed/StatusChanged/PriceChanged |
-| `OldValuesJson` | `nvarchar(max)` NULL | snapshot before |
-| `NewValuesJson` | `nvarchar(max)` NULL | snapshot after |
-| `ChangedByUserId` | `nvarchar(450)` FK | |
-| `ChangedAtUtc` | `datetimeoffset(7)` | default SYSUTCDATETIME() |
+| Column | Type | Nullable | Notes |
+|---|---|---|---|
+| `Id` | `uniqueidentifier` | NO | Primary Key |
+| `VehicleId` | `uniqueidentifier` | NO | FK $\to$ `Vehicle.Id` (`ON DELETE RESTRICT`) |
+| `ActionType` | `int` | NO | 0=PriceReductionPlanned, 1=PriceReductionExecuted, 2=TransferToWholesale, 3=TradeInCustomer, 4=MarketingCampaign, 5=DealerAuction, 6=ManagerReview, 7=Relist, 8=Other, 9=TransferDealership |
+| `Notes` | `nvarchar(2000)` | YES | Free-text operational note |
+| `LoggedByUserId` | `nvarchar(450)` | NO | Identity of authenticated manager |
+| `LoggedAt` | `datetimeoffset(7)` | NO | Timestamp when action was logged |
+| `CreatedAt`, `UpdatedAt` | `datetimeoffset(7)` | NO | Audit timestamps |
+| `DeletedAt` | `datetimeoffset(7)` | YES | Soft-delete timestamp |
 
-**Indexes**
-- `IX_VehicleInventoryHistory_VehicleId_ChangedAt` `(VehicleId, ChangedAtUtc DESC)`
+**Indexes on `VehicleAction`:**
+- `IX_VehicleAction_VehicleId_LoggedAt` (`VehicleId`, `LoggedAt`) WHERE `[DeletedAt] IS NULL`
 
----
+### 3.4 `dbo.UserActivityReadStatuses`
 
-## 4. Aging View
+Tracks read/unread notification states per user account.
 
-```sql
-CREATE OR ALTER VIEW dbo.vw_AgingStock
-WITH SCHEMABINDING
-AS
-SELECT
-    v.Id,
-    v.Vin,
-    v.Make,
-    v.Model,
-    v.Year,
-    v.Color,
-    v.Mileage,
-    v.AskingPriceAmount,
-    v.AskingPriceCurrency,
-    v.Status,
-    v.DateAddedToInventoryUtc,
-    DATEDIFF(DAY, v.DateAddedToInventoryUtc, SYSUTCDATETIME()) AS DaysInInventory,
-    CASE
-        WHEN DATEDIFF(DAY, v.DateAddedToInventoryUtc, SYSUTCDATETIME()) > 90
-        THEN CAST(1 AS bit)
-        ELSE CAST(0 AS bit)
-    END AS IsAging
-FROM dbo.Vehicle v
-WHERE v.DeletedAtUtc IS NULL;
-```
-
-- Bound to base table → clustered index aligned.
-- Backed by `IX_Vehicle_Aging_Active` covering index.
+| Column | Type | Nullable | Notes |
+|---|---|---|---|
+| `Id` | `uniqueidentifier` | NO | Primary Key |
+| `UserId` | `nvarchar(450)` | NO | AspNetUsers reference |
+| `ActivityId` | `nvarchar(100)` | NO | Activity or notification identifier |
+| `IsRead` | `bit` | NO | Read state flag (1 = Read) |
+| `ReadAtUtc` | `datetimeoffset(7)` | NO | UTC read timestamp |
 
 ---
 
-## 5. Stored Procedures & Functions
+## 4. EF Core 10 Migrations
 
-| Name | Purpose |
-|---|---|
-| `dbo.usp_GetAgingStock @Page, @Limit, @Sort, @Order` | Server-side paging + sorting for `/vehicles/aging-stock`. Falls back to OFFSET/FETCH on the view. |
-| `dbo.usp_ListVehicles @FiltersXml, @Page, @Limit, @Sort, @Order` | Paged list with filters; returns rows + total count. |
-| `dbo.usp_LogVehicleAction @VehicleId, @ActionType, @Notes, @LoggedByUserId` | Validates vehicle exists; inserts row + audit row in single tx; returns new Id. |
-| `dbo.tvf_VehicleActionsByVehicle (@VehicleId)` | Inline TVF for action history list. |
+Migrations live in `src/IID.Infrastructure/Migrations/`:
 
-> Handlers can call these via EF Core raw SQL when needed; otherwise EF Core LINQ is fine.
+1. `20260924083419_InitialCreate`: Core schema, ASP.NET Identity, `Vehicle`, and `VehicleAction`.
+2. `20260924221500_AddUserActivityReadStatus`: Adds user notification read state tracking table.
+3. `20260925024224_AddDealershipEntity`: Adds `Dealerships` table and foreign key relation on `Vehicle`.
+4. `20260925094817_AddSoldByUserIdToVehicle`: Adds sales tracking attribution columns.
 
----
+### Applying Migrations
 
-## 6. Seed Data
-
-`database/seeds/0001_IdentitySeed.sql`
-
-- Roles: `Manager`, `Viewer`
-- Demo manager user (`manager@demo.local` / `P@ssw0rd!` — change in prod)
-- Demo viewer user
-
-`database/seeds/0002_VehiclesSeed.sql`
-
-- 25 sample vehicles spanning makes/models/years
-- 5 deliberately aged beyond 90 days for aging-stock demonstration
-- 2 with logged `PriceReductionPlanned` actions
-
-`database/seeds/0003_VehicleActionsSeed.sql`
-
-- 4 sample actions linked to the aged vehicles
-
----
-
-## 7. Migration Plan
-
-| Step | EF Core command | Output |
-|---|---|---|
-| 1 | `dotnet ef migrations add Init_Schema -p src/IID.Infrastructure -s src/IID.Api` | `Migrations/<ts>_Init_Schema.cs` + Designer + ModelSnapshot |
-| 2 | `dotnet ef migrations add Identity -p ... -s ...` | Adds `AspNet*` tables |
-| 3 | `dotnet ef migrations add SeedDemoData -p ... -s ...` | Inserts seed data on `Up` |
-| 4 | `dotnet ef database update -p ... -s ...` | Apply locally |
-| 5 | `dotnet ef migrations script -p ... -s ... -i` | Idempotent script → `database/migrations/<ts>_Init_Schema.sql` |
-
-> `dotnet-ef` tool must be version **10.0.0** to match EF Core 10: `dotnet tool install --global dotnet-ef --version 10.0.0`.
-
-### Local Dev
+Migrations execute automatically on API launch via `IidDbInitializer`. To apply manually via EF CLI:
 
 ```bash
-docker run -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=YourStrong!Passw0rd -e MSSQL_TCP_PORT=1434 \
-  -p 1434:1434 --name iid-sql -d mcr.microsoft.com/mssql/server:2022-latest
-
 dotnet ef database update \
   --project src/IID.Infrastructure \
   --startup-project src/IID.Api
 ```
 
-### Production Apply Order
+---
 
-1. Backup existing `iid` DB (full + log).
-2. Run idempotent `database/migrations/0000_PreDeploy_Health.sql` (wait stats update, blocking check).
-3. Run `0001_Identity.sql`.
-4. Run `0002_Vehicle.sql`.
-5. Run `0003_VehicleAction.sql`.
-6. Run `0004_IndexesAndViews.sql` (filtered indexes + aging view).
-7. Run `0005_SprocsAndFunctions.sql`.
-8. Run `0006_Seeds.sql` (only on empty DB; gated by row count check).
-9. Post-deploy `0099_PostDeploy_RebuildIndexes.sql`.
+## 5. Seed Data Pipeline (`IidSeeder`)
+
+Executed automatically on a fresh database:
+
+1. **Identity (`IdentitySeeder`):**
+   - Roles: `Manager`, `Saler`, `Sales`.
+   - Default Users: `admin@iid.local` (Manager) & `saler@iid.local` (Saler/Sales).
+2. **Dealerships (`DealershipsSeeder`):**
+   - 10 deterministic demo dealerships (Apex Motors LA, Metro Auto Seattle, Summit Luxury Denver, Pinnacle Ford Dallas, Grand Horizon Phoenix, Velocity Miami, Coastal Bay SF, Heritage Chicago, Frontier Austin, Silverstone Atlanta).
+3. **Vehicles (`VehiclesSeeder`):**
+   - 733 vehicles distributed across all 10 branches (56–92 units each).
+   - Real-world distribution: fresh arrivals, high/critical aging stock (>90 days), pending deals, sold units, and diverse fuel mixes.
+4. **Actions (`VehicleActionsSeeder`):**
+   - Seeds realistic operational notes and action logs across aged units.
 
 ---
 
-## 8. Backup & Recovery
-
-| Frequency | Type | Retention |
-|---|---|---|
-| Every 15 min | Transaction log backup | 24 h |
-| Daily 02:00 | Differential backup | 7 d |
-| Weekly Sun 01:00 | Full backup | 4 w |
-| Monthly | Full backup + offsite copy | 12 mo |
-
-- RPO ≤ 15 min, RTO ≤ 1 h (standard).
-- All scripts in `database/backups/`.
-
----
-
-## 9. Security & Compliance
-
-- Login: dedicated SQL login `iid_app` with `db_owner` on `iid` DB.
-- App uses Windows Auth in prod; SQL Auth only when Azure SQL requires it.
-- TDE enabled for production (`CREATE DATABASE ENCRYPTION KEY`).
-- Always Encrypted optional for `Notes` column in `VehicleAction`.
-- Audit: SQL Server Audit → file target → Log Analytics.
-- `GRANT SELECT, INSERT, UPDATE, DELETE` on app tables to `iid_app`; deny direct DDL.
-- Row-Level Security (optional, per dealership): `Tenants.TenantId` predicate on `Vehicle`.
-
----
-
-## 10. Performance Targets
-
-| Query | Target p95 |
-|---|---|
-| List vehicles (page of 20, filtered) | ≤ 80 ms |
-| Aging-stock list (page of 20) | ≤ 60 ms (covered by filtered index) |
-| Get vehicle by id | ≤ 20 ms |
-| Log vehicle action | ≤ 40 ms |
-
-- Initial seed (50k vehicles, 250k actions) must keep aging query p95 ≤ 150 ms.
-
----
-
-## 11. File Layout
-
-```
-database/
-├── README.md                          # run/backup instructions
-├── migrations/
-│   ├── 0001_Identity.sql
-│   ├── 0002_Vehicle.sql
-│   ├── 0003_VehicleAction.sql
-│   ├── 0004_VehicleInventoryHistory.sql
-│   ├── 0005_IndexesAndViews.sql
-│   ├── 0006_SprocsAndFunctions.sql
-│   ├── 0007_Seeds.sql
-│   ├── 0099_PostDeploy_RebuildIndexes.sql
-│   └── EF_Migrations/                 # EF Core generated scripts mirror
-├── seeds/
-│   ├── 0001_IdentitySeed.sql
-│   ├── 0002_VehiclesSeed.sql
-│   └── 0003_VehicleActionsSeed.sql
-├── backups/
-│   ├── full_backup.sql.cmd
-│   ├── log_backup.sql.cmd
-│   └── restore_checklist.md
-└── scripts/
-    ├── create_database.sql
-    ├── create_login.sql
-    └── health_check.sql
-```
-
----
-
-**Related plans:** [`backend.md`](./backend.md) · [`frontend.md`](./frontend.md)
+**Related plans:** [`business.md`](./business.md) · [`backend.md`](./backend.md) · [`frontend.md`](./frontend.md)

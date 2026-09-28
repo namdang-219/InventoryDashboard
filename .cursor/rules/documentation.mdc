@@ -1,0 +1,23 @@
+---
+description: Documentation
+alwaysApply: true
+---
+
+# Documentation & Architecture Guidelines
+
+When generating, modifying, or updating project documentation, adhere strictly to this structure:
+
+- Architecture decisions: Document key architectural patterns, design trade-offs, and tech stack rationale.
+- Folder structure: Use a clean ASCII directory tree showing main domain boundaries and file roles.
+- Event flow: Outline the step-by-step lifecycle of critical requests, domain events, or state changes.
+- API endpoints: List HTTP methods, routes, request/response contracts, and error statuses.
+- Database schema: Detail primary entities, relationships, indexes, and primary/foreign keys.
+- Setup instructions: Provide concise prerequisites, environment setup steps, and run/test commands.
+
+Enforcement & Maintenance:
+- ALWAYS keep documentation in sync: Whenever any architectural changes, file reorganizations, schema migrations, or new integration patterns are introduced, immediately update the relevant documentation files in the same response or changeset.
+
+Style rules:
+- Be concise. Use bullet points, Markdown tables, and ASCII diagrams where appropriate.
+- Code blocks over prose.
+- Avoid pleasantries, filler words, and redundant explanations.

@@ -1,0 +1,69 @@
+# Frontend Engineering Standards
+
+## Tech Stack
+- **Framework**: Angular 18+ standalone (no NgModules), TypeScript `strict: true` + `strictTemplates`
+- **UI**: Angular Material + CDK (M2/M3, theme tokens `--mat-sys-*`)
+- **State**: NgRx Component Store (server) · Signals `signal/computed/effect` (local) · NgRx Store (global)
+- **Async**: RxJS → convert to signals via `toSignal()`; unsubscribe with `takeUntilDestroyed()` or `async` pipe
+- **Forms**: Reactive Forms with typed `FormGroup<T>`; **HTTP**: `HttpClient` + functional interceptors
+
+---
+
+## Architecture
+
+### Container / Presentational
+- **Container** (`features/<feature>/pages/`): injects services, dispatches store actions, orchestrates side effects; minimal markup.
+- **Presentational** (`features/<feature>/components/` or `shared/components/`): pure UI, only `@Input() / @Output()` or `input() / output()`, no HTTP, no store dispatch.
+
+### Folder Layout (feature-based, one folder per component)
+```
+features/<feature>/
+├── pages/         # Routed smart components
+├── components/    # Smart + dumb components
+├── services/      # @Injectable({ providedIn: 'root' })
+├── store/         # NgRx state/actions/reducer/selectors/effects/component-store
+├── models/        # Interfaces, DTOs, types
+├── guards/        # CanActivateFn / CanMatchFn
+└── interceptors/  # Functional HTTP interceptors
+shared/            # Cross-cutting components, directives, pipes, tokens, utils
+core/              # App config, singleton services, app-level guards/interceptors
+component-name/
+├── component-name.component.ts
+├── component-name.component.html      # inline only if < 10 lines
+├── component-name.component.scss
+├── component-name.component.spec.ts
+└── index.ts                           # barrel export
+```
+
+### Component Conventions
+- Selector: kebab-case with feature prefix (e.g. `iid-vehicle-list`)
+- `changeDetection: ChangeDetectionStrategy.OnPush` on every component
+- Prefer signal-based `input()` / `output()` / `model()` for new code
+- New control-flow only: `@if`, `@for` (always with `track`), `@switch`, `@defer` — never `*ngIf`/`*ngFor`
+- DI: prefer `inject()` over constructor injection; use `InjectionToken<T>` for non-class deps
+
+---
+
+## Styling
+- External `*.component.scss` only — **no inline** `style="..."` or `[style]` bindings
+- **No `::ngDeep`** — use CSS custom properties for theming overrides
+- Global resets/typography/theme in `src/styles.scss` only
+- Responsive: SCSS flexbox/grid + media queries or CDK `BreakpointObserver`
+
+---
+
+## TypeScript & Quality
+- `strict: true` + `strictTemplates: true`; no `any`, no `@ts-ignore`
+- `readonly` on immutable props, `as const` for literals
+- RxJS: functional operators (`switchMap`, `combineLatest`); avoid raw `.subscribe()` without cleanup
+- Handle `loading` / `error` / `empty` states in every template
+- Generic UI in `shared/components/` wrapped over Material primitives
+- SRP — components < 150 lines, extract subcomponents when growing
+
+---
+
+## Do
+Co-locate `.ts/.html/.scss/.spec.ts` + barrel · separate container vs presentational · NgRx Component Store for server state, Signals for local · new control-flow syntax · `OnPush` + `track` · `takeUntilDestroyed()` or `async`/`toSignal()`.
+
+## Don't
+Inline styles · NgModules for new code · legacy `*ngIf`/`*ngFor` · `any` / `@ts-ignore` · server caching in component signals · HTTP inside presentational components · unhandled `.subscribe()` · `::ngDeep`.

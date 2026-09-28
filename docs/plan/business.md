@@ -1,13 +1,13 @@
 # Business Plan — Intelligent Inventory Dashboard
 
-> **Vision:** Give dealership managers a real-time, decision-grade view of vehicle stock so aging units get acted on before they bleed margin.
-> **Scope:** This document is the **business source of truth**. It defines *what* the system does, *who* uses it, and *why*. Technical *how* lives in [`backend.md`](./backend.md), [`frontend.md`](./frontend.md), and [`database.md`](./database.md). When this file and a technical plan disagree, **this file wins** until amended.
+> **Vision:** Provide dealership managers and sales staff with a real-time, decision-grade inventory control platform to proactively identify aging stock (>90 days), preserve working capital, and streamline remediation workflows.
+> **Scope:** This document is the **business source of truth**. It defines *what* the system does, *who* uses it, and *why*. Technical implementation details live in [`backend.md`](./backend.md), [`frontend.md`](./frontend.md), and [`database.md`](./database.md).
 
 ---
 
 ## 1. Executive Summary
 
-Dealership managers today rely on weekly snapshots, spreadsheets, and gut feel. Units sit on the lot past 90 days, depreciation compounds, and the manager finds out only after the next inventory turn is already late. The Intelligent Inventory Dashboard surfaces every vehicle, surfaces the ones that are aging in real time, and makes it a one-click action to log a proposal (price reduction, trade-in evaluation, wholesale listing, etc.) — so the manager's next move is always one screen away.
+Automotive retail inventories represent a dealership's largest working capital investment. Vehicles sitting on lots past 90 days suffer rapid depreciation and incur daily floor-plan carrying costs ($25–$40/day). The **Intelligent Inventory Dashboard (IID)** provides live visibility into total working capital, lot turnaround velocity, demand heuristics, and multi-branch inventory, turning passive inventory into an active operational workflow.
 
 ---
 
@@ -15,180 +15,112 @@ Dealership managers today rely on weekly snapshots, spreadsheets, and gut feel. 
 
 ### 2.1 Bounded Context
 
-| | |
+| Component | Definition |
 |---|---|
-| **Context name** | Dealership Inventory |
-| **Aggregate roots** | `Vehicle`, `VehicleAction` |
-| **Ubiquitous language** | vehicle, inventory, aging stock, status, action, manager |
-| **Upstream context** | Acquisitions (vehicle intake) — out of scope; `Vehicle` is fed via API/seed in v1 |
-| **Downstream context** | Reporting & Finance — out of scope; consumes future event stream |
+| **Context Name** | Automotive Dealership Inventory & Supply |
+| **Aggregate Roots** | `Vehicle`, `VehicleAction`, `Dealership` |
+| **Supporting Entities** | `InventoryActivity`, `Notification`, `UserActivityReadStatus` |
+| **Ubiquitous Language** | Vehicle, Inventory, Aging Stock, Demand Score, Dealership Branch, Vehicle Action, Lot Tenure |
 
 ### 2.2 Actors & Roles
 
-| Actor | Role in system | Key actions |
+| Actor | Role / System Name | Key Responsibilities & Permissions |
 |---|---|---|
-| **Dealership Manager** | Owner of inventory decisions | CRUD vehicles, log/propose actions on aging vehicles, see dashboard |
-| **Viewer (Sales / Floor)** | Read-only consumer | View list, view aging stock, view action history |
-| **System** | Background processes | Detect aging-stock crossings, broadcast real-time updates, enforce invariants |
+| **Dealership Manager** | `Manager` | Full control: CRUD vehicles, record sales (`MarkSold`), execute inter-branch transfers (`TransferDealership`), log actions, manage dealership profiles. |
+| **Sales Staff** | `Saler` / `Sales` | Read-only operations: browse inventory, inspect aging stock, view activities, monitor alert banners. |
+| **System** | Background / Realtime | Dispatches post-commit domain events, broadcasts SignalR WebSocket updates, recalculates dashboard KPIs. |
 
-### 2.3 Out of Scope (v1)
+### 2.3 System Scope
 
-- Acquisition / intake workflow
-- Customer-facing inventory pages
-- Multi-tenant dealership isolation (single dealership per deployment in v1)
-- Reporting / finance integrations
-- Mobile native apps
+- **Multi-Branch Dealership Support:** 10 metropolitan branches seeded out of the box with branch-specific filtering, metrics, and inter-dealership transfers.
+- **Single-Roundtrip Dashboard Bundle:** Consolidates executive KPIs, sales velocity charts, powertrain breakdown, aging tiers, and action center into one fast response.
+- **Real-Time Synchronization:** All connected clients receive live push events for vehicle additions, edits, sales, transfers, and action logs.
 
 ---
 
-## 3. Value Proposition & KPIs
+## 3. Value Proposition & Key Metrics (KPIs)
 
-| Value lever | KPI | Target (v1) |
+| Metric | Calculation / Meaning | Target |
 |---|---|---|
-| Faster detection of aging stock | Time from "day 91 on lot" to "manager views alert" | < 1 minute (real-time SignalR push) |
-| Faster action on aging stock | Median time from aging-flag → logged action | < 24 h |
-| Reduce aged-inventory carrying cost | % of vehicles aging past 90 days | < 8% of active inventory |
-| Operational transparency | Actions logged per aging vehicle | ≥ 90% of aging vehicles have at least one action within 7 days of aging |
+| **Total Inventory Value** | $\sum \text{AskingPrice}$ for all active units (`Status` $\ne$ `Sold`) | Real-time working capital visibility |
+| **Average Unit Valuation** | $\text{Total Value} \div \text{Active Units}$ | Track portfolio mix |
+| **Average Days on Lot** | $\text{Average}(\text{DaysInInventory})$ across active stock | Target turnaround $< 65$ days |
+| **Aging Stock Count** | Count of active vehicles with $\text{DaysInInventory} > 90$ | $< 10\%$ of lot volume |
+| **Aging Severity Tiers** | Warning (30–59d), High (60–89d), Critical ($\ge$ 90d) | Prioritized triage in Action Center |
+| **Demand Score** | Proprietary heuristic (0–100) combining vehicle age, fuel type (EV/Hybrid bonus), and lot tenure | Guide repricing and discount actions |
 
 ---
 
-## 4. Core Business Rules (Ubiquitous Language as Code)
+## 4. Core Business Invariants
 
-These rules are encoded as **invariants** in the Domain layer and **CHECK constraints** in the database. Tests in `IID.Domain.Tests` must cover each one.
+### 4.1 Vehicle Aggregate (`Vehicle`)
 
-### 4.1 Vehicle Aggregate
-
-| ID | Rule | Invariant |
+| Rule ID | Rule Description | Enforcement / Invariant |
 |---|---|---|
-| V-001 | A vehicle must have a unique, valid VIN | `Vin` VO: 17 chars, ISO 3779 charset `[A-HJ-NPR-Z0-9]`; unique among active vehicles |
-| V-002 | Model year must be plausible | `1900 ≤ Year ≤ currentYear + 1` |
-| V-003 | Mileage must be non-negative | `Mileage >= 0` |
-| V-004 | Prices must be non-negative and ISO-currency | `Money.Amount >= 0`; `Money.Currency` is ISO 4217 |
-| V-005 | Status must be one of `Available`, `Sold`, `Pending`, `Wholesale` | enum constraint |
-| V-006 | `DateAddedToInventory` cannot be in the future | `≤ DateTimeOffset.UtcNow` |
-| V-007 | A vehicle is **aging stock** when `DaysInInventory > 90` | computed by `AgingStockIdentifier` |
-| V-008 | Soft-deletion preserves history | `DeletedAtUtc` set; rows remain in `VehicleInventoryHistory` |
-| V-009 | Optimistic concurrency on every mutation | `RowVersion` enforced at DB |
-| V-010 | A vehicle's audit fields are immutable by API callers | `CreatedAtUtc`, `CreatedByUserId` set on create only |
+| **V-001** | Unique VIN | 17 characters, ISO 3779 charset `[A-HJ-NPR-Z0-9]`; unique among non-deleted units. |
+| **V-002** | Stock Number | Assigned automatically (`STK-{VIN6}`) or custom; unique among non-deleted units. |
+| **V-003** | Plausible Model Year | Must satisfy: $1980 \le \text{Year} \le \text{CurrentYear} + 1$. |
+| **V-004** | Mileage & Pricing | Mileage $\ge 0$; Purchase and Asking prices must have $\text{Amount} \ge 0$ with ISO 4217 currency. |
+| **V-005** | Fuel Type | Enumeration: `Petrol`, `Diesel`, `Hybrid`, `PluginHybrid`, `Electric`. |
+| **V-006** | Dealership Association | Every vehicle must belong to a valid `DealershipId`. |
+| **V-007** | Inventory Lifecycle Status | Status: `Available` $\to$ `Pending` $\to$ `Sold`, or `Available` $\to$ `Wholesale`. |
+| **V-008** | Sold Invariant | Once marked `Sold`, a vehicle's specifications and pricing cannot be edited (`EnsureNotSold`). |
+| **V-009** | Wholesale Invariant | `Wholesale` vehicles cannot be sold via the retail flow (`EnsureNotWholesale`). |
+| **V-010** | Date Invariant | `DateAddedToInventory` $\le \text{DateTimeOffset.UtcNow}$. |
+| **V-011** | Soft Deletion & Audit | Soft-delete sets `DeletedAt`; concurrency guarded by SQL `RowVersion`. |
 
-### 4.2 VehicleAction Aggregate
+### 4.2 Vehicle Action Aggregate (`VehicleAction`)
 
-| ID | Rule | Invariant |
+| Rule ID | Rule Description | Enforcement / Invariant |
 |---|---|---|
-| A-001 | An action must reference an existing, **non-deleted** vehicle | FK to `Vehicle.Id`; 404 if soft-deleted |
-| A-002 | Action type must be one of the six defined options | enum constraint |
-| A-003 | Notes are optional but capped | `≤ 2000` chars |
-| A-004 | `LoggedByUserId` is the authenticated principal | populated from `ICurrentUser.Id`; never trusted from request body |
-| A-005 | `LoggedAtUtc` is server-set | defaults to `SYSUTCDATETIME()` on insert |
-| A-006 | One action per vehicle per manager per action-type within a sliding window | — *(v2 rule; not enforced in v1)* |
+| **A-001** | Vehicle Reference | Must reference an existing, non-deleted vehicle (`VehicleId`). |
+| **A-002** | Action Type | Enumeration of 10 types: `PriceReductionPlanned` (0), `PriceReductionExecuted` (1), `TransferToWholesale` (2), `TradeInCustomer` (3), `MarketingCampaign` (4), `DealerAuction` (5), `ManagerReview` (6), `Relist` (7), `Other` (8), `TransferDealership` (9). |
+| **A-003** | Notes | Optional string capped at $\le 2000$ characters. |
+| **A-004** | Principal Attribution | `LoggedByUserId` set strictly from authenticated JWT identity. |
+| **A-005** | Event Enrichment | Action domain events enrich payload with vehicle metadata before dispatching. |
 
-### 4.3 Aging Stock
+### 4.3 Dealership Aggregate (`Dealership`)
 
-| ID | Rule | Invariant |
+| Rule ID | Rule Description | Enforcement / Invariant |
 |---|---|---|
-| AG-001 | Threshold is **90 calendar days** from `DateAddedToInventory` | `InventoryPolicy.AgingStockThresholdDays = 90` |
-| AG-002 | Crossing the threshold raises `VehicleAgingThresholdReachedEvent` exactly once | `AgingStockMonitorService` records last-flagged timestamp |
-| AG-003 | The "aging" flag is computed at read time using `SYSUTCDATETIME()` | never persisted (no `IsAging` column on `Vehicle`) |
-| AG-004 | Aging stock is queryable independently from the full list | `GET /api/v1/vehicles/aging-stock`; backed by `vw_AgingStock` |
+| **D-001** | Branch Uniqueness | `Code` (e.g. `DLR-LA-01`) is unique across all active dealerships. |
+| **D-002** | Contact Information | Name, code, city, state, and phone are validated and non-empty. |
+| **D-003** | Relational Constraint | Restricts deletion if active vehicles remain assigned to the dealership. |
 
-### 4.4 Authorization
+### 4.4 Authorization & Access Control
 
-| ID | Rule | Invariant |
+| Rule ID | Rule Description | Enforcement |
 |---|---|---|
-| AU-001 | Vehicle mutation requires the `Manager` role | endpoint-level `Roles("Manager")` |
-| AU-002 | Vehicle read is allowed for both `Manager` and `Viewer` | endpoint-level allow |
-| AU-003 | VehicleAction mutation requires `Manager` | endpoint-level `Roles("Manager")` |
-| AU-004 | VehicleAction read is allowed for both roles | endpoint-level allow |
-| AU-005 | Anonymous access is rejected on all routes except `/auth/*` | JWT bearer middleware |
+| **AU-001** | Manager Operations | Vehicle creation, updates, deletes, transfers, mark-sold, action logging, and dealership CRUD require `Roles("Manager")`. |
+| **AU-002** | Read Operations | Dashboard bundle, vehicle list, aging stock, activity stream, and alerts allow `Roles("Manager", "Sales", "Saler")`. |
+| **AU-003** | Public Endpoints | Authentication routes (`/api/v1/auth/login`, `/api/v1/auth/refresh-token`) are publicly accessible. |
 
 ---
 
-## 5. Domain Events (Business Meaning)
+## 5. Domain Events
 
-| Event | Business meaning | Consumer reaction |
+| Event | Business Meaning | Downstream Action |
 |---|---|---|
-| `VehicleAddedToInventoryEvent` | A new unit is on the lot | Push to dashboards, increment "Recent arrivals" tile |
-| `VehicleUpdatedEvent` | A unit's facts changed (price, status, mileage) | Push to dashboards so all managers see consistent state |
-| `VehicleRemovedEvent` | A unit was deleted (correction, never sold in v1) | Push to dashboards, remove from lists |
-| `VehicleAgingThresholdReachedEvent` | A unit just crossed 90 days on the lot | Light up the "Aging Stock" tile, raise alert, prompt action |
-| `VehicleActionLoggedEvent` | A manager has decided what to do with an aging unit | Append to that vehicle's action history, push to dashboards |
-
-All events are **after-commit** and **idempotent** at the consumer.
-
----
-
-## 6. Use Cases (Business Workflows)
-
-### UC-1: View real-time inventory
-1. Manager opens `/vehicles`.
-2. System lists all non-deleted vehicles paged 20/page, with `daysInInventory` and `isAging` flags.
-3. Manager applies filters (make, model, age range, status).
-4. SignalR pushes any subsequent create/update/remove to the list without refresh.
-
-### UC-2: Identify aging stock
-1. Manager opens `/aging-stock`.
-2. System lists vehicles where `DaysInInventory > 90`, ordered by oldest first.
-3. Header chip shows live count from `InventoryStore.agingVehicleIds`.
-4. When a vehicle crosses 90 days, the chip increments in real time.
-
-### UC-3: Log a proposed action on an aging vehicle
-1. From an aging row, Manager clicks **Log Action**.
-2. Modal collects `ActionType` (required) and `Notes` (optional).
-3. System validates the vehicle is active, persists the action, raises `VehicleActionLoggedEvent`.
-4. Action appears in the vehicle's history within the next SignalR tick.
-
-### UC-4: Background aging scan
-1. Every 15 min, `AgingStockMonitorService` scans active vehicles added between 80–91 days ago.
-2. For each crossing the threshold for the first time, it raises `VehicleAgingThresholdReachedEvent`.
-3. Dashboard clients update within seconds.
+| `VehicleAdded` | New unit added to lot | Broadcast to dealership & dashboard SignalR groups; log activity |
+| `VehicleUpdated` | Vehicle specs/price modified | Broadcast update to clients; recalculate dashboard KPIs |
+| `VehicleStatusChanged` | Status transition (e.g. Available $\to$ Pending) | Update real-time counts, pipeline charts, and activity feed |
+| `VehicleSold` | Unit marked as sold with final sale price | Finalize margin metrics; broadcast sale event; refresh summaries |
+| `VehicleTransferred` | Unit transferred between dealership branches | Notify origin and destination branch channels; update lot rosters |
+| `VehicleRemoved` | Vehicle soft-deleted | Remove unit from active listings across all clients |
+| `VehicleActionLogged` | Manager logged remediation proposal | Append to action history; broadcast update to connected dashboards |
+| `DealershipAdded` / `Updated` | Dealership branch created or edited | Synchronize branch selector list across active users |
 
 ---
 
-## 7. Success Metrics & Reporting
+## 6. Business Use Cases
 
-| Metric | Source | Frequency |
-|---|---|---|
-| Aging-stock percentage | `vw_AgingStock` | Real-time tile; weekly report |
-| Median time aging → action logged | `VehicleAction.LoggedAtUtc` − `DateAddedToInventory + 90d` | Daily |
-| Action types distribution | `GROUP BY ActionType` | Weekly |
-| Aging vehicles without actions after 7 days | Anti-join `vw_AgingStock ⨝ VehicleAction WHERE NOT EXISTS` | Daily alert |
-| Most-aged vehicle | `ORDER BY DateAddedToInventoryUtc ASC LIMIT 1` | Real-time tile |
-
----
-
-## 8. Compliance, Privacy & Operational Constraints
-
-| Topic | Constraint |
-|---|---|
-| Personal data | None collected in v1 (no customer PII). Future customer-facing flows require a privacy review. |
-| Audit | Every mutation writes a `VehicleInventoryHistory` row with before/after JSON snapshots. |
-| Soft delete | Default; hard delete only via DBAs in audit cases. |
-| Localization | `en-US` only in v1. Currency stored as ISO 4217; UI displays in the configured currency. |
-| Time | All timestamps UTC; UI formats per dealership locale. |
-| Data retention | `VehicleInventoryHistory` retained ≥ 7 years for finance/audit. |
-| SLA | p95 latency targets documented in [`database.md`](./database.md) §10. |
+- **UC-1: Executive Cockpit Overview:** Manager selects a dealership (or all branches) to view working capital, turnaround velocity, 12-month sales trend, powertrain breakdown, aging alerts, and the prioritized Action Center.
+- **UC-2: Multi-Branch Inventory Browsing:** Users filter inventory by dealership, make, model, VIN, stock number, age range, fuel type, and status with pagination and column sorting.
+- **UC-3: Inter-Branch Vehicle Transfer:** Manager selects a new target dealership; system validates status is not sold, updates branch assignment, and emits `VehicleTransferred`.
+- **UC-4: Aging Stock Remediation:** Manager inspects units in Warning (30–59d), High (60–89d), or Critical ($\ge$ 90d) status and logs quick-actions (*Price Reduction*, *Wholesale Transfer*, *Marketing Push*).
+- **UC-5: Closing a Sale:** Manager marks vehicle sold with actual selling price and timestamp; vehicle is permanently locked against further edits.
+- **UC-6: Real-time Notifications & Feed:** Sales and management view incoming WebSocket activity events (ring bell indicator, toast notifications, unread count tracking).
 
 ---
-
-## 9. Glossary (Ubiquitous Language)
-
-| Term | Definition |
-|---|---|
-| **Vehicle** | A single physical unit in the dealership's inventory, identified by VIN. |
-| **Inventory** | The set of all non-deleted vehicles. |
-| **Aging stock** | A vehicle whose `DateAddedToInventory` is more than 90 days ago at read time. |
-| **Status** | Where the vehicle sits in the sales lifecycle: Available, Sold, Pending, Wholesale. |
-| **Action** | A manager's logged proposal or decision on an aging vehicle. |
-| **Action type** | One of six predefined categories (Price Reduction Planned, Trade-In Evaluation, Wholesale Listed, Manager Review, Relist, Other). |
-| **Dashboard** | The manager-facing SPA at the root of this product. |
-
----
-
-## 10. Change Control
-
-- Any change to a **business rule** (section 4) or a **KPI** (section 3) requires an amendment to this file in the same PR.
-- The Domain layer's invariants must change in lockstep — Domain tests must be updated.
-- The DB `CHECK` constraints must change in lockstep — a migration is required.
-- Technical docs (`backend.md`, `frontend.md`, `database.md`) are updated to reflect the new rule but do not own the truth.
 
 **Related plans:** [`backend.md`](./backend.md) · [`frontend.md`](./frontend.md) · [`database.md`](./database.md)

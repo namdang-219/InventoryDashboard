@@ -1,0 +1,37 @@
+---
+description: API Design Standards
+alwaysApply: true
+---
+
+# API Design Standards
+
+## URLs
+- Plural nouns, kebab-case: /users, /order-items
+- Max 2 nesting levels: /users/{id}/orders
+- Versioned: /api/v1/...
+- No verbs (use HTTP methods instead)
+
+## HTTP Methods
+GET retrieve; POST create; PUT full update; PATCH partial update; DELETE remove
+
+## Status Codes
+200 success; 201 created; 204 deleted; 400 bad request; 401 unauthorized; 403 forbidden; 404 not found; 409 conflict; 422 validation failed; 500 server error
+
+## Response Format
+Success: { data, meta } | Error: { error: { code: int, message, details } }
+
+## Conventions
+- camelCase fields
+- ISO 8601 UTC dates: createdAt, updatedAt, deletedAt
+
+## Pagination & Filtering
+?page=1&limit=20&sort=createdAt&order=desc (max 100); ?status=active,pending
+
+## Auth Headers
+Authorization: Bearer <token>; Content-Type: application/json; Idempotency-Key for POSTs
+
+## Do
+Proper status codes; filtering, sorting, pagination; version APIs; HTTPS only
+
+## Don't
+Verbs in URLs; return 200 for errors; expose internal details

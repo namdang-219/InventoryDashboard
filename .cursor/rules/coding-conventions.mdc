@@ -1,0 +1,50 @@
+---
+description: Coding Conventions
+alwaysApply: true
+---
+
+# Coding Conventions
+
+## Naming
+- Variables/methods: descriptive, verb-noun, camelCase
+- Classes: noun, PascalCase
+- Interfaces: I prefix (IUserRepository)
+- Constants: SCREAMING_SNAKE_CASE
+- Avoid abbreviations (use `customerId`, not `custId`)
+
+## Methods
+- Max 30 lines; single responsibility
+- Max 3 parameters; use DTO/record for more
+- Return early; avoid deep nesting (max 2 levels)
+
+## Constructors & Dependency Injection
+- Prefer C# 12 Primary Constructors for classes and records with dependency injection (e.g. `public sealed class BookAppointmentHandler(ICustomerRepository customerRepository, ...)`) to eliminate redundant field declarations and boilerplate constructor assignments.
+- Primary constructor parameters should use `camelCase` matching the dependency name.
+- If a parameter must remain strictly immutable and protected from reassignment, or if complex constructor body logic is required, traditional constructors or private readonly field assignments may be used.
+
+## Code Quality
+- No magic numbers; use named constants
+- No duplicated logic; extract to helper or base class
+- Prefer composition over inheritance
+- Use expression-bodied members when single expression
+
+## Readability
+- One concept per line; no multiple statements
+- Comment why, not what; delete dead code
+- Order: fields → constructor → public → private
+- ReSharper/IDE formatter enforced on save
+
+## Logging
+- Use source-generated logging with LoggerMessageAttribute (high-performance)
+- Define partial class with static methods; source generator creates impl
+- PascalCase placeholders: {Item}, {CustomerId}
+- Avoid LogInformation/LogDebug; use LoggerMessageAttribute instead
+- Check ILogger.IsEnabled before logging to skip allocations
+- Log levels: Debug (dev), Information (ops), Warning (recoverable), Error/Critical (failures)
+
+## Result & Error Handling
+- Use `Result<T>` / `Result` with typed `ErrorKind` enum (e.g. `NotFound`, `ValidationFailed`, `Conflict`); never use raw string error codes
+- Domain/Application layers return `Result.Failure(ErrorKind.X, "message")`; the message is for humans, the kind is for routing
+- HTTP status mapping is centralized in `ResultMapper.ToStatus()` — endpoints must call `ResultMapper.ToStatus(result.ErrorKind)`, never inline switch/case on `ErrorCode`
+- Endpoints must not branch on error code to set status; that logic lives in the mapper
+

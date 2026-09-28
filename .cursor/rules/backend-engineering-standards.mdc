@@ -1,0 +1,27 @@
+---
+description: Backend Engineering Standards
+alwaysApply: true
+---
+
+# Backend Engineering Standards
+
+## Stack
+.NET 10 + FastEndpoints + FastEndpoints.Swagger + MediatR + FluentValidation + EF Core + SQL Server + Serilog + xUnit/Moq
+
+## Flow
+Endpoint → Command/Query → Validator → Handler → Repository → EF Core
+
+## Patterns
+- Endpoint delegates to MediatR; no business logic
+- Command/Query = record; Handler = IRequestHandler
+- Validator required per Command/Query
+- Repository interface in Application; impl in Infrastructure
+- IEntityTypeConfiguration<T> for EF mappings
+
+## Rules
+- async/await + CancellationToken always
+- record for DTOs/commands/queries
+- Result<T> for outcomes, not exceptions
+- Business logic in Application only
+- Zero infrastructure refs in Application layer
+- DB scripts (migrations, seeds, backups) live in /database, sibling of /src

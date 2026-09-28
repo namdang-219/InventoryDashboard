@@ -1,0 +1,24 @@
+# Test Enforcement
+
+## Rule
+When modifying `src/IID.Application`, `src/IID.Domain`, or `src/IID.Infrastructure`, you MUST update the corresponding tests in `tests/`.
+
+## Mapping
+| Source | Tests |
+|--------|-------|
+| `src/IID.Domain/` | `tests/IID.Domain.Tests/` |
+| `src/IID.Application/` | `tests/IID.Application.Tests/` |
+| `src/IID.Infrastructure/` | `tests/IID.Infrastructure.Tests/` |
+
+## Workflow
+1. **Before**: Check if tests exist; if not, create them first
+2. **After**: Run `dotnet build` + `dotnet test tests/IID.<Layer>.Tests/` and fix failures
+3. **New functionality**: Add tests covering the new behavior
+4. **Verify**: Build succeeds + all tests pass (0 failures) before completing the change
+
+## Standard
+- **Domain**: Test entities, value objects, domain services, invariants
+- **Application**: Test all handlers and validators with mocked dependencies
+- **Infrastructure**: Test all services and configurations
+
+All tests must pass (0 failures) before marking a task complete.

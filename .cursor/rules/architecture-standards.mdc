@@ -1,0 +1,34 @@
+---
+description: Architecture Standards
+alwaysApply: true
+---
+
+# Architecture Standards
+
+## Layers
+Presentation → Application → Infrastructure
+
+- Application owns business logic; zero infrastructure dependencies
+- Infrastructure implements interfaces from Application
+- Presentation depends on Application only
+
+## Structure
+- Application: Features (vertical slices), Common (Interfaces, Behaviors, Models)
+- Infrastructure: Persistence (EF Core, Repositories), Services
+- Presentation: Endpoints
+
+## SOLID
+- SRP: one reason to change
+- OCP: extend, don't modify
+- LSP: subtypes substitutable
+- ISP: small, role-specific interfaces
+- DIP: Application defines; Infrastructure implements
+
+## Models
+Private setters; factory methods; encapsulate invariants
+
+## Do
+Business logic in Application; interfaces in Application; Value Objects for Money, Email
+
+## Don't
+Infrastructure refs in Application; business logic in endpoints; async void
