@@ -9,7 +9,7 @@ public sealed class SoftDeleteVehicleActionEndpoint(ISender sender) : EndpointWi
     public override void Configure()
     {
         Delete("/api/v1/vehicle-actions/{id}");
-        Roles("Manager", "Sales", "Saler");
+        Roles("Manager", "Sales");
         Description(x => x.WithTags("VehicleActions"));
         Summary(s =>
         {

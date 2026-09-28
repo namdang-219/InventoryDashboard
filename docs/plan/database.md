@@ -179,8 +179,8 @@ dotnet ef database update \
 Executed automatically on a fresh database:
 
 1. **Identity (`IdentitySeeder`):**
-   - Roles: `Manager`, `Saler`, `Sales`.
-   - Default Users: `admin@iid.local` (Manager) & `saler@iid.local` (Saler/Sales).
+   - Roles: `Manager`, `Sales`.
+   - Default Users: `admin@iid.local` (Manager) & `saler@iid.local` (Sales).
 2. **Dealerships (`DealershipsSeeder`):**
    - 10 deterministic demo dealerships (Apex Motors LA, Metro Auto Seattle, Summit Luxury Denver, Pinnacle Ford Dallas, Grand Horizon Phoenix, Velocity Miami, Coastal Bay SF, Heritage Chicago, Frontier Austin, Silverstone Atlanta).
 3. **Vehicles (`VehiclesSeeder`):**

@@ -27,7 +27,7 @@ Automotive retail inventories represent a dealership's largest working capital i
 | Actor | Role / System Name | Key Responsibilities & Permissions |
 |---|---|---|
 | **Dealership Manager** | `Manager` | Full control: CRUD vehicles, record sales (`MarkSold`), execute inter-branch transfers (`TransferDealership`), log actions, manage dealership profiles. |
-| **Sales Staff** | `Saler` / `Sales` | Read-only operations: browse inventory, inspect aging stock, view activities, monitor alert banners. |
+| **Sales Staff** | `Sales` | Read-only operations: browse inventory, inspect aging stock, view activities, monitor alert banners. |
 | **System** | Background / Realtime | Dispatches post-commit domain events, broadcasts SignalR WebSocket updates, recalculates dashboard KPIs. |
 
 ### 2.3 System Scope
@@ -92,7 +92,7 @@ Automotive retail inventories represent a dealership's largest working capital i
 | Rule ID | Rule Description | Enforcement |
 |---|---|---|
 | **AU-001** | Manager Operations | Vehicle creation, updates, deletes, transfers, mark-sold, action logging, and dealership CRUD require `Roles("Manager")`. |
-| **AU-002** | Read Operations | Dashboard bundle, vehicle list, aging stock, activity stream, and alerts allow `Roles("Manager", "Sales", "Saler")`. |
+| **AU-002** | Read Operations | Dashboard bundle, vehicle list, aging stock, activity stream, and alerts allow `Roles("Manager", "Sales")`. |
 | **AU-003** | Public Endpoints | Authentication routes (`/api/v1/auth/login`, `/api/v1/auth/refresh-token`) are publicly accessible. |
 
 ---

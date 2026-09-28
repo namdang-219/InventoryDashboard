@@ -12,7 +12,7 @@ public sealed class ListDealershipsEndpoint(ISender sender) : EndpointWithoutReq
     public override void Configure()
     {
         Get("/api/v1/dealerships");
-        Roles("Manager", "Sales", "Saler");
+        Roles("Manager", "Sales");
         Description(x => x.WithTags("Dealerships"));
         Summary(s =>
         {

@@ -15,7 +15,7 @@
 | **Domain Events** | `DomainEventDispatchInterceptor` | Intercepts EF Core `SaveChangesAsync` and publishes domain events via MediatR **only after** successful transaction commit. |
 | **ORM & Persistence** | EF Core 10 | Code-first configurations, owned entity value objects (`Vin`, `Money`), query filters (`DeletedAt == null`), concurrency tokens (`RowVersion`). |
 | **Realtime** | ASP.NET Core SignalR (`/hubs/inventory`) | Typed WebSocket push (`IInventoryClient`) with `inventory-dashboard` and `dealership:{id}` groups. |
-| **Auth** | ASP.NET Core Identity + JWT | Roles `Manager`, `Saler`, `Sales`. Bearer token auth + refresh token endpoint. |
+| **Auth** | ASP.NET Core Identity + JWT | Roles `Manager`, `Sales`. Bearer token auth + refresh token endpoint. |
 | **Observability** | OpenTelemetry + OpenObserve | Full-stack distributed traces, EF Core SQL telemetry, and Serilog structured logs exported via OTLP to OpenObserve. |
 
 ---
@@ -138,7 +138,7 @@ VehicleRealtimeEventHandler    DashboardRealtimeEventHandler
 ### 5.3 Automated Seeders (`IidDbInitializer`)
 
 Runs on application startup when database is initialized:
-1. `IdentitySeeder` (Order 10): Roles `Manager`, `Saler`, `Sales`. Users `admin@iid.local` and `saler@iid.local`.
+1. `IdentitySeeder` (Order 10): Roles `Manager`, `Sales`. Users `admin@iid.local` and `saler@iid.local`.
 2. `DealershipsSeeder` (Order 15): 10 metropolitan dealerships across the US.
 3. `VehiclesSeeder` (Order 20): Seeds 733 vehicles distributed across all 10 dealerships with varied age, status, and fuel types.
 4. `VehicleActionsSeeder` (Order 30): Attaches initial action history to demo vehicles.
@@ -151,26 +151,26 @@ Runs on application startup when database is initialized:
 |---|---|---|---|
 | `POST` | `/api/v1/auth/login` | Public | Authenticates credentials; returns JWT and refresh token |
 | `POST` | `/api/v1/auth/refresh-token` | Public | Exchanges refresh token for new access token |
-| `GET` | `/api/v1/dashboard` | `Manager`, `Sales`, `Saler` | Complete single-roundtrip dashboard bundle with filters |
-| `GET` | `/api/v1/dashboard/aging` | `Manager`, `Sales`, `Saler` | Aging breakdown metrics |
-| `GET` | `/api/v1/dashboard/alerts` | `Manager`, `Sales`, `Saler` | Low inventory and aging alerts |
-| `GET` | `/api/v1/vehicles` | `Manager`, `Sales`, `Saler` | Paginated, sorted, filtered vehicle roster |
-| `GET` | `/api/v1/vehicles/{id}` | `Manager`, `Sales`, `Saler` | Single vehicle detail |
+| `GET` | `/api/v1/dashboard` | `Manager`, `Sales` | Complete single-roundtrip dashboard bundle with filters |
+| `GET` | `/api/v1/dashboard/aging` | `Manager`, `Sales` | Aging breakdown metrics |
+| `GET` | `/api/v1/dashboard/alerts` | `Manager`, `Sales` | Low inventory and aging alerts |
+| `GET` | `/api/v1/vehicles` | `Manager`, `Sales` | Paginated, sorted, filtered vehicle roster |
+| `GET` | `/api/v1/vehicles/{id}` | `Manager`, `Sales` | Single vehicle detail |
 | `POST` | `/api/v1/vehicles` | `Manager` | Create vehicle |
 | `PUT` | `/api/v1/vehicles/{id}` | `Manager` | Update vehicle |
-| `POST` | `/api/v1/vehicles/{id}/sold` | `Manager` | Mark vehicle sold |
+| `POST` | `/api/v1/vehicles/{id}/mark-sold` | `Sales` | Mark vehicle sold |
 | `POST` | `/api/v1/vehicles/{id}/transfer` | `Manager` | Transfer vehicle to another dealership |
-| `GET` | `/api/v1/vehicles/aging-stock` | `Manager`, `Sales`, `Saler` | Filtered query for aging stock units |
-| `GET` | `/api/v1/vehicles/{id}/actions` | `Manager`, `Sales`, `Saler` | Action history for specific vehicle |
-| `POST` | `/api/v1/vehicles/{id}/actions` | `Manager` | Log action on vehicle |
-| `GET` | `/api/v1/vehicle-actions` | `Manager`, `Sales`, `Saler` | List logged actions |
-| `PUT` | `/api/v1/vehicle-actions/{id}` | `Manager` | Edit action note or type |
-| `DELETE` | `/api/v1/vehicle-actions/{id}` | `Manager` | Soft-delete action |
-| `GET` | `/api/v1/dealerships` | `Manager`, `Sales`, `Saler` | List all dealerships |
+| `GET` | `/api/v1/vehicles/aging-stock` | `Manager`, `Sales` | Filtered query for aging stock units |
+| `GET` | `/api/v1/vehicles/{id}/actions` | `Manager`, `Sales` | Action history for specific vehicle |
+| `POST` | `/api/v1/vehicles/{id}/actions` | `Manager`, `Sales` | Log action on vehicle |
+| `GET` | `/api/v1/vehicle-actions` | `Manager`, `Sales` | List logged actions |
+| `PUT` | `/api/v1/vehicle-actions/{id}` | `Manager`, `Sales` | Edit action note or type |
+| `DELETE` | `/api/v1/vehicle-actions/{id}` | `Manager`, `Sales` | Soft-delete action |
+| `GET` | `/api/v1/dealerships` | `Manager`, `Sales` | List all dealerships |
 | `POST` | `/api/v1/dealerships` | `Manager` | Create dealership branch |
 | `PUT` | `/api/v1/dealerships/{id}` | `Manager` | Update dealership branch |
-| `GET` | `/api/v1/activities` | `Manager`, `Sales`, `Saler` | Live activity feed |
-| `POST` | `/api/v1/activities/read` | `Manager`, `Sales`, `Saler` | Mark activity notifications read |
+| `GET` | `/api/v1/activities` | `Manager`, `Sales` | Live activity feed |
+| `POST` | `/api/v1/activities/read` | `Manager`, `Sales` | Mark activity notifications read |
 
 ---
 

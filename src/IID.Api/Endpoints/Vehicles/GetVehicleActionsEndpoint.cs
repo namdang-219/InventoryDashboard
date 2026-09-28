@@ -12,7 +12,7 @@ public sealed class GetVehicleActionsEndpoint(ISender sender) : Endpoint<GetVehi
     public override void Configure()
     {
         Get("/api/v1/vehicles/{id}/actions");
-        Roles("Manager", "Sales", "Saler");
+        Roles("Manager", "Sales");
         Description(x => x.WithTags("Vehicles"));
         Summary(s =>
         {

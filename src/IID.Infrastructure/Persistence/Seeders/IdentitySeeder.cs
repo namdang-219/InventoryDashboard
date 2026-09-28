@@ -48,7 +48,7 @@ public sealed class IdentitySeeder(
             email: SalerEmail,
             userName: SalerUserName,
             password: options.Value.SalerPassword ?? DefaultSalerPassword,
-            role: SalerRole);
+            role: SalesRole);
 
         var salerUser = await users.FindByEmailAsync(SalerEmail);
         if (salerUser is not null && !await users.IsInRoleAsync(salerUser, SalesRole))

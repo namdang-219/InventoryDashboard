@@ -219,7 +219,7 @@ export class VehicleListPageComponent implements OnInit {
 
   openMarkSold(v: Vehicle): void {
     if (!this.canMarkSold()) {
-      this.toast.warning('Permission Denied', 'Only Salers can mark vehicles as sold.');
+      this.toast.warning('Permission Denied', 'Only Sales can mark vehicles as sold.');
       return;
     }
     this.vehicleForSold.set(v);

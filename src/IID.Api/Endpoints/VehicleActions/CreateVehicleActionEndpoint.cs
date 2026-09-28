@@ -16,7 +16,7 @@ public sealed class CreateVehicleActionEndpoint(ISender sender) : Endpoint<Creat
     public override void Configure()
     {
         Post("/api/v1/vehicle-actions");
-        Roles("Manager", "Sales", "Saler");
+        Roles("Manager", "Sales");
         Description(x => x.WithTags("VehicleActions"));
         Summary(s =>
         {

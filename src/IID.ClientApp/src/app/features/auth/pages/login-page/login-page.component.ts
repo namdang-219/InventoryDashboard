@@ -39,7 +39,7 @@ export class LoginPageComponent {
     })
   });
 
-  fillDemo(role: 'admin' | 'saler' | 'viewer'): void {
+  fillDemo(role: 'admin' | 'sales' | 'saler' | 'viewer'): void {
     if (role === 'admin') {
       this.form.patchValue({
         email: 'admin@iid.local',
@@ -51,7 +51,7 @@ export class LoginPageComponent {
         email: 'saler@iid.local',
         password: 'P@ssw0rd!Saler'
       });
-      this.toast.info('Quick Fill', 'Loaded Saler account credentials.');
+      this.toast.info('Quick Fill', 'Loaded Sales account credentials.');
     }
   }
 

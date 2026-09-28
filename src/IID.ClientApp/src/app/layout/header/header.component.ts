@@ -192,7 +192,7 @@ export class HeaderComponent implements OnInit {
 
   onMarkSoldFromDetail(v: Vehicle): void {
     if (!this.canMarkSold()) {
-      this.toast.warning('Permission Denied', 'Only Salers can mark vehicles as sold.');
+      this.toast.warning('Permission Denied', 'Only Sales can mark vehicles as sold.');
       return;
     }
     this.closeDetailModal();

@@ -18,7 +18,7 @@ public sealed class GetLowInventoryAlertsEndpoint(ISender sender)
     public override void Configure()
     {
         Get("/api/v1/dashboard/alerts/low-inventory");
-        Roles("Manager", "Sales", "Saler");
+        Roles("Manager", "Sales");
         Description(x => x.WithTags("Dashboard", "Alerts"));
         Summary(s =>
         {

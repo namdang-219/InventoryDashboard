@@ -50,9 +50,9 @@ src/IID.ClientApp/src/app/
 |---|---|---|---|
 | `/login` | `LoginPageComponent` | Public | Credentials authentication with demo presets |
 | `/` | `ShellComponent` | `authGuard` | Redirects to `/dashboard` |
-| `/dashboard` | `DashboardPageComponent` | `authGuard` (`Manager`, `Sales`, `Saler`) | Executive cockpit: KPIs, velocity trend, alerts, action center |
-| `/vehicles` | `VehicleListPageComponent` | `authGuard` (`Manager`, `Sales`, `Saler`) | Full inventory roster with search, filter bar, cards/table |
-| `/vehicles/aging` | `VehicleListPageComponent` | `authGuard` (`Manager`, `Sales`, `Saler`) | Pre-filtered view for units $>90$ days on lot |
+| `/dashboard` | `DashboardPageComponent` | `authGuard` (`Manager`, `Sales`) | Executive cockpit: KPIs, velocity trend, alerts, action center |
+| `/vehicles` | `VehicleListPageComponent` | `authGuard` (`Manager`, `Sales`) | Full inventory roster with search, filter bar, cards/table |
+| `/vehicles/aging` | `VehicleListPageComponent` | `authGuard` (`Manager`, `Sales`) | Pre-filtered view for units $>90$ days on lot |
 | `/dealerships` | `DealershipListPageComponent` | `managerGuard` (`Manager` only) | Multi-branch management, branch statistics, and creation |
 | `**` | Redirect to `/dashboard` | — | Catch-all fallback |
 

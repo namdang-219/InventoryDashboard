@@ -18,7 +18,7 @@ public sealed class ListVehicleActionsEndpoint(ISender sender) : Endpoint<ListVe
     public override void Configure()
     {
         Get("/api/v1/vehicle-actions");
-        Roles("Manager", "Sales", "Saler");
+        Roles("Manager", "Sales");
         Description(x => x.WithTags("VehicleActions"));
         Summary(s =>
         {
