@@ -27,21 +27,20 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       MSSQL_PID: ${MSSQL_PID:-Developer}
-      MSSQL_TCP_PORT: ${MSSQL_TCP_PORT:-1434}
     ports:
-      # Stable internal port; the host port below is what clients bind to.
-      - "1434:1434"
+      # Map host port 1434 to standard container port 1433
+      - "1434:1433"
     volumes:
       - iid_mssql_data:/var/opt/mssql
     healthcheck:
       # sqlcmd with -No skips TLS server-name validation; sqlcmd lives under mssql-tools18.
       test:
         - CMD-SHELL
-        - /opt/mssql-tools18/bin/sqlcmd -S localhost,1434 -U sa -P "$$MSSQL_SA_PASSWORD" -No -Q 'SELECT 1' || exit 1
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -No -Q 'SELECT 1' || exit 1
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 20
+      start_period: 120s
     restart: unless-stopped
 
   api:
@@ -54,8 +53,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      # SQL Server inside compose is reachable by service name "db".
-      ConnectionStrings__IID: "Server=db,1434;Database=IID;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
+      # SQL Server inside compose is reachable by service name "db" (standard port 1433).
+      ConnectionStrings__IID: "Server=db;Database=IID;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER:-iid.local}
       Jwt__Audience: ${JWT_AUDIENCE:-iid.client}
