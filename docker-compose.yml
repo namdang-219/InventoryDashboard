@@ -46,9 +46,9 @@ services:
   api:
     build:
       # Same directory as docker-compose.yml (= the repo root).
-      # Lets the Dockerfile use paths like src/IID.Api/... directly.
+      # Lets the Dockerfile use paths like src/IID.Services/IID.Api/... directly.
       context: .
-      dockerfile: src/IID.Api/Dockerfile
+      dockerfile: src/IID.Services/IID.Api/Dockerfile
     container_name: iid-api
     environment:
       ASPNETCORE_ENVIRONMENT: Production

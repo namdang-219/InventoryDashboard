@@ -183,7 +183,7 @@ To drop and reseed the database from scratch:
 # Drop existing database
 dotnet ef database drop --force \
   --project src/IID.Infrastructure \
-  --startup-project src/IID.Api
+  --startup-project src/IID.Services/IID.Api
 
 # Restart containers to automatically apply migrations and run seeders
 docker compose restart api
@@ -346,7 +346,7 @@ This project was engineered through a disciplined partnership between human arch
 
 ### Environment Variables & Connection Strings
 
-Connection strings and secrets are configured via `.env` (for Docker Compose) and `src/IID.Api/appsettings.json` (for local development):
+Connection strings and secrets are configured via `.env` (for Docker Compose) and `src/IID.Services/IID.Api/appsettings.json` (for local development):
 
 ```json
 {

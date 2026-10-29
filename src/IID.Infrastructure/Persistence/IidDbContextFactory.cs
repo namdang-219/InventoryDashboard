@@ -39,7 +39,7 @@ public sealed class IidDbContextFactory : IDesignTimeDbContextFactory<IidDbConte
         var connectionString = configuration.GetConnectionString("IID")
             ?? throw new InvalidOperationException(
                 "Connection string 'IID' is not configured. " +
-                "Ensure src/IID.Api/appsettings.json (or environment variables) " +
+                "Ensure src/IID.Services/IID.Api/appsettings.json (or environment variables) " +
                 "contains ConnectionStrings:IID for SQL Server.");
 
         var optionsBuilder = new DbContextOptionsBuilder<IidDbContext>()
@@ -55,7 +55,7 @@ public sealed class IidDbContextFactory : IDesignTimeDbContextFactory<IidDbConte
         var current = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (current != null)
         {
-            var candidate = Path.Combine(current.FullName, "src", "IID.Api");
+            var candidate = Path.Combine(current.FullName, "src", "IID.Services", "IID.Api");
             if (File.Exists(Path.Combine(candidate, "appsettings.json")))
             {
                 return candidate;

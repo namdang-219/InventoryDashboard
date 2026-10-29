@@ -169,7 +169,7 @@ Migrations execute automatically on API launch via `IidDbInitializer`. To apply 
 ```bash
 dotnet ef database update \
   --project src/IID.Infrastructure \
-  --startup-project src/IID.Api
+  --startup-project src/IID.Services/IID.Api
 ```
 
 ---

@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IID.Application\IID.Application.csproj" />
-    <ProjectReference Include="..\IID.Infrastructure\IID.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\IID.Application\IID.Application.csproj" />
+    <ProjectReference Include="..\..\IID.Infrastructure\IID.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
