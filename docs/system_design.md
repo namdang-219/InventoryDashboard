@@ -68,7 +68,7 @@ By combining automated aging detection with streamlined action logging, the Inte
 2. **Floor-Plan Interest Reduction:** Mitigates hundreds of dollars in daily interest expenses across aging inventory lines.
 3. **Data-Driven Governance:** Replaces gut-feel lot management with auditable, metric-backed inventory policies.
 
-Technologically, the platform is engineered as a high-performance, containerized micro-service stack using **Clean Architecture** and **Domain-Driven Design (DDD)** in **C# ASP.NET Core (.NET 10 LTS)** with **FastEndpoints**, persisting to **Azure SQL Database / MSSQL 2022** via **Entity Framework Core 10**, synchronized to an **Angular 19 SPA** via **SignalR**, and comprehensively monitored through **OpenTelemetry** and **OpenObserve**.
+Technologically, the platform is engineered as a high-performance, containerized micro-service stack using **Clean Architecture** and **Domain-Driven Design (DDD)** in **C# ASP.NET Core (.NET 10 LTS)** with **FastEndpoints**, persisting to **Azure SQL Database / MSSQL 2022** via **Entity Framework Core 10**, synchronized to a **React 19 SPA (`IID.FrontendApp`)** via **SignalR**, and comprehensively monitored through **OpenTelemetry** and **OpenObserve**.
 
 ---
 
@@ -84,7 +84,7 @@ The following architecture diagram illustrates the end-to-end architecture, depi
 
 | Component                                   | Architecture Role & Responsibilities                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Client-Side Presentation Layer**          | Provides responsive user interfaces and developer interaction channels. The primary interface is the **Angular 19 SPA (`IID.ClientApp`)** providing interactive inventory tables, aging badges, visual analytics, and action modals. For headless and partner interactions, the layer is mocked and explored via **FastEndpoints Swagger (OpenAPI v3)** and scriptable cURL commands. |
+| **Client-Side Presentation Layer**          | Provides responsive user interfaces and developer interaction channels. The primary interface is the **React 19 SPA (`IID.FrontendApp`)** providing interactive inventory tables, aging badges, visual analytics, and action modals. For headless and partner interactions, the layer is mocked and explored via **FastEndpoints Swagger (OpenAPI v3)** and scriptable cURL commands. |
 | **Docker & Docker Compose**                 | Containerized runtime environment orchestrating the **`IID.Api`** service container using a multi-stage Alpine build (`src/IID.Services/IID.Api/Dockerfile`). Provides process isolation, reproducible environments, automatic health monitoring, resource limits (CPU/RAM reservations), and unified service networking alongside the database.                                                   |
 | **FastEndpoints Presentation Engine**       | High-performance, vertical-slice REPR (Request-Endpoint-Response) presentation architecture. Replaces heavy ASP.NET Core MVC controllers with discrete endpoints such as `ListVehiclesEndpoint`, `GetDashboardBundleEndpoint`, and `LogVehicleActionEndpoint`.                                                                                                                        |
 | **MediatR CQRS Pipeline**                   | Coordinates application flow using Command Query Responsibility Segregation (CQRS). Enforces pre-execution validation via `ValidationBehavior` (FluentValidation) and SLA performance tracking via `PerformanceBehavior`.                                                                                                                                                             |
@@ -110,7 +110,7 @@ To establish concrete architectural boundaries and resolve ambiguities in the su
 3. **Isolated Container Network Security (Technical Assumption):**  
    The backend API container and database communicate over an isolated internal Docker bridge network (`iid` network). The database port (1434) is restricted to the internal network or secured via TLS encrypted connections, with credentials injected via secure environment variables.
 4. **Contract-First Client Decoupling (Technical Assumption):**  
-   While a high-fidelity Angular 19 SPA (`IID.ClientApp`) is provided, the backend API is strictly decoupled through OpenAPI specifications. Downstream and external dealership systems (e.g., Dealer Management Systems / DMS) interact with the platform purely via standard RESTful endpoints and WebSockets, validated independently via Swagger UI and cURL scripts.
+   While a high-fidelity React 19 SPA (`IID.FrontendApp`) is provided, the backend API is strictly decoupled through OpenAPI specifications. Downstream and external dealership systems (e.g., Dealer Management Systems / DMS) interact with the platform purely via standard RESTful endpoints and WebSockets, validated independently via Swagger UI and cURL scripts.
 
 ---
 
@@ -244,15 +244,15 @@ public static partial class LogMessage
 
 ### 5.2 Frontend Architecture & Technology Choices
 
-The frontend tier is implemented as a single-page application (SPA) built with **Angular 19**, designed to provide dealership managers with instant inventory visibility, interactive analytics, and responsive real-time workflow controls.
+The frontend tier (`src/IID.FrontendApp`) is implemented as a single-page application (SPA) built with **React 19**, **Vite**, and **Redux Toolkit**, designed to provide dealership managers with instant inventory visibility, interactive analytics, and responsive real-time workflow controls.
 
 ![Frontend Architecture & Layer Interactions](./images/frontend.png)
 
-#### 5.2.1 Core Framework & Highlights (Angular 19 SPA)
-- **Standalone Component Architecture:** Implemented entirely using Angular 19 standalone components (`standalone: true`). By bypassing legacy `NgModule` declarations, the application achieves cleaner component hierarchies, optimized tree-shaking, and smaller initial download bundles.
-- **Signals & Reactive State Management:** Utilizes Angular Signals (`signal()`, `computed()`) for component-level reactive state combined with RxJS for asynchronous event pipelines. Signals provide fine-grained reactivity, updating only the specific DOM nodes affected by state changes without requiring zone-wide change detection passes.
-- **Strict TypeScript Typing:** Complete end-to-end type safety across domain interfaces, API request/response contracts, and reactive forms. Ensures any schema evolution in backend DTOs is immediately verified at compile-time on the client.
-- **Lazy-Loaded Routing:** Application routes (`auth`, `dashboard`, `vehicles`, `dealerships`) are lazily loaded on-demand, reducing initial First Contentful Paint (FCP) and preserving client memory.
+#### 5.2.1 Core Framework & Highlights (React 19 SPA)
+- **Modular Function Component Architecture:** Implemented with React 19 function components bundled via Vite, delivering fast HMR, native ESM tree-shaking, and small initial download bundles.
+- **Redux Toolkit & Hooks State Management:** Utilizes Redux Toolkit slices (`auth`, `toast`, `theme`, `dealership`, `realtime`) for cross-cutting application state paired with React hooks (`useState`, `useMemo`) for component-local state and zero-RxJS typed callback subscriptions for WebSocket events.
+- **Strict TypeScript Typing:** Complete end-to-end type safety across domain interfaces, API request/response contracts, and controlled forms. Ensures any schema evolution in backend DTOs is immediately verified at compile-time on the client.
+- **Lazy-Loaded Routing:** Application routes (`auth`, `dashboard`, `vehicles`, `dealerships`) are lazily loaded on-demand via `React.lazy` and `Suspense`, reducing initial First Contentful Paint (FCP) and preserving client memory.
 
 #### 5.2.2 Real-Time Synchronization & SignalR Integration
 - **Persistent Bi-directional WebSockets (`RealtimeService`):** Establishes an active WebSocket connection to the backend `InventoryHub` using `@microsoft/signalr`.
@@ -282,12 +282,12 @@ The frontend tier is implemented as a single-page application (SPA) built with *
 
 #### 5.2.6 Frontend Justification Matrix
 
-| Dimension           | Angular 19 SPA                                                                                              | SignalR Real-Time Client                                                                                             | Headless Alternatives (Swagger / cURL)                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Scalability**     | Static single-page application bundle deployable to edge CDNs with zero client-side server rendering load.  | Push-based WebSocket events eliminate costly periodic polling from hundreds of active dealership browser tabs.       | Lightweight REST endpoints easily consumed by microservices, batch scripts, and automation runners.               |
-| **Performance**     | Angular Signals minimize DOM re-renders; lazy loading minimizes initial JavaScript bundle payload.          | Low-overhead binary WebSocket framing delivers millisecond-latency UI updates upon database commits.                 | Direct HTTP invocations with minimal JSON overhead for automated testing and CI/CD validation.                    |
-| **Reliability**     | TypeScript strict mode and reactive form validation catch input defects before requests leave the client.   | Built-in automatic reconnection policy gracefully handles network hiccups and device sleep/wake cycles.              | Deterministic OpenAPI v3 contracts guarantee strict schema adherence across all integration channels.             |
-| **Maintainability** | Standalone component architecture eliminates NgModule boilerplate; modular structure isolates feature code. | Centralized `RealtimeService` abstracts connection management and event subscriptions behind clean RxJS observables. | Auto-generated OpenAPI specifications from backend code ensure documentation stays 100% in sync with API changes. |
+| Dimension           | React 19 SPA (`IID.FrontendApp`)                                                                            | SignalR Real-Time Client                                                                                                  | Headless Alternatives (Swagger / cURL)                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Scalability**     | Static single-page application bundle deployable to edge CDNs with zero client-side server rendering load.  | Push-based WebSocket events eliminate costly periodic polling from hundreds of active dealership browser tabs.            | Lightweight REST endpoints easily consumed by microservices, batch scripts, and automation runners.               |
+| **Performance**     | Fine-grained Redux Toolkit selectors and memoized hooks minimize re-renders; lazy routes reduce bundle size.| Low-overhead binary WebSocket framing delivers millisecond-latency UI updates upon database commits.                      | Direct HTTP invocations with minimal JSON overhead for automated testing and CI/CD validation.                    |
+| **Reliability**     | TypeScript strict mode and controlled form validation catch input defects before requests leave the client. | Built-in automatic reconnection policy gracefully handles network hiccups and device sleep/wake cycles.                   | Deterministic OpenAPI v3 contracts guarantee strict schema adherence across all integration channels.             |
+| **Maintainability** | Modular feature folder architecture isolates UI slices cleanly with zero boilerplate.                       | Centralized `realtimeService` abstracts connection management behind Redux Toolkit dispatches and typed event callbacks.  | Auto-generated OpenAPI specifications from backend code ensure documentation stays 100% in sync with API changes. |
 
 ---
 
@@ -317,9 +317,9 @@ Each architectural layer has a dedicated test project mirroring the system's str
 4. **`IID.Api.Tests` (8 Tests — 120 ms execution):**
    - **Endpoint Contract & Presentation Testing:** Verifies FastEndpoints routing, HTTP status code translation (mapping `ErrorKind.NotFound` to `404 ProblemDetails`), and middleware execution.
 
-5. **`IID.ClientApp` (Frontend Jasmine/Karma Unit Tests):**
-   - **Signals & Reactive State Verification:** Tests Angular 19 signals (`signal()`, `computed()`) to ensure reactive state transitions correctly when stock actions are triggered.
-   - **Service & Interceptor Mocks:** Employs `HttpClientTestingModule` and mock `RealtimeService` to verify JWT bearer token injection and WebSocket event dispatching without live network connections.
+5. **`IID.FrontendApp` (Frontend Vitest + React Testing Library Unit Tests):**
+   - **Redux Toolkit & Hook State Verification:** Tests Redux slices (`auth`, `realtime`, `toast`, `theme`, `dealership`) and component state transitions when stock actions are triggered.
+   - **Service, Guard & Interceptor Mocks:** Employs Axios adapter mocks and `realtimeEvents` stubs to verify JWT bearer token injection, single-flight 401 refresh queuing, route guards, and WebSocket event dispatching without live network connections.
 
 ---
 
@@ -332,7 +332,7 @@ Each architectural layer has a dedicated test project mirroring the system's str
 | **Moq 4.20.72**                 | Behavioral Mocking Library     | Configures deterministic stubs and verifies critical side-effects on outbound interfaces (e.g., verifying `_notifier.Verify(n => n.VehicleActionLoggedAsync(...), Times.Once)`).                       |
 | **EF Core In-Memory 10.0.0**    | Ephemeral Persistence Provider | Allows repository query logic and LINQ filters to run in-memory within milliseconds without spinning up heavyweight SQL Server containers for unit-level verification.                                 |
 | **FluentValidation.TestHelper** | Contract Validation Assertions | Provides dedicated `.ShouldHaveValidationErrorFor()` and `.ShouldNotHaveValidationErrorFor()` extensions for validating command rules independently of handler execution.                              |
-| **Jasmine & Karma**             | Frontend Unit Testing Stack    | Standard Angular testing toolchain integrated with Angular TestBed for headless component rendering, change detection cycle verification, and RxJS stream validation.                                  |
+| **Vitest & Testing Library**    | Frontend Unit Testing Stack    | Fast Vite-native test runner paired with React Testing Library and jsdom for component rendering, Redux state verification, and interceptor validation. |
 
 ---
 
@@ -423,11 +423,11 @@ public async Task Handle_Should_NotifyHub_OnSuccess()
 
 ---
 
-#### 5.3.4 Frontend Unit Testing Approach (Angular 19 SPA)
+#### 5.3.4 Frontend Unit Testing Approach (React 19 SPA — `IID.FrontendApp`)
 Frontend testing mirrors backend rigor by verifying reactive state propagation and HTTP contract fidelity:
-- **Angular Signal Reactivity:** Verifies that when `VehicleStore` updates its `vehicles` signal, computed signals (`agingStockCount`, `totalPortfolioValue`) update synchronously without triggering manual change detection.
-- **Mocking Real-Time WebSockets:** Uses a stubbed `RealtimeService` emitting RxJS Subjects to simulate incoming `VehicleActionLogged` events, asserting that UI toast notifications and action badges update in real time.
-- **HTTP Interceptor Verification:** Verifies that `auth.interceptor.ts` transparently injects the bearer token and traps `401 Unauthorized` responses to trigger clean session termination.
+- **Redux Slice & Component State:** Verifies that Redux Toolkit slices (`realtime`, `auth`, `dealership`) and memoized component views update deterministically when inventory and activity events arrive.
+- **Mocking Real-Time WebSockets:** Uses `realtimeEvents` callbacks and mocked service layers to simulate incoming `VehicleActionLogged` and dealership events, asserting that UI toast notifications, badges, and lists update in real time.
+- **HTTP Interceptor Verification:** Verifies that `auth.interceptor.ts` transparently injects the bearer token, queues concurrent `401 Unauthorized` requests behind a single-flight token refresh, and triggers clean session termination on refresh failure.
 
 ---
 

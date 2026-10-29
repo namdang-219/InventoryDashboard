@@ -1,7 +1,6 @@
-# Client app (Angular frontend has its own build and should not bloat the backend build)
-src/IID.ClientApp/
+# Frontend app (React SPA has its own build and should not bloat the backend build)
+src/IID.FrontendApp/
 **/node_modules/
-**/.angular/
 **/dist/
 
 # Version control & IDE

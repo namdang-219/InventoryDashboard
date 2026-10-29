@@ -70,10 +70,10 @@ docker compose logs -f api
 
 ---
 
-### 2. Run the Angular SPA
+### 2. Run the React SPA
 
 ```bash
-cd src/IID.ClientApp
+cd src/IID.FrontendApp
 npm install
 npm start
 ```
@@ -144,7 +144,7 @@ IID/
 │   ├── IID.Application/        # MediatR CQRS commands/queries, FluentValidation behaviors, DTOs, interfaces
 │   ├── IID.Infrastructure/     # EF Core 10, SQL Server configurations, SignalR hub & notifiers, OpenTelemetry, seeders
 │   ├── IID.Api/                # FastEndpoints REPR endpoints, Program.cs, Swagger OpenAPI, Dockerfile
-│   └── IID.ClientApp/          # Angular 19 SPA (Standalone components, Signals, Reactive forms, Material theme)
+│   └── IID.FrontendApp/        # React 19 SPA (Vite, Redux Toolkit, React Router, Axios, SCSS)
 ├── tests/
 │   ├── IID.Domain.Tests/       # 123 tests (invariants, ISO 3779 VIN validation, monetary math, aging calculations)
 │   ├── IID.Application.Tests/  # 108 tests (CQRS handlers, validation, mock notifiers, SUT factory)
@@ -243,7 +243,7 @@ Against the ~733-vehicle seed, the aggregate dashboard endpoint (`GET /api/v1/da
 2. **Domain Event Staging:** Aggregate roots mutate state and record in-memory domain events (e.g. `VehicleActionLoggedDomainEvent`, `VehicleAgingStockFlaggedDomainEvent`).
 3. **Transactional Interception:** `DomainEventDispatchInterceptor` intercepts EF Core's `SaveChangesAsync`, dispatching domain events through MediatR only after database persistence succeeds.
 4. **WebSocket Broadcast:** Event handlers invoke `IVehicleHubNotifier` (`SignalRVehicleHubNotifier`), pushing typed real-time payloads (`VehicleActionLogged`, `VehicleAging`, `VehicleAdded`) over `/hubs/inventory`.
-5. **Client Signal Reactivity:** Angular 19 `RealtimeService` receives push messages via WebSocket, updating reactive Angular Signals (`signal()`, `computed()`) across all active manager browsers without page reload.
+5. **Client State Reactivity:** React 19 `realtimeService` receives push messages via WebSocket, dispatching Redux Toolkit actions and notifying subscribed components across all active manager browsers without page reload.
 
 ---
 
@@ -282,10 +282,10 @@ Against the ~733-vehicle seed, the aggregate dashboard endpoint (`GET /api/v1/da
 
 ## UI overview
 
-Executive Material Design 3 shell built on Angular 19 SPA architecture:
+Executive Material Design 3 shell built on React 19 + Vite SPA architecture:
 
-- **Standalone Component Hierarchy:** Clean component tree (`standalone: true`) with zero `NgModule` overhead, tree-shaken bundles, and lazy-loaded routes.
-- **Signals & Reactive State:** Component state managed via Angular Signals (`signal()`, `computed()`), ensuring pinpoint DOM node updates without expensive zone-wide dirty checking.
+- **Modular Function Component Hierarchy:** Clean component tree with Vite code-splitting (`React.lazy` + `Suspense`), scoped component SCSS, and role-guarded routes.
+- **Redux Toolkit & Hooks State:** Cross-cutting state (auth, theme, toasts, dealerships, real-time feed) managed via Redux Toolkit slices, paired with React hooks (`useState`, `useMemo`) for responsive local UI updates.
 - **Executive Portfolio Summary:** Real-time KPI widgets displaying total portfolio asset valuation ($3.1M+), fleet size, average days on lot, and critical units at risk.
 - **Visual Aging Stock Badges:** Dynamic color-coded tenure tiers:
   - **Fresh Stock (<60 Days):** Green badge indicating healthy turnover.
@@ -306,9 +306,9 @@ This project was engineered through a disciplined partnership between human arch
 1. **Requirements Deconstruction & Domain Economics ([`docs/plan/`](./docs/plan)):**  
    Before generating code, I engaged the AI to analyze automotive carrying costs ($25–$40 per vehicle per day in holding and floor-plan interest) and codify 20 immutable business invariants into a single source of truth: [`docs/plan/business.md`](./docs/plan/business.md). Technical plans ([`backend.md`](./docs/plan/backend.md), [`database.md`](./docs/plan/database.md), [`frontend.md`](./docs/plan/frontend.md)) were generated strictly to fulfill the business blueprint.
 2. **Constraints Before Code:**  
-   Strict technical boundaries were set up front: Modular Monolith, Clean Architecture, CQRS/MediatR, in-process domain events only (no external message brokers), FastEndpoints REPR vertical slices, EF Core 10 with SQL Server, Angular 19 standalone components with Signals, and comprehensive test coverage.
+   Strict technical boundaries were set up front: Modular Monolith, Clean Architecture, CQRS/MediatR, in-process domain events only (no external message brokers), FastEndpoints REPR vertical slices, EF Core 10 with SQL Server, React 19 with Redux Toolkit (`IID.FrontendApp`), and comprehensive test coverage.
 3. **Slice by Layer:**  
-   Development proceeded methodically from the inside out: `Domain` → `Application` → `Infrastructure` → `Api` → `ClientApp` → `Tests` → `Docs`. This prevented cross-cutting pollution and ensured each layer had well-defined inputs, outputs, and contracts.
+   Development proceeded methodically from the inside out: `Domain` → `Application` → `Infrastructure` → `Api` → `FrontendApp` → `Tests` → `Docs`. This prevented cross-cutting pollution and ensured each layer had well-defined inputs, outputs, and contracts.
 4. **Architectural Scope Control & Simplicity:**  
    I actively pruned speculative AI suggestions (such as premature microservice decomposition, multi-tenancy overhead, or NoSQL document databases), maintaining strict ACID guarantees and rapid delivery focused on the Dealership Manager's decision loop.
 
