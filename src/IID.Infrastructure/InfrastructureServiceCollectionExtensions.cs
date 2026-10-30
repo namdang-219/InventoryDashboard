@@ -1,15 +1,33 @@
 using IID.Application.Common.Interfaces;
+using IID.Application.Common.Messaging;
+using IID.Infrastructure.Configuration;
+using IID.Infrastructure.Messaging;
 using IID.Infrastructure.Persistence.Interceptors;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IID.Infrastructure;
 
 public static class InfrastructureServiceCollectionExtensions
 {
-    public static IServiceCollection AddIidInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddIidInfrastructure(
+        this IServiceCollection services,
+        IConfiguration? configuration = null)
     {
+        if (configuration is not null)
+        {
+            services.Configure<KafkaConfiguration>(configuration.GetSection(KafkaConfiguration.Name));
+        }
+        else
+        {
+            services.AddOptions<KafkaConfiguration>();
+        }
+
+        services.AddSingleton<IKafkaEventProducer, ConfluentKafkaEventProducer>();
+        services.AddSingleton<KafkaTopicProvisioner>();
+
         services.AddScoped<IClock, System.SystemClock>();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, Identity.HttpContextCurrentUser>();
@@ -26,6 +44,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IVehicleRepository, Persistence.Repositories.VehicleRepository>();
         services.AddScoped<IVehicleActionRepository, Persistence.Repositories.VehicleActionRepository>();
         services.AddScoped<IUserActivityReadRepository, Persistence.Repositories.UserActivityReadRepository>();
+        services.AddScoped<IDashboardSnapshotRepository, Persistence.Repositories.DashboardSnapshotRepository>();
         services.AddScoped<IID.Application.Features.Dashboard.Services.DashboardService>();
         services.AddScoped<IDashboardService, IID.Application.Features.Dashboard.Services.DashboardService>();
 

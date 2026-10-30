@@ -44,7 +44,10 @@ public sealed class CreateVehicleActionEndpoint(ISender sender) : Endpoint<Creat
             return;
         }
 
-        await Send.CreatedAtAsync($"/api/v1/vehicle-actions/{result.Value}",
-            new { data = new { id = result.Value } }, cancellation: ct);
+        HttpContext.Response.Headers.Location = $"/api/v1/vehicle-actions/{result.Value}";
+        await Send.ResponseAsync(
+            new { data = new { id = result.Value } },
+            StatusCodes.Status201Created,
+            ct);
     }
 }

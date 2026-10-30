@@ -64,12 +64,26 @@ public sealed class SignalRVehicleHubNotifier(
     public Task VehicleActionLoggedAsync(VehicleAction a, CancellationToken ct)
         => VehicleActionLoggedAsync(a, null, ct);
 
-    public Task DashboardSummaryUpdatedAsync(IID.Application.Dashboard.Dtos.DashboardSummaryDto summary, CancellationToken ct)
-        => hub.Clients.All.DashboardSummaryUpdated(mapper.MapSummary(summary));
+    private static string ResolveDashboardGroup(Guid? dealershipId)
+        => dealershipId.HasValue && dealershipId.Value != Guid.Empty
+            ? InventoryHubConstants.DealershipGroup(dealershipId.Value)
+            : InventoryHubConstants.DashboardGroup;
 
-    public Task DashboardAlertsUpdatedAsync(IReadOnlyList<IID.Application.Dashboard.Dtos.DashboardAlertDto> alerts, CancellationToken ct)
-        => hub.Clients.All.DashboardAlertsUpdated(alerts.Select(mapper.MapAlert).ToList());
+    public Task DashboardSummaryUpdatedAsync(
+        IID.Application.Dashboard.Dtos.DashboardSummaryDto summary,
+        CancellationToken ct,
+        Guid? dealershipId = null)
+        => hub.Clients.Group(ResolveDashboardGroup(dealershipId))
+            .DashboardSummaryUpdated(mapper.MapSummary(summary));
 
-    public Task InventoryChangedAsync(CancellationToken ct)
-        => hub.Clients.All.InventoryChanged();
+    public Task DashboardAlertsUpdatedAsync(
+        IReadOnlyList<IID.Application.Dashboard.Dtos.DashboardAlertDto> alerts,
+        CancellationToken ct,
+        Guid? dealershipId = null)
+        => hub.Clients.Group(ResolveDashboardGroup(dealershipId))
+            .DashboardAlertsUpdated(alerts.Select(mapper.MapAlert).ToList());
+
+    public Task InventoryChangedAsync(CancellationToken ct, Guid? dealershipId = null)
+        => hub.Clients.Group(ResolveDashboardGroup(dealershipId))
+            .InventoryChanged();
 }

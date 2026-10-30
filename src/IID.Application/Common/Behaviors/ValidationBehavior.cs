@@ -80,6 +80,10 @@ public static class ApplicationServiceCollectionExtensions
             }
         }
 
+        services.AddScoped<IID.Application.Common.Interfaces.IDashboardSnapshotCalculator,
+            IID.Application.Features.Dashboard.Services.DashboardSnapshotCalculator>();
+        services.AddScoped<IID.Application.Common.Interfaces.IDashboardSnapshotRefresher,
+            IID.Application.Features.Dashboard.Services.DashboardSnapshotRefresher>();
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
         return services;

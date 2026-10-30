@@ -22,6 +22,66 @@ namespace IID.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("IID.Domain.Dashboard.DashboardSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionCenterJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AiInsightsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ChartsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("ComputedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DealershipId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LowInventoryAlertsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("QuickStatsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RealtimeAlertsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ScopeKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SummaryJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DealershipId")
+                        .HasDatabaseName("IX_DashboardSnapshots_DealershipId");
+
+                    b.HasIndex("ScopeKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_DashboardSnapshots_ScopeKey");
+
+                    b.ToTable("DashboardSnapshots", (string)null);
+                });
+
             modelBuilder.Entity("IID.Domain.Dealerships.Dealership", b =>
                 {
                     b.Property<Guid>("Id")
@@ -201,10 +261,6 @@ namespace IID.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("SoldAt")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("SoldByUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -468,8 +524,8 @@ namespace IID.Infrastructure.Migrations
 
             modelBuilder.Entity("IID.Domain.Vehicles.Vehicle", b =>
                 {
-                    b.HasOne("IID.Domain.Dealerships.Dealership", "Dealership")
-                        .WithMany("Vehicles")
+                    b.HasOne("IID.Domain.Dealerships.Dealership", null)
+                        .WithMany()
                         .HasForeignKey("DealershipId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -546,8 +602,6 @@ namespace IID.Infrastructure.Migrations
                     b.Navigation("AskingPrice")
                         .IsRequired();
 
-                    b.Navigation("Dealership");
-
                     b.Navigation("PurchasePrice")
                         .IsRequired();
 
@@ -603,11 +657,6 @@ namespace IID.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("IID.Domain.Dealerships.Dealership", b =>
-                {
-                    b.Navigation("Vehicles");
                 });
 #pragma warning restore 612, 618
         }

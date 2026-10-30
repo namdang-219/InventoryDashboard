@@ -1,3 +1,4 @@
+using IID.Domain.Dashboard;
 using IID.Domain.Dealerships;
 using IID.Domain.Notifications;
 using IID.Infrastructure.Identity;
@@ -19,6 +20,7 @@ public sealed class IidDbContext(
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<VehicleAction> VehicleActions => Set<VehicleAction>();
     public DbSet<UserActivityReadStatus> UserActivityReadStatuses => Set<UserActivityReadStatus>();
+    public DbSet<DashboardSnapshot> DashboardSnapshots => Set<DashboardSnapshot>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

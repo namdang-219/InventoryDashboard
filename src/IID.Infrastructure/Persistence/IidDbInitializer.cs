@@ -1,3 +1,5 @@
+using IID.Application.Common.Messaging;
+using IID.Domain.Dashboard;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using IID.Infrastructure.Identity;
@@ -16,7 +18,8 @@ public sealed class IidDbInitializer(
     IidDbContext db,
     IEnumerable<IidSeeder> seeders,
     IOptions<SeedOptions> options,
-    ILogger<IidDbInitializer> logger)
+    ILogger<IidDbInitializer> logger,
+    IKafkaEventProducer? kafkaProducer = null)
 {
     private readonly IidDbContext _db = db;
     private readonly IidSeeder[] _seeders = seeders.ToArray();
@@ -80,6 +83,28 @@ public sealed class IidDbInitializer(
             {
                 // Never block startup over a bad seed row.
                 _logger.LogError(ex, "Seeder {Seeder} failed; continuing startup.", seeder.GetType().Name);
+            }
+        }
+
+        if (kafkaProducer is not null)
+        {
+            try
+            {
+                await kafkaProducer.PublishAsync(
+                    KafkaTopics.VehicleMutations,
+                    DashboardSnapshot.GlobalScopeKey,
+                    new VehicleMutatedIntegrationEvent(
+                        Guid.NewGuid(),
+                        VehicleMutationTypes.Seeded,
+                        VehicleId: null,
+                        DealershipId: null,
+                        PreviousDealershipId: null,
+                        DateTimeOffset.UtcNow),
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not publish post-seed Kafka notification; IID.ReportGenerator bootstrap/timer will reconcile.");
             }
         }
     }

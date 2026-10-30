@@ -115,4 +115,43 @@ public sealed class VehicleRepository(IidDbContext db) : IVehicleRepository
         var items = await q.Skip((page - 1) * limit).Take(limit).ToListAsync(ct);
         return (items, total);
     }
+
+    public async Task<IReadOnlyList<Vehicle>> ListAllForScopeAsync(Guid? dealershipId, CancellationToken ct = default)
+    {
+        IQueryable<Vehicle> q = db.Vehicles.AsNoTracking();
+        if (dealershipId.HasValue && dealershipId.Value != Guid.Empty)
+            q = q.Where(v => v.DealershipId == dealershipId.Value);
+
+        return await q
+            .OrderByDescending(v => v.DateAddedToInventory)
+            .ThenByDescending(v => v.Id)
+            .ToListAsync(ct);
+    }
+
+    public async Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAgingAsync(
+        int minAgeDays,
+        int page,
+        int limit,
+        Guid? dealershipId,
+        DateTimeOffset asOfUtc,
+        CancellationToken ct = default)
+    {
+        IQueryable<Vehicle> q = db.Vehicles
+            .AsNoTracking()
+            .Where(v => v.Status != VehicleStatusEnum.Sold);
+
+        if (dealershipId.HasValue && dealershipId.Value != Guid.Empty)
+            q = q.Where(v => v.DealershipId == dealershipId.Value);
+
+        var cutoff = asOfUtc.AddDays(-minAgeDays);
+        q = q.Where(v => v.DateAddedToInventory <= cutoff)
+            .OrderBy(v => v.DateAddedToInventory)
+            .ThenBy(v => v.Id);
+
+        var total = await q.CountAsync(ct);
+        var safePage = Math.Max(1, page);
+        var safeLimit = Math.Clamp(limit, 1, 100);
+        var items = await q.Skip((safePage - 1) * safeLimit).Take(safeLimit).ToListAsync(ct);
+        return (items, total);
+    }
 }

@@ -2,13 +2,16 @@ using IID.Application.Common.Interfaces;
 using IID.Application.Common.Models;
 using IID.Application.Dashboard.Dtos;
 using IID.Application.Dashboard.Queries.Dtos;
+using IID.Application.Features.Dashboard.Services;
 using IID.Application.Logging;
-using IID.Application.Vehicles.Queries.Dtos;
+using IID.Domain.Dashboard;
 using MediatR;
 
 namespace IID.Application.Dashboard.Queries.GetDashboardBundle;
 
 public sealed class GetDashboardBundleHandler(
+    IDashboardSnapshotRepository snapshots,
+    IDashboardSnapshotCalculator calculator,
     IVehicleRepository vehicles,
     IClock clock,
     ILogger<GetDashboardBundleHandler> logger) : IRequestHandler<GetDashboardBundleQuery, Result<DashboardBundleDto>>
@@ -18,178 +21,51 @@ public sealed class GetDashboardBundleHandler(
         var now = clock.UtcNow;
         var page = Math.Max(1, q.Page);
         var pageSize = Math.Clamp(q.PageSize, 1, 100);
+        var dealershipId = q.DealershipId.HasValue && q.DealershipId.Value != Guid.Empty
+            ? q.DealershipId
+            : null;
 
-        // ── 1. Pull analytics slice ─────────────────────────────────────────
-        const int analyticsPageSize = 1000;
-        var (all, _) = await vehicles.ListAsync(
-            new VehicleListFilter(Limit: analyticsPageSize, Sort: "dateAdded", Order: "desc", DealershipId: q.DealershipId), ct);
+        var scopeKey = DashboardSnapshot.BuildScopeKey(dealershipId);
+        var snapshot = await snapshots.GetByScopeAsync(scopeKey, ct);
 
-        var analytics = new VehicleAnalyticsService(now);
+        DashboardSummaryDto summary;
+        QuickStatsDto quickStats;
+        InventoryChartsDto charts;
+        IReadOnlyList<ActionCenterItemDto> actionCenter;
+        IReadOnlyList<AiInsightDto> aiInsights;
 
-        // ── 2. Summary ──────────────────────────────────────────────────────
-        var available = all.Count(v => v.Status == VehicleStatus.Available);
-        var pending = all.Count(v => v.Status == VehicleStatus.Pending);
-        var sold = all.Count(v => v.Status == VehicleStatus.Sold);
-        var wholesale = all.Count(v => v.Status == VehicleStatus.Wholesale);
-        var active = all.Where(v => v.Status != VehicleStatus.Sold).ToList();
-        var activeInventory = active.Sum(v => v.AskingPrice.Amount);
-        var avgDays = active.Count == 0 ? 0 : (int)active.Average(v => (double)analytics.DaysInInventory(v));
-
-        var agingBuckets = analytics.BucketByAging(active);
-        var agingBySeverity = agingBuckets.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
-
-        var topMakes = all
-            .GroupBy(v => v.Make)
-            .Select(g => new MakeDistributionDto(g.Key, g.Count(), g.Sum(v => v.AskingPrice.Amount)))
-            .OrderByDescending(x => x.Count)
-            .Take(5)
-            .ToList();
-
-        var fuelMix = all
-            .GroupBy(v => v.FuelType.ToString())
-            .Select(g => new FuelTypeDistributionDto(g.Key, g.Count()))
-            .OrderByDescending(x => x.Count)
-            .ToList();
-
-        var demandDistribution = all
-            .GroupBy(v => analytics.GetDemandLevel(v).ToString())
-            .Select(g => new DemandLevelDto(g.Key, g.Count()))
-            .ToList();
-
-        var summary = new DashboardSummaryDto(
-            now,
-            all.Count,
-            available,
-            pending,
-            sold,
-            wholesale,
-            active.Count(a => analytics.IsAging(a)),
-            agingBySeverity,
-            Math.Round(activeInventory, 2),
-            active.Count == 0 ? 0m : Math.Round(activeInventory / active.Count, 2),
-            avgDays,
-            topMakes,
-            fuelMix,
-            demandDistribution);
-
-        // ── 3. Quick stats ──────────────────────────────────────────────────
-        var quickStats = new QuickStatsDto(new List<QuickStatItemDto>
+        if (snapshot is not null)
         {
-            new("Total Inventory", all.Count.ToString(), null, null, "inventory_2", "primary"),
-            new("Available", available.ToString(), null, null, "check_circle", "success"),
-            new("Aging (>90d)", active.Count(a => analytics.IsAging(a)).ToString(), null, null, "warning", "warning"),
-            new("Avg Days on Lot", avgDays.ToString(), null, null, "schedule", "primary"),
-        });
-
-        // ── 4. Chart data ──────────────────────────────────────────────────
-        var statusBreakdown = all
-            .GroupBy(v => v.Status.ToString())
-            .Select(g => new StatusBreakdownDto(g.Key, g.Count()))
-            .ToList();
-
-        var fuelBreakdown = all
-            .GroupBy(v => v.FuelType.ToString())
-            .Select(g => new FuelBreakdownDto(g.Key, g.Count()))
-            .ToList();
-
-        // Age buckets: 0-30d, 31-60d, 61-90d, 91-180d, 181+
-        var ageGroups = new Dictionary<string, int>
-        {
-            ["0–30 days"] = 0, ["31–60 days"] = 0, ["61–90 days"] = 0, ["91–180 days"] = 0, ["180+ days"] = 0
-        };
-        foreach (var v in active)
-        {
-            var d = analytics.DaysInInventory(v);
-            if (d <= 30) ageGroups["0–30 days"]++;
-            else if (d <= 60) ageGroups["31–60 days"]++;
-            else if (d <= 90) ageGroups["61–90 days"]++;
-            else if (d <= 180) ageGroups["91–180 days"]++;
-            else ageGroups["180+ days"]++;
+            summary = DashboardSnapshotSerializer.ReadSummary(snapshot);
+            quickStats = DashboardSnapshotSerializer.ReadQuickStats(snapshot);
+            charts = DashboardSnapshotSerializer.ReadCharts(snapshot);
+            actionCenter = DashboardSnapshotSerializer.ReadActionCenter(snapshot);
+            aiInsights = DashboardSnapshotSerializer.ReadAiInsights(snapshot);
         }
-        var agingHistogram = ageGroups.Select(kv => new AgingBucketDto(kv.Key, kv.Value)).ToList();
-
-        // Monthly sales: last 12 months (1 year) in chronological order for 3m, 6m, 9m, 1y range options
-        var monthlySales = new List<MonthlySalesDto>();
-        for (var i = 11; i >= 0; i--)
+        else
         {
-            var targetMonth = now.AddMonths(-i);
-            var year = targetMonth.Year;
-            var month = targetMonth.Month;
-            var label = targetMonth.ToString("MMM yyyy");
+            logger.LogWarning(
+                "Static dashboard snapshot not found for scope {ScopeKey}; computing on-demand fallback.",
+                scopeKey);
 
-            var inMonth = all.Where(v => v.Status == VehicleStatus.Sold
-                && v.SoldAt.HasValue
-                && v.SoldAt.Value.Year == year
-                && v.SoldAt.Value.Month == month).ToList();
-
-            var count = inMonth.Count;
-            var revenue = inMonth.Where(v => v.SoldPrice is not null).Sum(v => v.SoldPrice!.Amount);
-            monthlySales.Add(new MonthlySalesDto(label, count, revenue));
+            var fallback = await calculator.CalculateForScopeAsync(dealershipId, now, ct);
+            summary = fallback.Summary;
+            quickStats = fallback.QuickStats;
+            charts = fallback.Charts;
+            actionCenter = fallback.ActionCenter;
+            aiInsights = fallback.AiInsights;
         }
-
-        var charts = new InventoryChartsDto(statusBreakdown, fuelBreakdown, agingHistogram, monthlySales);
-
-        // ── 5. Action center ─────────────────────────────────────────────────
-        var actions = new List<ActionCenterItemDto>();
-        foreach (var v in active)
-        {
-            var demandScore = analytics.GetDemandScore(v);
-            var daysOnLot = analytics.DaysInInventory(v);
-
-            var severity = analytics.GetAgingSeverity(v);
-            if (severity >= AgingSeverity.Critical)
-            {
-                actions.Add(new ActionCenterItemDto(
-                    v.Id, "aging",
-                    $"Critical aging: {v.Year} {v.Make} {v.Model}",
-                    $"{daysOnLot} days on lot — consider price adjustment or wholesale.",
-                    v.Id, "critical",
-                    demandScore,
-                    daysOnLot));
-            }
-            else if (severity >= AgingSeverity.High)
-            {
-                actions.Add(new ActionCenterItemDto(
-                    v.Id, "aging",
-                    $"High aging: {v.Year} {v.Make} {v.Model}",
-                    $"{daysOnLot} days on lot.",
-                    v.Id, "warning",
-                    demandScore,
-                    daysOnLot));
-            }
-
-            var demand = analytics.GetDemandLevel(v);
-            if (demand == DemandLevel.Low)
-            {
-                actions.Add(new ActionCenterItemDto(
-                    v.Id, "demand",
-                    $"Low demand: {v.Year} {v.Make} {v.Model}",
-                    $"Demand score {demandScore}/100.",
-                    v.Id, "info",
-                    demandScore,
-                    daysOnLot));
-            }
-        }
-
-        // Sort by Priority: Critical (0) -> Warning (1) -> Info (2), then by Demand Score ASC (lowest demand = highest urgency), then DaysOnLot DESC
-        var actionCenter = actions
-            .OrderBy(a => a.Severity switch
-            {
-                "critical" => 0,
-                "warning" => 1,
-                _ => 2
-            })
-            .ThenBy(a => a.DemandScore ?? 100)
-            .ThenByDescending(a => a.DaysOnLot ?? 0)
-            .Take(20)
-            .ToList();
-
-        // ── 6. AI insights (placeholder) ───────────────────────────────────
-        var aiInsights = new List<AiInsightDto>();
 
         var (inventoryItems, inventoryTotal) = await vehicles.ListAsync(
-            new VehicleListFilter(Page: page, Limit: pageSize, Sort: "dateAdded", Order: "desc", DealershipId: q.DealershipId), ct);
+            new VehicleListFilter(
+                Page: page,
+                Limit: pageSize,
+                Sort: "dateAdded",
+                Order: "desc",
+                DealershipId: dealershipId),
+            ct);
 
+        var analytics = new VehicleAnalyticsService(now);
         var inventory = new DashboardInventoryDto(
             inventoryItems.Select(v => new DashboardVehicleDto(
                 v.Id,
@@ -216,7 +92,7 @@ public sealed class GetDashboardBundleHandler(
 
         var bundle = new DashboardBundleDto(summary, quickStats, charts, actionCenter, aiInsights, inventory);
 
-        logger.DashboardBundleGenerated(all.Count, actionCenter.Count, page);
+        logger.DashboardBundleGenerated(summary.TotalInventory, actionCenter.Count, page);
 
         return Result<DashboardBundleDto>.Success(bundle);
     }

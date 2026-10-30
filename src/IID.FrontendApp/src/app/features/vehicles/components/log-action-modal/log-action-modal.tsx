@@ -59,7 +59,7 @@ export function LogActionModalComponent({ vehicle, onClose, onActionLogged }: Lo
     inventoryService
       .getVehicleActions(vehicle.id)
       .then(res => {
-        setActions(res.data);
+        setActions(res?.data ?? []);
         setIsLoadingActions(false);
       })
       .catch(() => {
@@ -95,22 +95,26 @@ export function LogActionModalComponent({ vehicle, onClose, onActionLogged }: Lo
 
     inventoryService
       .logVehicleAction(vehicle.id, req)
-      .then(res => {
-        setIsSubmitting(false);
-        toast.success(
-          'Action Recorded',
-          `Logged "${actionType}" on ${vehicle.year} ${vehicle.make} ${vehicle.model}.`
-        );
-        setNotes('');
-        onActionLogged?.(res.data.id);
-        loadActions();
-      })
-      .catch((err: unknown) => {
-        setIsSubmitting(false);
-        const msg = extractErrorMessage(err, 'Failed to record action.');
-        setErrorMessage(msg);
-        toast.error('Action Failed', msg);
-      });
+      .then(
+        res => {
+          setIsSubmitting(false);
+          toast.success(
+            'Action Recorded',
+            `Logged "${actionType}" on ${vehicle.year} ${vehicle.make} ${vehicle.model}.`
+          );
+          setNotes('');
+          const createdId =
+            res?.data?.id ?? (res as unknown as { id?: string } | undefined)?.id ?? '';
+          onActionLogged?.(createdId);
+          loadActions();
+        },
+        (err: unknown) => {
+          setIsSubmitting(false);
+          const msg = extractErrorMessage(err, 'Failed to record action.');
+          setErrorMessage(msg);
+          toast.error('Action Failed', msg);
+        }
+      );
   }
 
   return (

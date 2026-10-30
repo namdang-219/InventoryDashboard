@@ -37,6 +37,7 @@ public sealed class InventoryHub : Hub<IInventoryClient>
     {
         if (dealershipId != Guid.Empty)
         {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, InventoryHubConstants.DashboardGroup);
             await Groups.AddToGroupAsync(Context.ConnectionId, InventoryHubConstants.DealershipGroup(dealershipId));
         }
     }
@@ -46,6 +47,7 @@ public sealed class InventoryHub : Hub<IInventoryClient>
         if (dealershipId != Guid.Empty)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, InventoryHubConstants.DealershipGroup(dealershipId));
+            await Groups.AddToGroupAsync(Context.ConnectionId, InventoryHubConstants.DashboardGroup);
         }
     }
 }

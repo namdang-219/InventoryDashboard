@@ -25,6 +25,14 @@ public interface IVehicleRepository
     void Remove(Vehicle vehicle);
     void SetRowVersion(Vehicle vehicle, byte[] rowVersion);
     Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAsync(VehicleListFilter filter, CancellationToken ct = default);
+    Task<IReadOnlyList<Vehicle>> ListAllForScopeAsync(Guid? dealershipId, CancellationToken ct = default);
+    Task<(IReadOnlyList<Vehicle> Items, int Total)> ListAgingAsync(
+        int minAgeDays,
+        int page,
+        int limit,
+        Guid? dealershipId,
+        DateTimeOffset asOfUtc,
+        CancellationToken ct = default);
 }
 
 public interface IVehicleActionRepository
@@ -77,9 +85,9 @@ public interface IVehicleHubNotifier
     Task VehicleTransferredAsync(Vehicle v, Guid sourceDealershipId, CancellationToken ct);
     Task VehicleActionLoggedAsync(Domain.VehicleActions.VehicleAction a, Vehicle? v, CancellationToken ct);
     Task VehicleActionLoggedAsync(Domain.VehicleActions.VehicleAction a, CancellationToken ct);
-    Task DashboardSummaryUpdatedAsync(DashboardSummaryDto summary, CancellationToken ct);
-    Task DashboardAlertsUpdatedAsync(IReadOnlyList<DashboardAlertDto> alerts, CancellationToken ct);
-    Task InventoryChangedAsync(CancellationToken ct);
+    Task DashboardSummaryUpdatedAsync(DashboardSummaryDto summary, CancellationToken ct, Guid? dealershipId = null);
+    Task DashboardAlertsUpdatedAsync(IReadOnlyList<DashboardAlertDto> alerts, CancellationToken ct, Guid? dealershipId = null);
+    Task InventoryChangedAsync(CancellationToken ct, Guid? dealershipId = null);
 }
 
 /// <summary>

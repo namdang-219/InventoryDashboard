@@ -15,17 +15,16 @@ public sealed class GetDashboardAgingHandler(
         var page = Math.Max(1, q.Page);
         var limit = Math.Clamp(q.Limit, 1, 100);
 
-        // Pull a generous page to filter by age server-side
-        const int fetchSize = 500;
-        var (items, _) = await vehicles.ListAsync(
-            new VehicleListFilter(Limit: fetchSize, Sort: "dateAdded", Order: "asc", DealershipId: q.DealershipId), ct);
+        var (items, total) = await vehicles.ListAgingAsync(
+            q.MinAgeDays,
+            page,
+            limit,
+            q.DealershipId,
+            now,
+            ct);
 
         var analytics = new VehicleAnalyticsService(now);
-
-        // Filter to aging vehicles and map
-        var aging = items
-            .Where(v => v.Status != VehicleStatus.Sold && analytics.DaysInInventory(v) >= q.MinAgeDays)
-            .OrderByDescending(v => analytics.DaysInInventory(v))
+        var paged = items
             .Select(v => new AgingStockItemDto(
                 v.Id,
                 v.Vin.Value,
@@ -41,9 +40,7 @@ public sealed class GetDashboardAgingHandler(
                 analytics.GetDemandLevel(v).ToString()))
             .ToList();
 
-        var total = aging.Count;
-        var paged = aging.Skip((page - 1) * limit).Take(limit).ToList();
-
-        return Result<PagedResult<AgingStockItemDto>>.Success(new PagedResult<AgingStockItemDto>(paged, page, limit, total));
+        return Result<PagedResult<AgingStockItemDto>>.Success(
+            new PagedResult<AgingStockItemDto>(paged, page, limit, total));
     }
 }

@@ -1,20 +1,12 @@
 # Intelligent Inventory Dashboard — local container stack.
-# Brings up SQL Server 2022 + the IID.Api service wired together.
+# Brings up SQL Server 2022 + Apache Kafka (KRaft) + IID.Api + IID.ReportGenerator + OpenObserve.
 #
 # Usage:
-#   cp .env.example .env        # one-time, then edit secrets if you want
-#   docker compose up --build   # foreground
+#   cp .env.example .env         # one-time, then edit secrets if you want
+#   docker compose up --build    # foreground
 #   docker compose up -d --build # detached
-#   docker compose down         # stop + remove containers
-#   docker compose down -v      # also drop the persisted SQL data volume
-#
-# Notes:
-#   - The api waits on db via depends_on: { db: { condition: service_started } }
-#     but does NOT wait for the DB to be query-ready — apply migrations first.
-#   - Connection string is interpolated from .env via ${MSSQL_SA_PASSWORD}.
-#   - On Apple Silicon (arm64) the SQL image runs through qemu emulation; if you'd
-#     rather use the native arm64 build, switch the image to
-#     mcr.microsoft.com/azure-sql-edge:latest (then drop the -No flag in the healthcheck).
+#   docker compose down          # stop + remove containers
+#   docker compose down -v       # also drop persisted data volumes
 
 name: iid
 
@@ -43,6 +35,37 @@ services:
       start_period: 120s
     restart: unless-stopped
 
+  kafka:
+    image: apache/kafka:latest
+    container_name: iid-kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+    ports:
+      - "9092:9092"
+    volumes:
+      - iid_kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    restart: unless-stopped
+
   api:
     build:
       # Same directory as docker-compose.yml (= the repo root).
@@ -55,11 +78,14 @@ services:
       ASPNETCORE_URLS: http://+:8080
       # SQL Server inside compose is reachable by service name "db" (standard port 1433).
       ConnectionStrings__IID: "Server=db;Database=IID;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
+      Kafka__Enabled: "true"
+      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+      Kafka__DebounceWindowMs: ${KAFKA_DEBOUNCE_WINDOW_MS:-200}
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER:-iid.local}
       Jwt__Audience: ${JWT_AUDIENCE:-iid.client}
       Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-60}
-      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:4200}
       OpenObserve__Enabled: "true"
       OpenObserve__Endpoint: "http://openobserve:5080/api/default"
       OpenObserve__AuthToken: ${OPENOBSERVE_AUTH_TOKEN:-YWRtaW5AaWlkLmxvY2FsOlBAc3N3MHJkIU9wZW5PYnNlcnZl}
@@ -72,6 +98,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
       openobserve:
         condition: service_started
     deploy:
@@ -82,6 +110,42 @@ services:
         limits:
           cpus: '2'
           memory: 4096M
+    restart: unless-stopped
+
+  report-generator:
+    build:
+      context: .
+      dockerfile: src/IID.Services/IID.ReportGenerator/Dockerfile
+    container_name: iid-report-generator
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__IID: "Server=db;Database=IID;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
+      Kafka__Enabled: "true"
+      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+      Kafka__DebounceWindowMs: ${KAFKA_DEBOUNCE_WINDOW_MS:-200}
+      DashboardSnapshots__AgingRefreshMinutes: ${DASHBOARD_AGING_REFRESH_MINUTES:-60}
+      OpenObserve__Enabled: "true"
+      OpenObserve__Endpoint: "http://openobserve:5080/api/default"
+      OpenObserve__AuthToken: ${OPENOBSERVE_AUTH_TOKEN:-YWRtaW5AaWlkLmxvY2FsOlBAc3N3MHJkIU9wZW5PYnNlcnZl}
+      OpenObserve__StreamName: ${REPORT_GENERATOR_STREAM_NAME:-iid-report-generator}
+      OpenObserve__ServiceName: "IID.ReportGenerator"
+      OpenObserve__ServiceVersion: ${OTEL_SERVICE_VERSION:-1.0.0}
+      OpenObserve__Environment: ${OTEL_ENVIRONMENT:-Production}
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      openobserve:
+        condition: service_started
+    deploy:
+      resources:
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+        limits:
+          cpus: '1'
+          memory: 2048M
     restart: unless-stopped
 
   openobserve:
@@ -100,5 +164,7 @@ services:
 volumes:
   iid_mssql_data:
     name: iid_mssql_data
+  iid_kafka_data:
+    name: iid_kafka_data
   iid_openobserve_data:
     name: iid_openobserve_data

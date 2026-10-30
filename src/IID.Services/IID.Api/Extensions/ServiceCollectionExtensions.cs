@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+using IID.Api.HostedServices;
 using IID.Api.Middleware;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
@@ -49,7 +50,8 @@ public static class ServiceCollectionExtensions
             .AddIidAuthorization()
             .AddIidRealtime()
             .AddIidApplication()
-            .AddIidInfrastructure()
+            .AddIidInfrastructure(configuration)
+            .AddHostedService<DashboardUpdatesConsumerHostedService>()
             .AddIidObservability(configuration)
             .AddIidCors(configuration)
             .AddIidFastEndpointsWithSwagger(configuration);

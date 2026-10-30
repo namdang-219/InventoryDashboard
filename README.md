@@ -21,20 +21,19 @@ The **Intelligent Inventory Dashboard (IID)** is an enterprise vehicle inventory
 
 ## Architecture
 
-Clean Architecture with CQRS (MediatR), FastEndpoints (REPR), in-process domain events, EF Core 10, SQL Server 2022, SignalR, and OpenTelemetry observability.
+Clean Architecture with CQRS (MediatR), FastEndpoints (REPR), Apache Kafka (KRaft) event streaming, static precomputed dashboard snapshots (`IID.ReportGenerator`), EF Core 10, SQL Server 2022, SignalR, and OpenTelemetry observability.
 
 ![Architecture Overview](./docs/images/overview.png)
 
 **Design decisions**
 
-- **Modular Monolith & Clean Architecture:** Dependencies point strictly inward. Domain aggregates contain pure business logic with zero framework or external dependencies.
+- **Modular Clean Architecture + Dedicated Worker:** Dependencies point strictly inward. `IID.Api` handles HTTP/SignalR workloads while `IID.ReportGenerator` asynchronously maintains precomputed dashboard read models.
 - **FastEndpoints REPR Pattern:** Vertical-slice Request-Endpoint-Response presentation architecture replaces legacy MVC controllers, delivering sub-20ms execution and automated OpenAPI v3 contracts.
 - **CQRS via MediatR:** Strict separation of read and write workloads with pipeline behaviors (`ValidationBehavior` for FluentValidation, `PerformanceBehavior` for latency tracking).
-- **In-Process Domain Events:** State mutations stage domain events; `DomainEventDispatchInterceptor` publishes them via MediatR only after successful database transaction commits (no message brokers or outbox required).
-- **Single-Roundtrip Aggregate Dashboard:** `GET /api/v1/dashboard?dealershipId={id}&page=1&pageSize=20` loads executive KPIs, portfolio valuations, aging counts, powertrain distributions, and paginated inventory in one roundtrip.
-- **Real-Time SignalR Push:** `IVehicleHubNotifier` broadcasts WebSocket events (`VehicleActionLogged`, `VehicleAging`, `VehicleAdded`) over `/hubs/inventory` for instant multi-user synchronization.
-- **Automated Background Worker:** `AgingStockMonitorService` runs periodically in the background, scanning inventory against the 90-day aging threshold to flag high-risk capital.
-- **Full-Stack Observability:** Centralized logs, APM distributed traces, and metrics exported via OpenTelemetry to OpenObserve.
+- **Kafka-Driven Static Dashboard Snapshots:** Vehicle and dealership mutations publish post-commit events directly to Apache Kafka (`iid.vehicle-mutations`). `IID.ReportGenerator` coalesces burst events (`200ms` window), recomputes affected `DashboardSnapshots` rows in SQL Server (`"global"` and `"dealership:{id}"`), runs an hourly aging refresh, and publishes updates to `iid.dashboard-updates`.
+- **O(1) Single-Roundtrip Dashboard Reads:** `GET /api/v1/dashboard?dealershipId={id}&page=1&pageSize=20` serves precomputed KPIs, portfolio valuations, charts, and action-center items via a single-row lookup in `DashboardSnapshots` paired with a 20-row indexed inventory page fetch.
+- **Dealership-Scoped Real-Time SignalR Push:** `IID.Api` consumes `iid.dashboard-updates` and broadcasts `DashboardSummaryUpdated`, `DashboardAlertsUpdated`, and `InventoryChanged` scoped per `dealership:{id}` group (or `inventory-dashboard` for global views) over `/hubs/inventory`.
+- **Full-Stack Observability:** Centralized logs, APM distributed traces, and metrics exported via OpenTelemetry to OpenObserve across both `IID.Api` and `IID.ReportGenerator`.
 
 ---
 
@@ -48,9 +47,9 @@ Clean Architecture with CQRS (MediatR), FastEndpoints (REPR), in-process domain 
 
 ---
 
-### 1. Start the Container Stack (SQL Server, API & OpenObserve)
+### 1. Start the Container Stack (SQL Server, Kafka, API, ReportGenerator & OpenObserve)
 
-All backend services—including SQL Server 2022, the containerized .NET 10 API, and OpenObserve—are orchestrated via Docker Compose:
+All backend services—including SQL Server 2022, Apache Kafka (KRaft), `IID.Api`, `IID.ReportGenerator`, and OpenObserve—are orchestrated via Docker Compose:
 
 ```bash
 # Build and start all services in detached mode
@@ -59,13 +58,14 @@ docker compose up -d --build
 
 - **API & Swagger UI:** [http://localhost:8080/swagger](http://localhost:8080/swagger)
 - **API Base URL:** `http://localhost:8080`
+- **Apache Kafka (KRaft):** `localhost:9092` (host) / `kafka:29092` (internal Docker network)
 - **SQL Server 2022:** `localhost:1434` (sa / `YourStrong!Passw0rd` from `.env.example`)
 - **OpenObserve Observability:** [http://localhost:5080](http://localhost:5080) (`admin@iid.local` / `P@ssw0rd!OpenObserve`)
-- **Automatic Initialization:** EF Core migrations and sample data seeder (~733 vehicles across 10 dealerships) execute automatically on API startup.
+- **Automatic Initialization:** EF Core migrations and sample data seeder (~733 vehicles across 10 dealerships) execute automatically on API startup, while `IID.ReportGenerator` bootstraps static `DashboardSnapshots` for global and per-dealership views.
 
-To tail logs from the API:
+To tail logs from the API and ReportGenerator:
 ```bash
-docker compose logs -f api
+docker compose logs -f api report-generator
 ```
 
 ---
@@ -85,7 +85,7 @@ npm start
 
 ### 3. Run Automated Tests
 
-The solution includes **251 automated tests** covering domain invariants, CQRS handlers, EF Core mappings, and API routing:
+The solution includes **270 automated backend tests** covering domain invariants, static dashboard snapshot calculations, Kafka event handlers, CQRS handlers, EF Core mappings, and API routing:
 
 ```bash
 # Run all tests across the solution
@@ -100,12 +100,12 @@ dotnet test
 ├────────────────────────┬─────────────┬───────────┬──────────────┬────────────────┤
 │ Test Project           │ Total Tests │ Passed    │ Failed/Skip  │ Run Duration   │
 ├────────────────────────┼─────────────┼───────────┼──────────────┼────────────────┤
-│ IID.Domain.Tests       │ 123         │ 123 (100%)│ 0            │ 59 ms          │
-│ IID.Application.Tests  │ 108         │ 108 (100%)│ 0            │ 188 ms         │
-│ IID.Infrastructure.Tests│ 12         │ 12 (100%) │ 0            │ 831 ms         │
-│ IID.Api.Tests          │ 8           │ 8 (100%)  │ 0            │ 120 ms         │
+│ IID.Domain.Tests       │ 127         │ 127 (100%)│ 0            │ 59 ms          │
+│ IID.Application.Tests  │ 120         │ 120 (100%)│ 0            │ 246 ms         │
+│ IID.Infrastructure.Tests│ 15         │ 15 (100%) │ 0            │ ~1.00 s        │
+│ IID.Api.Tests          │ 8           │ 8 (100%)  │ 0            │ 125 ms         │
 ├────────────────────────┼─────────────┼───────────┼──────────────┼────────────────┤
-│ Total Solution Tests   │ 251         │ 251 (100%)│ 0            │ ~1.20 Seconds  │
+│ Total Solution Tests   │ 270         │ 270 (100%)│ 0            │ ~1.43 Seconds  │
 └────────────────────────┴─────────────┴───────────┴──────────────┴────────────────┘
 ```
 
@@ -140,10 +140,12 @@ The automated benchmark suite under `tools/k6` measures the primary aggregation 
 ```
 IID/
 ├── src/
-│   ├── IID.Domain/             # Pure DDD entities (Vehicle, Dealership, VehicleAction), value objects (Vin, Money), domain events
-│   ├── IID.Application/        # MediatR CQRS commands/queries, FluentValidation behaviors, DTOs, interfaces
-│   ├── IID.Infrastructure/     # EF Core 10, SQL Server configurations, SignalR hub & notifiers, OpenTelemetry, seeders
-│   ├── IID.Api/                # FastEndpoints REPR endpoints, Program.cs, Swagger OpenAPI, Dockerfile
+│   ├── IID.Domain/             # Pure DDD entities (Vehicle, Dealership, VehicleAction, DashboardSnapshot), value objects, domain events
+│   ├── IID.Application/        # MediatR CQRS commands/queries, DashboardSnapshotCalculator/Refresher, Kafka integration contracts
+│   ├── IID.Infrastructure/     # EF Core 10, SQL Server configurations, Confluent.Kafka producer/provisioner, SignalR hub & notifiers
+│   ├── IID.Services/
+│   │   ├── IID.Api/            # FastEndpoints REPR endpoints, DashboardUpdatesConsumerHostedService, Swagger OpenAPI, Dockerfile
+│   │   └── IID.ReportGenerator/# .NET 10 Worker Service: bootstrap initializer, Kafka mutation consumer (200ms coalescing), hourly aging refresh
 │   └── IID.FrontendApp/        # React 19 SPA (Vite, Redux Toolkit, React Router, Axios, SCSS)
 ├── tests/
 │   ├── IID.Domain.Tests/       # 123 tests (invariants, ISO 3779 VIN validation, monetary math, aging calculations)
@@ -229,8 +231,9 @@ Against the ~733-vehicle seed, the aggregate dashboard endpoint (`GET /api/v1/da
 | `DeletedAt`               | datetimeoffset null    | Soft-delete query filter (`WHERE DeletedAt IS NULL`)                |
 | `RowVersion`              | timestamp / rowversion | Optimistic concurrency token                                        |
 
-### Ops & history
+### Ops, read models & history
 
+- `DashboardSnapshots` — `Id` (Guid PK), `ScopeKey` (`"global"` or `"dealership:{id}"`, Unique `UX_DashboardSnapshots_ScopeKey`), `DealershipId`, precomputed JSON columns (`SummaryJson`, `QuickStatsJson`, `ChartsJson`, `ActionCenterJson`, `AiInsightsJson`, `LowInventoryAlertsJson`, `RealtimeAlertsJson`), `ComputedAtUtc`, `Version`
 - `VehicleAction` — `Id` (Guid PK), `VehicleId` (FK to Vehicle), `ActionType` (PriceReductionPlanned, WholesaleTransfer, AdCampaignBoost, GeneralManagerReview), `Notes` (nvarchar 2000), `LoggedByUserId` (nvarchar 450), `LoggedAt` (datetimeoffset), `DeletedAt` (soft delete)
 - `UserActivityReadStatus` — `UserId`, `ActivityId`, `ReadAtUtc` (tracks unread notification counters per user)
 - `AspNetUsers` / `AspNetRoles` — ASP.NET Identity tables with `Manager` and `Saler` role hierarchy
