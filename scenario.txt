@@ -1,4 +1,4 @@
-Scenario B: The Intelligent Inventory Dashboard
+Scenario: The Intelligent Inventory Dashboard
 
 • Domain: Supply
 
