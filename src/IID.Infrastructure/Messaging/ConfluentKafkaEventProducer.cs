@@ -61,6 +61,7 @@ public sealed class ConfluentKafkaEventProducer : IKafkaEventProducer, IDisposab
         => topic switch
         {
             KafkaTopics.VehicleMutations => _options.VehicleMutationsTopic,
+            KafkaTopics.VehicleMutationsDlq => _options.VehicleMutationsDlqTopic,
             KafkaTopics.DashboardUpdates => _options.DashboardUpdatesTopic,
             _ => topic
         };

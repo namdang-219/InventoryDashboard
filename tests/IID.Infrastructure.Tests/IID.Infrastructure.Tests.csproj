@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\IID.Services\IID.ReportGenerator\IID.ReportGenerator.csproj" />
     <ProjectReference Include="..\..\src\IID.Infrastructure\IID.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\IID.Application\IID.Application.csproj" />
     <ProjectReference Include="..\..\src\IID.Domain\IID.Domain.csproj" />

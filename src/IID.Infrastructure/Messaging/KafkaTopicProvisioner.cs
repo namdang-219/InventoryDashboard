@@ -26,8 +26,9 @@ public sealed class KafkaTopicProvisioner(
         var topics = new[]
         {
             _options.VehicleMutationsTopic,
+            _options.VehicleMutationsDlqTopic,
             _options.DashboardUpdatesTopic
-        }.Distinct(StringComparer.Ordinal).ToArray();
+        }.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.Ordinal).ToArray();
 
         const int maxAttempts = 15;
         for (var attempt = 1; attempt <= maxAttempts && !ct.IsCancellationRequested; attempt++)

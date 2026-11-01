@@ -5,6 +5,7 @@ namespace IID.Application.Common.Messaging;
 public static class KafkaTopics
 {
     public const string VehicleMutations = "iid.vehicle-mutations";
+    public const string VehicleMutationsDlq = "iid.vehicle-mutations.dlq";
     public const string DashboardUpdates = "iid.dashboard-updates";
 }
 
@@ -27,6 +28,15 @@ public sealed record VehicleMutatedIntegrationEvent(
     Guid? DealershipId,
     Guid? PreviousDealershipId,
     DateTimeOffset OccurredAtUtc);
+
+public sealed record VehicleMutationDeadLetterIntegrationEvent(
+    Guid DeadLetterId,
+    string SourceTopic,
+    IReadOnlyList<VehicleMutatedIntegrationEvent> Mutations,
+    int RetryCount,
+    string ErrorType,
+    string ErrorMessage,
+    DateTimeOffset FailedAtUtc);
 
 public sealed record DashboardSnapshotUpdatedIntegrationEvent(
     Guid EventId,
