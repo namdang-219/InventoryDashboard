@@ -13,5 +13,6 @@
     <Project Path="tests/IID.Application.Tests/IID.Application.Tests.csproj" />
     <Project Path="tests/IID.Domain.Tests/IID.Domain.Tests.csproj" />
     <Project Path="tests/IID.Infrastructure.Tests/IID.Infrastructure.Tests.csproj" />
+    <Project Path="tests/IID.ReportGenerator.Tests/IID.ReportGenerator.Tests.csproj" />
   </Folder>
 </Solution>
